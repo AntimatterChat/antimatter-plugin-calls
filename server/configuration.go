@@ -728,12 +728,12 @@ func (p *Plugin) isSingleHandler() bool {
 	cfg := p.API.GetConfig()
 	pluginCfg := p.getConfiguration()
 
-	if cfg == nil || pluginCfg == nil || p.licenseChecker == nil {
+	if cfg == nil || pluginCfg == nil {
 		return false
 	}
 
 	rtcdURL := pluginCfg.getRTCDURL()
-	hasRTCD := rtcdURL != "" && p.licenseChecker.RTCDAllowed()
+	hasRTCD := rtcdURL != ""
 
 	if hasRTCD {
 		return false

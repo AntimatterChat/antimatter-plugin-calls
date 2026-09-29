@@ -164,9 +164,9 @@ func (p *Plugin) OnActivate() (retErr error) {
 
 	// rtcServer and rtcdManager are mutually exclusive throughout the entire lifetime of the plugin.
 	// Which one is used is decided here, during activation.
-	// We first check if RTCD is configured and allowed by the license. If so
+	// We first check if RTCD is configured. If so
 	// we try to initialize its connection and fail to start the plugin if that errors.
-	if rtcdURL := cfg.getRTCDURL(); rtcdURL != "" && p.licenseChecker.RTCDAllowed() {
+	if rtcdURL := cfg.getRTCDURL(); rtcdURL != "" {
 		rtcdManager, err := p.newRTCDClientManager(rtcdURL)
 		if err != nil {
 			err = fmt.Errorf("failed to create rtcd manager: %w", err)
