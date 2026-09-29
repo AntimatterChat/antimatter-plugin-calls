@@ -40,10 +40,6 @@
         "translation": "Fout bij het bewaren van de configuratie."
     },
     {
-        "id": "app.add_user_session.group_calls_not_allowed_error",
-        "translation": "Calls op servers zonder licentie zijn alleen beschikbaar in privé-berichten."
-    },
-    {
         "id": "app.push_notification.inviting_message",
         "translation": "{{.SenderName}} nodigt je uit voor een gesprek"
     },

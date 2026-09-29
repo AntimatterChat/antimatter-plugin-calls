@@ -1,9 +1,5 @@
 [
     {
-        "id": "app.add_user_session.group_calls_not_allowed_error",
-        "translation": "Skambučiai nelicencijuotuose serveriuose galimi tik DM."
-    },
-    {
         "id": "app.admin.concurrent_sessions_warning.pro_or_e0",
         "translation": "Primygtinai rekomenduojame atnaujinti [Enterprise](https://mattermost.com/pricing/) ir [įdiegti RTCD paslaugą](https://mattermost.com/pl/calls-deployment-the-rtcd-service), kad skambučių apdorojimas būtų perkeltas į atskirą egzempliorių ir būtų išlaikytas pagrindinio \"Mattermost\" serverio našumas, mastelio keitimas ir patikimumas."
     },

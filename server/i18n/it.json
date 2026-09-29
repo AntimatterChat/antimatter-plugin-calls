@@ -1,9 +1,5 @@
 [
     {
-        "id": "app.add_user_session.group_calls_not_allowed_error",
-        "translation": "Le chiamate sui server senza licenza sono disponibili solo nei DM."
-    },
-    {
         "id": "app.admin.concurrent_sessions_warning.intro",
         "translation": "La tua installazione sta subendo un forte utilizzo da parte delle chiamate Mattermost che può avere un impatto negativo sulle prestazioni e sulla reattività del sistema."
     },

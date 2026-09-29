@@ -28,10 +28,6 @@
         "translation": "Misslyckades med att spara konfigurationen."
     },
     {
-        "id": "app.add_user_session.group_calls_not_allowed_error",
-        "translation": "Calls är bara tillgänglig i DM:s med en olicensierad Mattermost-server."
-    },
-    {
         "id": "app.admin.concurrent_sessions_warning.enterprise",
         "translation": "Vi rekommenderar starkt att [implementera RTCD-tjänsten](https://mattermost.com/pl/calls-deployment-the-rtcd-service) och hantera samtalsfunktionerna på en separat instans för att bibehålla prestanda, skalbarhet och tillförlitlighet för din primära Mattermost-server."
     },

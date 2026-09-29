@@ -128,13 +128,11 @@ type ClientConfig struct {
 	EnableSimulcast *bool
 	// When set to true it enables ringing for DM/GM channels.
 	EnableRinging *bool
-	// (Cloud) License information that isn't exposed to clients yet on the webapp
-	SkuShortName string `json:"sku_short_name"`
-	// Let the server determine whether or not host controls are allowed (through license checks or otherwise)
+	// Always true; kept for clients (e.g. mobile apps) that still read it.
 	HostControlsAllowed bool
 	// When set to true it enables using the AV1 codec to encode screen sharing tracks.
 	EnableAV1 *bool
-	// Let the server determine whether or not group calls are allowed (through license checks or otherwise)
+	// Always true; kept for clients (e.g. mobile apps) that still read it.
 	GroupCallsAllowed bool
 	// When set to true it enables experimental support for using the data channel for signaling.
 	EnableDCSignaling *bool
@@ -510,12 +508,6 @@ func (c *configuration) liveCaptionsEnabled() bool {
 }
 
 func (p *Plugin) getClientConfig(c *configuration) ClientConfig {
-	skuShortName := "starter"
-	license := p.API.GetLicense()
-	if license != nil {
-		skuShortName = license.SkuShortName
-	}
-
 	return ClientConfig{
 		AllowEnableCalls:     model.NewPointer(true), // always true
 		DefaultEnabled:       c.DefaultEnabled,
@@ -530,10 +522,9 @@ func (p *Plugin) getClientConfig(c *configuration) ClientConfig {
 		MaxRecordingDuration: c.MaxRecordingDuration,
 		EnableSimulcast:      c.EnableSimulcast,
 		EnableRinging:        c.EnableRinging,
-		SkuShortName:         skuShortName,
-		HostControlsAllowed:  p.licenseChecker.HostControlsAllowed(),
+		HostControlsAllowed:  true,
 		EnableAV1:            c.EnableAV1,
-		GroupCallsAllowed:    p.licenseChecker.GroupCallsAllowed(),
+		GroupCallsAllowed:    true,
 		EnableDCSignaling:    c.EnableDCSignaling,
 		EnableVideo:          c.EnableVideo,
 	}

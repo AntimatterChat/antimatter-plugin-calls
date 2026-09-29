@@ -1,9 +1,5 @@
 [
     {
-        "id": "app.add_user_session.group_calls_not_allowed_error",
-        "translation": "Les appels sur les serveurs sans licence sont seulement disponibles en message direct."
-    },
-    {
         "id": "app.admin.concurrent_sessions_warning.enterprise",
         "translation": "Nous recommandons fortement de [déployer le service RTCD](https://mattermost.com/pl/calls-deployment-the-rtcd-service) afin de décharger le traitement des appels vers une instance séparée pour maintenir la performance, la scalabilité et la fiabilité de votre serveur Mattermost principal."
     },

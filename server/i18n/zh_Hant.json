@@ -8,10 +8,6 @@
         "translation": "通話已結束"
     },
     {
-        "id": "app.add_user_session.group_calls_not_allowed_error",
-        "translation": "未授權伺服器的通話只能透過私訊提供。"
-    },
-    {
         "id": "app.admin.concurrent_sessions_warning.enterprise",
         "translation": "我們強烈建議 [部署RTCD服務](https://mattermost.com/pl/calls-deployment-the-rtcd-service)來將通話處理分發到獨立實例，以維持主伺服器的效能、可擴展性與可靠性。"
     },

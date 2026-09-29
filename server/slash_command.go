@@ -55,12 +55,10 @@ func (p *Plugin) getAutocompleteData() *model.AutocompleteData {
 	recordingCmdData.AddTextArgument("Available options: start, stop", "", "start|stop")
 	data.AddCommand(recordingCmdData)
 
-	if p.licenseChecker.HostControlsAllowed() {
-		subCommands = append(subCommands, hostCommandTrigger)
-		hostCmdData := model.NewAutocompleteData(hostCommandTrigger, "", "Change the host (system admins only).")
-		hostCmdData.AddTextArgument("@username", "", "@*")
-		data.AddCommand(hostCmdData)
-	}
+	subCommands = append(subCommands, hostCommandTrigger)
+	hostCmdData := model.NewAutocompleteData(hostCommandTrigger, "", "Change the host (system admins only).")
+	hostCmdData.AddTextArgument("@username", "", "@*")
+	data.AddCommand(hostCmdData)
 
 	return data
 }
@@ -216,7 +214,7 @@ func (p *Plugin) ExecuteCommand(_ *plugin.Context, args *model.CommandArgs) (*mo
 		return buildCommandResponse(p.handleRecordingCommand(fields))
 	}
 
-	if subCmd == hostCommandTrigger && p.licenseChecker.HostControlsAllowed() {
+	if subCmd == hostCommandTrigger {
 		return buildCommandResponse(p.handleHostCommand(args, fields))
 	}
 

@@ -1,9 +1,5 @@
 [
     {
-        "id": "app.add_user_session.group_calls_not_allowed_error",
-        "translation": "Дзвінки на неліцензійні сервери доступні лише через приватні повідомлення."
-    },
-    {
         "id": "app.admin.concurrent_sessions_warning.pro_or_e0",
         "translation": "Ми наполегливо рекомендуємо перейти на [Enterprise](https://mattermost.com/pricing/) і [розгорнути службу RTCD](https://mattermost.com/pl/calls-deployment-the-rtcd-service), щоб перенести обробку дзвінків на окремий сервер. Це допоможе зберегти продуктивність, масштабованість і надійність вашого основного сервера Mattermost."
     },

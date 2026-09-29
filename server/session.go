@@ -4,7 +4,6 @@
 package main
 
 import (
-	"errors"
 	"fmt"
 	"sync/atomic"
 	"time"
@@ -21,8 +20,6 @@ import (
 const (
 	msgChSize = 50
 )
-
-var errGroupCallsNotAllowed = fmt.Errorf("unlicensed servers only allow calls in DMs")
 
 type session struct {
 	userID         string
@@ -100,18 +97,6 @@ func (p *Plugin) addUserSession(state *callState, callsEnabled *bool, userID, co
 	// If there is an ongoing call, we can let anyone join.
 	if state == nil {
 		if err := p.userCanStartOrJoin(userID, callsEnabled, ct); err != nil {
-			if errors.Is(err, errGroupCallsNotAllowed) {
-				T := p.getTranslationFunc("")
-				// Sending a message for unsupported clients (e.g. older mobile apps).
-				p.API.SendEphemeralPost(
-					userID,
-					&model.Post{
-						UserId:    p.getBotID(),
-						ChannelId: channelID,
-						Message:   T("app.add_user_session.group_calls_not_allowed_error"),
-					},
-				)
-			}
 			return nil, err
 		}
 	}
@@ -244,16 +229,11 @@ func (p *Plugin) addUserSession(state *callState, callsEnabled *bool, userID, co
 }
 
 func (p *Plugin) userCanStartOrJoin(userID string, enabled *bool, channelType model.ChannelType) error {
-	// (since v1) Calls can only be started/joined in DMs in unlicensed servers.
 	// If calls are disabled, no-one can start or join.
 	// If explicitly enabled, everyone can start or join.
 	// If not explicitly enabled and default enabled, everyone can join or start
 	// otherwise (not explicitly enabled and not default enabled), only sysadmins can start
 	// TODO: look to see what logic we should lift to the joinCall fn
-
-	if channelType != model.ChannelTypeDirect && !p.licenseChecker.GroupCallsAllowed() {
-		return errGroupCallsNotAllowed
-	}
 
 	cfg := p.getConfiguration()
 
@@ -555,7 +535,7 @@ func (p *Plugin) removeUserSession(state *callState, userID, originalConnID, con
 }
 
 // JoinAllowed returns true if the user is allowed to join the call, taking into
-// account license and configuration limits
+// account configuration limits
 func (p *Plugin) joinAllowed(state *callState) (bool, error) {
 	// Rules are:
 	// Cloud Starter: channels, dm/gm: limited to cfg.cloudStarterMaxParticipantsDefault

@@ -12,10 +12,6 @@
         "translation": "Mattermostサーバー自体のパフォーマンス、スケーラビリティ、信頼性を維持するために、[Enterprise版](https://mattermost.com/pricing/)にアップグレードし、[RTCDサービス](https://mattermost.com/pl/calls-deployment-the-rtcd-service)をデプロイすることで、通話処理を別のインスタンスにオフロードすることを強く推奨します。"
     },
     {
-        "id": "app.add_user_session.group_calls_not_allowed_error",
-        "translation": "ライセンス非適用のサーバにおける通話機能は、DMでのみ利用可能です。"
-    },
-    {
         "id": "app.admin.concurrent_sessions_warning.team",
         "translation": "Mattermostサーバ自体のパフォーマンス、スケーラビリティ、および信頼性を維持するために、[Mattermost Enterprise Edition](https://mattermost.com/pl/install-enterprise-install-upgrade) と [RTCDサービス](https://mattermost.com/pl/calls-deployment-the-rtcd-service) の利用に切り替え、通話処理を別のインスタンスにオフロードすることを強く推奨します。"
     },

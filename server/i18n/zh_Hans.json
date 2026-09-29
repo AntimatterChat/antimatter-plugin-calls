@@ -1,9 +1,5 @@
 [
     {
-        "id": "app.add_user_session.group_calls_not_allowed_error",
-        "translation": "在未授权的服务器上，通话仅在私信中可用。"
-    },
-    {
         "id": "app.admin.concurrent_sessions_warning.intro",
         "translation": "Mattermost Calls 占用了您的部署的过多资源，可能对系统性能和响应能力造成负面影响。"
     },

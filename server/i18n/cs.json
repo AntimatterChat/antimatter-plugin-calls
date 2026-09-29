@@ -1,9 +1,5 @@
 [
     {
-        "id": "app.add_user_session.group_calls_not_allowed_error",
-        "translation": "Hovory na nelicencovaných serverech jsou dostupné pouze v soukromých zprávách."
-    },
-    {
         "id": "app.admin.concurrent_sessions_warning.enterprise",
         "translation": "Důrazně doporučujeme [deploying the RTCD service](https://mattermost.com/pl/calls-deployment-the-rtcd-service) pro přenesení zpracování hovorů na samostatnou instanci, aby byla zachována výkonnost, škálovatelnost a spolehlivost vašeho hlavního serveru Mattermost."
     },

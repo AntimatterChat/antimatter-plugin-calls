@@ -1,9 +1,5 @@
 [
     {
-        "id": "app.add_user_session.group_calls_not_allowed_error",
-        "translation": "Звонки на нелицензионных серверах доступны только в личных каналах."
-    },
-    {
         "id": "app.admin.concurrent_sessions_warning.intro",
         "translation": "Ваша установка интенсивно используется Mattermost Calls, что может негативно сказаться на производительности и отзывчивости системы."
     },

@@ -226,11 +226,6 @@ func TestGetClientConfig(t *testing.T) {
 		licenseChecker: enterprise.NewLicenseChecker(mockAPI),
 	}
 
-	mockAPI.On("GetLicense").Return(&model.License{
-		SkuShortName: "starter",
-	})
-	mockAPI.On("GetConfig").Return(&model.Config{})
-
 	clientCfg := p.getClientConfig(p.getConfiguration())
 
 	// defaults
@@ -245,14 +240,9 @@ func TestGetClientConfig(t *testing.T) {
 	require.Equal(t, true, *clientCfg.AllowEnableCalls)
 	require.Equal(t, p.getConfiguration().DefaultEnabled, clientCfg.DefaultEnabled)
 
-	// Host controls
-	require.Equal(t, false, clientCfg.HostControlsAllowed)
-	mockAPI.On("GetLicense").Unset()
-	mockAPI.On("GetLicense").Return(&model.License{
-		SkuShortName: "professional",
-	})
-	clientCfg = p.getClientConfig(p.getConfiguration())
-	require.Equal(t, true, clientCfg.HostControlsAllowed)
+	// Host controls and group calls are always allowed
+	require.True(t, clientCfg.HostControlsAllowed)
+	require.True(t, clientCfg.GroupCallsAllowed)
 
 	// admin config
 	adminClientCfg := p.getAdminClientConfig(p.getConfiguration())

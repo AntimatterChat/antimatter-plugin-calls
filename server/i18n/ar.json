@@ -1,9 +1,5 @@
 [
     {
-        "id": "app.add_user_session.group_calls_not_allowed_error",
-        "translation": "المكالمات على الخوادم غير المرخصة متاحة فقط في DMs."
-    },
-    {
         "id": "app.admin.concurrent_sessions_warning.enterprise",
         "translation": "نوصي بشدة [بنشر خدمة RTCD] (https://mattermost.com/pl/calls-deployment-the-rtcd-service) لإلغاء تحميل معالجة المكالمات إلى مثيل منفصل من أجل الحفاظ على أداء خادم Mattermost الرئيسي وقابلية التوسع والموثوقية."
     },

@@ -8,10 +8,6 @@
         "translation": "시스템 성능과 응답성에 부정적인 영향을 줄 수 있는 Mattermost 호출의 사용량이 너무 많아지고 있습니다."
     },
     {
-        "id": "app.add_user_session.group_calls_not_allowed_error",
-        "translation": "라이선스가 없는 서버에서의 통화는 DM에서만 사용할 수 있습니다."
-    },
-    {
         "id": "app.admin.concurrent_sessions_warning.pro_or_e0",
         "translation": "메인 Mattermost 서버의 성능, 확장성, 안정성을 유지하기 위해 [엔터프라이즈](https://mattermost.com/pricing/)로 업그레이드하고 [RTCD 서비스 배포](https://mattermost.com/pl/calls-deployment-the-rtcd-service)를 통해 통화 처리를 별도의 인스턴스로 오프로드하는 것을 적극 권장합니다."
     },

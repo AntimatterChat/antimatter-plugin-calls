@@ -596,8 +596,7 @@ func (p *Plugin) handleGetTURNCredentials(w http.ResponseWriter, r *http.Request
 	}
 }
 
-// handleConfig returns the client configuration, and cloud license information
-// that isn't exposed to clients yet on the webapp
+// handleConfig returns the client configuration
 func (p *Plugin) handleConfig(w http.ResponseWriter, r *http.Request) error {
 	userID := r.Header.Get("Mattermost-User-Id")
 	isAdmin := p.API.HasPermissionTo(userID, model.PermissionManageSystem)

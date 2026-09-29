@@ -1,9 +1,5 @@
 [
     {
-        "id": "app.add_user_session.group_calls_not_allowed_error",
-        "translation": "Połączenia na nielicencjonowanych serwerach są dostępne tylko w DM."
-    },
-    {
         "id": "app.admin.concurrent_sessions_warning.intro",
         "translation": "Twoja instalacja jest intensywnie wykorzystywana przez połączenia Mattermost, co może negatywnie wpływać na wydajność i szybkość reakcji systemu."
     },

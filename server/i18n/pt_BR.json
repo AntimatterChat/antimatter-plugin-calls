@@ -1,9 +1,5 @@
 [
     {
-        "id": "app.add_user_session.group_calls_not_allowed_error",
-        "translation": "As chamadas em servidores não licenciados só estão disponíveis em mensagens diretas."
-    },
-    {
         "id": "app.admin.concurrent_sessions_warning.enterprise",
         "translation": "É altamente recomendável que você [implemente o serviço RTCD] (https://mattermost.com/pl/calls-deployment-the-rtcd-service) para descarregar o processamento de chamadas em uma instância separada, a fim de manter o desempenho, a escalabilidade e a confiabilidade do seu servidor Mattermost principal."
     },

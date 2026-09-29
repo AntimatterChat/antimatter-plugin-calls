@@ -1,9 +1,5 @@
 [
     {
-        "id": "app.add_user_session.group_calls_not_allowed_error",
-        "translation": "Lisanssız sunuculardaki çağrılar yalnızca DM'lerde kullanılabilir."
-    },
-    {
         "id": "app.admin.concurrent_sessions_warning.enterprise",
         "translation": "Ana Mattermost sunucunuzun performansını, ölçeklenebilirliğini ve güvenilirliğini korumak amacıyla çağrı işlemeyi ayrı bir örneğe boşaltmak için [RTCD hizmetini dağıtmanızı] (https://mattermost.com/pl/calls-deployment-the-rtcd-service) önemle tavsiye ederiz."
     },

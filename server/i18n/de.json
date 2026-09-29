@@ -36,10 +36,6 @@
         "translation": "Hier ist die Aufzeichnung des Anrufs"
     },
     {
-        "id": "app.add_user_session.group_calls_not_allowed_error",
-        "translation": "Anrufe auf nicht lizenzierten Servern sind nur in DMs möglich."
-    },
-    {
         "id": "app.admin.concurrent_sessions_warning.enterprise",
         "translation": "Wir empfehlen dringend, [den RTCD-Dienst](https://mattermost.com/pl/calls-deployment-the-rtcd-service) einzusetzen, um die Verarbeitung von Anrufen auf eine separate Instanz zu verlagern, damit die Leistung, Skalierbarkeit und Zuverlässigkeit deines Mattermost-Hauptservers erhalten bleibt."
     },
