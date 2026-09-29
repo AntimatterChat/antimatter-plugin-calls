@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Cursor Cloud Agent install ("update") script for mattermost-plugin-calls.
+# Cursor Cloud Agent install ("update") script for antimatter-plugin-calls.
 # Runs from project root on every boot. MUST be idempotent.
 
 set -Eeuo pipefail

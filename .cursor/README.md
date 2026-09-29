@@ -1,22 +1,22 @@
 # Cursor Cloud Agent Environment
 
-This directory defines the checked-in environment for Cursor Cloud Agents working on **mattermost-plugin-calls**.
+This directory defines the checked-in environment for Cursor Cloud Agents working on **antimatter-plugin-calls**.
 
-- `environment.json` — Dockerfile build, sibling repos (`mattermost`, `rtcd`), ports `8065` (Mattermost) and `8443` (Calls RTC)
-- `Dockerfile` — Ubuntu 24.04 + DinD + Go 1.26.4 + Node 24.14.1 + AWS CLI + golangci-lint + Playwright Chromium libs + libopus + prepulled Mattermost EE / Postgres 14
+- `environment.json` — Dockerfile build, sibling repos (`mattermost/mattermost`, `mattermost/rtcd`), ports `8065` (Antimatter) and `8443` (Calls RTC)
+- `Dockerfile` — Ubuntu 24.04 + DinD + Go 1.26.4 + Node 24.14.1 + AWS CLI + golangci-lint + Playwright Chromium libs + libopus + prepulled `mattermost/mattermost-enterprise-edition` / Postgres 14
 - `scripts/cloud-agent-install.sh` — hydrates Go modules (root, `build/`, `lt/`, `server/public/`), `make apply`, webapp + standalone npm deps, Playwright browsers
 - `scripts/cloud-agent-start.sh` — starts `dockerd`, Docker Hub login, loads cached images, materializes `.cursor/AGENTS.md`
-- `cursor.md` — cloud-only runbook for Mattermost + Calls deploy / e2e
+- `cursor.md` — cloud-only runbook for Antimatter + Calls deploy / e2e
 
 `.cursor/AGENTS.md` is generated at cloud-agent startup from `cursor.md` and should not be committed.
 
 ## Calls-specific additions
 
-Beyond the generic Mattermost plugin preset:
+Beyond the generic Antimatter plugin preset:
 
 | Addition | Why |
 |----------|-----|
-| `repositoryDependencies`: mattermost, rtcd | Webapp types / e2e config; RTCD e2e image |
+| `repositoryDependencies`: mattermost/mattermost, mattermost/rtcd | Webapp types / e2e config; RTCD e2e image |
 | `standalone/` npm ci | Popout + recording bundles |
 | Go modules in `build/`, `lt/`, `server/public/` | Separate `go.mod` trees |
 | `libopus-dev` / `libopusfile-dev` | Load-test client (`lt/`) |
@@ -43,7 +43,7 @@ Configure in the [Cursor Cloud Agents dashboard](https://cursor.com/dashboard/cl
 
 | Secret | Required | Notes |
 |--------|----------|-------|
-| `MM_TEST_LICENSE` | Already available | Pass to Mattermost as `MM_LICENSE` with `MM_SERVICEENVIRONMENT=test` |
+| `MM_TEST_LICENSE` | Already available | Pass to Antimatter as `MM_LICENSE` with `MM_SERVICEENVIRONMENT=test` |
 | `DOCKERHUB_USERNAME` | Recommended | Same name as CI; avoids anonymous pull rate limits |
 | `DOCKERHUB_TOKEN` | Recommended | Mark **redacted** |
 | `AWS_ACCESS_KEY_ID` | For artifact uploads | Standard AWS CLI |

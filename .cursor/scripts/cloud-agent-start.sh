@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Cursor Cloud Agent start script for mattermost-plugin-calls.
+# Cursor Cloud Agent start script for antimatter-plugin-calls.
 # Boots dockerd (two-tier), Docker Hub login, loads prepulled MM/Postgres images.
 
 set -Eeuo pipefail

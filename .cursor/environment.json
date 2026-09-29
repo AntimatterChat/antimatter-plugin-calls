@@ -13,7 +13,7 @@
   "start": "bash .cursor/scripts/cloud-agent-start.sh",
   "ports": [
     {
-      "name": "Mattermost",
+      "name": "Antimatter",
       "port": 8065
     },
     {
