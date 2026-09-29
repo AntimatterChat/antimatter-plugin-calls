@@ -18,10 +18,10 @@ env:
   PARALLELISM: 10
 
 jobs:
-  build-mattermost-plugin-calls:
+  build-antimatter-plugin-calls:
     runs-on: ubuntu-22.04
     steps:
-      - name: e2e/checkout-mattermost-plugin-calls-repo
+      - name: e2e/checkout-antimatter-plugin-calls-repo
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
@@ -38,15 +38,15 @@ jobs:
           cache: npm
           cache-dependency-path: webapp/package-lock.json
 
-      - name: e2e/build-mattermost-plugin-calls
+      - name: e2e/build-antimatter-plugin-calls
         env:
           MM_SERVICESETTINGS_ENABLEDEVELOPER: 1
         run: make dist
 
-      - name: e2e/persist-mattermost-plugin-calls-package
+      - name: e2e/persist-antimatter-plugin-calls-package
         uses: actions/upload-artifact@26f96dfa697d77e81fd5907df203aa23a56210a8 # v4.3.0
         with:
-          name: mattermost-plugin-calls-package
+          name: antimatter-plugin-calls-package
           path: ${{ github.workspace }}/dist/*.tar.gz
           if-no-files-found: error
           compression-level: 0
@@ -90,10 +90,10 @@ jobs:
           docker tag "${RTCD_IMAGE}" "rtcd:e2e"
           docker save --output rtcd.tar "rtcd:e2e"
 
-      - name: e2e/persist-mattermost-rtcd-image
+      - name: e2e/persist-antimatter-rtcd-image
         uses: actions/upload-artifact@26f96dfa697d77e81fd5907df203aa23a56210a8 # v4.3.0
         with:
-          name: mattermost-rtcd-image
+          name: antimatter-rtcd-image
           path: ${{ github.workspace }}/rtcd/rtcd.tar
           if-no-files-found: error
           compression-level: 0
@@ -114,7 +114,7 @@ jobs:
   e2e-playwright-test:
     runs-on: ubuntu-22.04
     needs:
-      - build-mattermost-plugin-calls
+      - build-antimatter-plugin-calls
       - generate-matrix
       - build-rtcd-image
     env:
@@ -135,7 +135,7 @@ jobs:
     strategy:
       matrix: ${{ fromJson(needs.generate-matrix.outputs.parallelism-matrix) }}
     steps:
-      - name: e2e/checkout-mattermost-plugin-calls-repo
+      - name: e2e/checkout-antimatter-plugin-calls-repo
         uses: actions/checkout@v4
 
       - name: e2e/checkout-mattermost-repo
@@ -162,16 +162,16 @@ jobs:
           cd scripts/config_generator
           go run main.go
 
-      - name: e2e/download-mattermost-plugin-calls-package
+      - name: e2e/download-antimatter-plugin-calls-package
         uses: actions/download-artifact@c850b930e6ba138125429b7e5c93fc707a7f8427 # v4.1.4
         with:
-          name: mattermost-plugin-calls-package
+          name: antimatter-plugin-calls-package
           path: dist
 
       - name: e2e/download-rtcd-image
         uses: actions/download-artifact@c850b930e6ba138125429b7e5c93fc707a7f8427 # v4.1.4
         with:
-          name: mattermost-rtcd-image
+          name: antimatter-rtcd-image
           path: ${{ github.workspace }}
 
       - name: e2e/docker-login
@@ -197,7 +197,7 @@ jobs:
         run: |
           echo "Building playwright test image ... "
           cp ${{ github.workspace }}/plugin.json plugin.json
-          docker build --quiet -t mm-playwright -f Playwright.Dockerfile .
+          docker build --quiet -t am-playwright -f Playwright.Dockerfile .
 
       - name: e2e/test
         env:

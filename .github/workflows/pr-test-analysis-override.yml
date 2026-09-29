@@ -17,7 +17,7 @@ jobs:
       contents: read
       issues: write
     if: >-
-      github.repository == 'mattermost/mattermost-plugin-calls' &&
+      github.repository == 'antimatterchat/antimatter-plugin-calls' &&
       github.event.issue.pull_request &&
       startsWith(github.event.comment.body, '/test-analysis-override') &&
       contains(fromJSON('["OWNER", "MEMBER", "COLLABORATOR"]'), github.event.comment.author_association)
@@ -25,7 +25,7 @@ jobs:
     uses: mattermost/mattermost-test-automation-toolkit/.github/workflows/pr-test-analysis-override.yml@main
     with:
       pr_number: ${{ github.event.issue.number }}
-      target_repo: mattermost/mattermost-plugin-calls
+      target_repo: antimatterchat/antimatter-plugin-calls
       comment_body: ${{ github.event.comment.body }}
       comment_id: ${{ github.event.comment.id }}
       sender: ${{ github.event.comment.user.login }}

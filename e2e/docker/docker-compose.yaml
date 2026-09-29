@@ -30,7 +30,7 @@ services:
     networks:
       default:
         aliases:
-          - mm-server
+          - am-server
     ports:
       - "8065:8065"
 

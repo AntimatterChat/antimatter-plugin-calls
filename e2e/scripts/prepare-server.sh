@@ -16,7 +16,7 @@ mkdir -p ${WORKSPACE}/logs
 mkdir -p ${WORKSPACE}/config
 mkdir -p ${WORKSPACE}/dotenv
 
-# Remove mattermost server image to avoid caching issues.
+# Remove antimatter server image to avoid caching issues.
 docker rmi -f ${IMAGE_SERVER}
 
 docker network create ${DOCKER_NETWORK}
@@ -73,13 +73,13 @@ docker run -d --quiet --user root --name "${CONTAINER_OFFLOADER}" \
 # Check that calls-offloader is up and ready
 docker run --rm --quiet --name "${COMPOSE_PROJECT_NAME}_curl_callsoffloader" --net ${DOCKER_NETWORK} ${IMAGE_CURL} sh -c "until curl -fs http://calls-offloader:4545/version; do echo Waiting for calls-offloader; sleep 5; done; echo calls-offloader is up"
 
-## Add extra environment variables for mattermost server. This is needed to override configuration in HA since
+## Add extra environment variables for antimatter server. This is needed to override configuration in HA since
 ## the config is stored in DB.
 echo "MM_LICENSE=${MM_PLUGIN_CALLS_TEST_LICENSE}" >>${WORKSPACE}/dotenv/app.private.env
 echo "MM_FEATUREFLAGS_BoardsProduct=true" >>${WORKSPACE}/dotenv/app.private.env
 echo "MM_SERVICEENVIRONMENT=test" >>${WORKSPACE}/dotenv/app.private.env
 echo "MM_CONFIG=postgres://mmuser:mostest@postgres/mattermost_test?sslmode=disable&connect_timeout=10&binary_parameters=yes" >>${WORKSPACE}/dotenv/app.private.env
-echo "MM_SERVICESETTINGS_SITEURL=http://mm-server:8065" >>${WORKSPACE}/dotenv/app.private.env
+echo "MM_SERVICESETTINGS_SITEURL=http://am-server:8065" >>${WORKSPACE}/dotenv/app.private.env
 echo "MM_SERVICESETTINGS_ENABLELOCALMODE=true" >>${WORKSPACE}/dotenv/app.private.env
 echo "MM_SERVICESETTINGS_ENABLEDEVELOPER=true" >>${WORKSPACE}/dotenv/app.private.env
 echo "MM_SERVICESETTINGS_ENABLETESTING=true" >>${WORKSPACE}/dotenv/app.private.env
@@ -108,37 +108,37 @@ sudo cp -r ${WORKSPACE}/config ${WORKSPACE}/config2
 sudo chown -R 2000:2000 ${WORKSPACE}/logs2
 sudo chown -R 2000:2000 ${WORKSPACE}/config2
 
-mkdir -p ${WORKSPACE}/mmdata
-sudo chown -R 2000:2000 ${WORKSPACE}/mmdata
+mkdir -p ${WORKSPACE}/amdata
+sudo chown -R 2000:2000 ${WORKSPACE}/amdata
 
-# Spawn mattermost server
-echo "Spawning mattermost server 1 ... "
+# Spawn antimatter server
+echo "Spawning antimatter server 1 ... "
 docker run -d --quiet --name ${CONTAINER_SERVER}1 \
 	--net ${DOCKER_NETWORK} \
-	--net-alias mm-server1 \
+	--net-alias am-server1 \
 	--user mattermost \
 	--env-file="${WORKSPACE}/dotenv/app.private.env" \
 	-v ${WORKSPACE}/config1:/mattermost/config:rw \
 	-v ${WORKSPACE}/logs1:/mattermost/logs:rw \
-	-v ${WORKSPACE}/mmdata:/mattermost/data:rw \
+	-v ${WORKSPACE}/amdata:/mattermost/data:rw \
 	${IMAGE_SERVER}
 
 echo "Checking node 1 is up and running"
-timeout --foreground 90s bash -c "until docker run --rm --quiet --name ${COMPOSE_PROJECT_NAME}_curl_mm1 --net ${DOCKER_NETWORK} ${IMAGE_CURL} curl -fs http://mm-server1:8065/api/v4/system/ping; do echo Waiting for mm-server1; sleep 2; done; echo mm-server1 is up"
+timeout --foreground 90s bash -c "until docker run --rm --quiet --name ${COMPOSE_PROJECT_NAME}_curl_am1 --net ${DOCKER_NETWORK} ${IMAGE_CURL} curl -fs http://am-server1:8065/api/v4/system/ping; do echo Waiting for am-server1; sleep 2; done; echo am-server1 is up"
 
-echo "Spawning mattermost server 2 ... "
+echo "Spawning antimatter server 2 ... "
 docker run -d --quiet --name ${CONTAINER_SERVER}2 \
 	--net ${DOCKER_NETWORK} \
-	--net-alias mm-server2 \
+	--net-alias am-server2 \
 	--user mattermost \
 	--env-file="${WORKSPACE}/dotenv/app.private.env" \
 	-v ${WORKSPACE}/config2:/mattermost/config:rw \
 	-v ${WORKSPACE}/logs2:/mattermost/logs:rw \
-	-v ${WORKSPACE}/mmdata:/mattermost/data:rw \
+	-v ${WORKSPACE}/amdata:/mattermost/data:rw \
 	${IMAGE_SERVER}
 
 echo "Checking node 2 is up and running"
-timeout --foreground 90s bash -c "until docker run --rm --quiet --name ${COMPOSE_PROJECT_NAME}_curl_mm2 --net ${DOCKER_NETWORK} ${IMAGE_CURL} curl -fs http://mm-server2:8065/api/v4/system/ping; do echo Waiting for mm-server2; sleep 2; done; echo mm-server2 is up"
+timeout --foreground 90s bash -c "until docker run --rm --quiet --name ${COMPOSE_PROJECT_NAME}_curl_am2 --net ${DOCKER_NETWORK} ${IMAGE_CURL} curl -fs http://am-server2:8065/api/v4/system/ping; do echo Waiting for am-server2; sleep 2; done; echo am-server2 is up"
 
 echo "Checking proxy is up and running"
-timeout --foreground 90s bash -c "until docker run --rm --quiet --name ${COMPOSE_PROJECT_NAME}_curl_proxy --net ${DOCKER_NETWORK} ${IMAGE_CURL} curl -fs http://mm-server:8065/api/v4/system/ping; do echo Waiting for proxy; sleep 2; done; echo proxy is up"
+timeout --foreground 90s bash -c "until docker run --rm --quiet --name ${COMPOSE_PROJECT_NAME}_curl_proxy --net ${DOCKER_NETWORK} ${IMAGE_CURL} curl -fs http://am-server:8065/api/v4/system/ping; do echo Waiting for proxy; sleep 2; done; echo proxy is up"

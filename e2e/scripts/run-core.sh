@@ -32,7 +32,7 @@ echo "Spawning playwright image ..."
 docker run -d --name playwright-e2e-core \
 	--network=container:${CONTAINER_PROXY} \
 	--entrypoint "" \
-	mm-playwright \
+	am-playwright \
 	bash -c "npm ci && npx playwright install && npx playwright test --grep @core --shard=${CI_NODE_INDEX}/${CI_NODE_TOTAL}"
 
 docker logs -f playwright-e2e-core

@@ -14,13 +14,13 @@ jobs:
     runs-on: ubuntu-22.04
     # Only report on runs originating from this repo (fork runs have no report to publish).
     if: >-
-      github.repository_owner == 'mattermost' &&
+      github.repository_owner == 'antimatterchat' &&
       github.event.workflow_run.conclusion == 'success' &&
-      github.event.workflow_run.head_repository.full_name == 'mattermost/mattermost-plugin-calls'
+      github.event.workflow_run.head_repository.full_name == 'antimatterchat/antimatter-plugin-calls'
     permissions:
           statuses: write
     steps:
-      - name: e2e-report/checkout-mattermost-plugin-calls-repo
+      - name: e2e-report/checkout-antimatter-plugin-calls-repo
         uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
         with:
           persist-credentials: false
@@ -89,7 +89,7 @@ jobs:
 
       - name: e2e-report/generate-summary
         run: |
-          echo "### Playwright Results for [${{ github.event.workflow_run.head_sha }}](https://github.com/mattermost/mattermost-plugin-calls/commit/${{ github.event.workflow_run.head_sha }})" >> "${GITHUB_STEP_SUMMARY}"
+          echo "### Playwright Results for [${{ github.event.workflow_run.head_sha }}](https://github.com/antimatterchat/antimatter-plugin-calls/commit/${{ github.event.workflow_run.head_sha }})" >> "${GITHUB_STEP_SUMMARY}"
           echo "We had ${{ steps.stats.outputs.FAILURES }} failures" >> "${GITHUB_STEP_SUMMARY}"
           echo "We had ${{ steps.stats.outputs.SUCCESSES }} successes" >> "${GITHUB_STEP_SUMMARY}"
           echo "You can find the report [here](${{ steps.stats.outputs.S3_REPORT }})" >> "${GITHUB_STEP_SUMMARY}"
@@ -100,8 +100,8 @@ jobs:
           script: |
             try {
               await github.rest.repos.createCommitStatus({
-                owner: 'mattermost',
-                repo: 'mattermost-plugin-calls',
+                owner: 'antimatterchat',
+                repo: 'antimatter-plugin-calls',
                 sha: '${{ github.event.workflow_run.head_sha }}',
                 context: 'e2e/report-summary',
                 description: '${{ steps.stats.outputs.SUCCESSES }}/${{ steps.stats.outputs.TOTAL }} E2E tests passed',
