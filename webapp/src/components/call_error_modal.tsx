@@ -57,14 +57,14 @@ export const CallErrorModal = (props: Props) => {
 
     const onConfirm = () => {
         if (props.err.message === insecureContextErr.message) {
-            window.open('https://mattermost.com/pl/calls-deployment?utm_source=mattermost&utm_medium=in-product&utm_content=calls_error_modal', '_blank');
+            window.open('https://docs.antimatter.example/pl/calls-deployment?utm_source=antimatter&utm_medium=in-product&utm_content=calls_error_modal', '_blank');
         }
         return null;
     };
 
     const onTroubleShootingClick = (ev: React.MouseEvent) => {
         ev.preventDefault();
-        window.open('https://mattermost.com/pl/calls-make-troubleshooting?utm_source=mattermost&utm_medium=in-product&utm_content=calls_error_modal', '_blank');
+        window.open('https://docs.antimatter.example/pl/calls-make-troubleshooting?utm_source=antimatter&utm_medium=in-product&utm_content=calls_error_modal', '_blank');
     };
 
     const troubleShootingMsg = (
@@ -77,7 +77,7 @@ export const CallErrorModal = (props: Props) => {
                 {
                     troubleShootingLink: (text: React.ReactNode) => (
                         <a
-                            href='https://mattermost.com/pl/calls-make-troubleshooting?utm_source=mattermost&utm_medium=in-product&utm_content=calls_error_modal'
+                            href='https://docs.antimatter.example/pl/calls-make-troubleshooting?utm_source=antimatter&utm_medium=in-product&utm_content=calls_error_modal'
                             onClick={onTroubleShootingClick}
                         >{text}</a>
                     ),

@@ -490,7 +490,7 @@ export function getTranslations(locale: string) {
         logDebug(`loading translations file for locale '${locale}'`);
 
         // Remapping some language codes to their actual file.
-        // This is needed as Mattermost product uses different codes for
+        // This is needed as Antimatter product uses different codes for
         // certain languages such as simplified and traditional Chinese.
         switch (locale) {
         case 'zh-CN':

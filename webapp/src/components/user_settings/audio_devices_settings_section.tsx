@@ -107,7 +107,7 @@ export default function AudioDevicesSettingsSection() {
     const [devices, setDevices] = useState<MediaDeviceInfo[]>([]);
 
     const title = formatMessage({defaultMessage: 'Audio devices'});
-    const description = formatMessage({defaultMessage: 'Set up audio devices to be used for Mattermost calls'});
+    const description = formatMessage({defaultMessage: 'Set up audio devices to be used for Antimatter calls'});
     const editLabel = formatMessage({defaultMessage: 'Edit'});
 
     const audioInputsRef = useRef<DevicesSelectionHandle>(null);

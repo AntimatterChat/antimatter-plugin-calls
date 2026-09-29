@@ -251,7 +251,7 @@ export default function VideoDevicesSettingsSection() {
     const [blurIntensity, setBlurIntensity] = useState(bgBlurData.blurIntensity);
 
     const title = formatMessage({defaultMessage: 'Video devices'});
-    const description = formatMessage({defaultMessage: 'Set up video devices to be used for Mattermost calls'});
+    const description = formatMessage({defaultMessage: 'Set up video devices to be used for Antimatter calls'});
     const editLabel = formatMessage({defaultMessage: 'Edit'});
 
     const videoInputsRef = useRef<DevicesSelectionHandle>(null);

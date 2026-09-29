@@ -15,7 +15,7 @@ type Props = {
 
 // Watches for the ?join_call=true query parameter and triggers a join when it
 // appears. Handles cross-channel link clicks and pasted URLs: the parameter
-// is briefly visible at React Router's level before Mattermost canonicalizes
+// is briefly visible at React Router's level before Antimatter canonicalizes
 // the URL away, which is enough for an effect to observe it.
 //
 // Same-channel clicks are NOT handled here because the URL never updates in
@@ -29,7 +29,7 @@ const JoinCallWatcher = ({onJoinCall}: Props) => {
     // unrelated channel map updates replace the broader Redux objects.
     const channelFromUrl = useSelector((state: GlobalState): Channel | null => {
         // Pathname is /TEAM/channels/<channelID-or-name>. During cross-channel
-        // navigation it's the ID form briefly before Mattermost canonicalizes
+        // navigation it's the ID form briefly before Antimatter canonicalizes
         // to the name form. We accept either.
         //
         // The team segment must match the current team to avoid mis-resolving

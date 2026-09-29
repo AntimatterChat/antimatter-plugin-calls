@@ -188,9 +188,9 @@ describe('makeSameChannelLinkClickHandler', () => {
     });
 
     it('strips window.basename before matching team segment on subpath deployments', () => {
-        (window as Window & {basename?: string}).basename = '/mattermost';
+        (window as Window & {basename?: string}).basename = '/antimatter';
         const {handler, onJoinCall} = makeHandler();
-        const link = makeLink(`${ORIGIN}/mattermost/${TEAM}/channels/${CHANNEL_ID}?join_call=true`);
+        const link = makeLink(`${ORIGIN}/antimatter/${TEAM}/channels/${CHANNEL_ID}?join_call=true`);
         handler(makeEvent(link));
 
         jest.runAllTimers();

@@ -20,7 +20,7 @@ export default function CallRecordingsSection(props: {settingsList: React.ReactN
                             {formatMessage({defaultMessage: 'Call recordings'})}
                         </SectionTitle>
                         <div className='section-subtitle'>
-                            {formatMessage({defaultMessage: 'Recordings include the entire call window view along with participants’ audio track and any shared screen video. Recordings are stored in Mattermost'})}
+                            {formatMessage({defaultMessage: 'Recordings include the entire call window view along with participants’ audio track and any shared screen video. Recordings are stored in Antimatter'})}
                         </div>
                     </div>
                     <div className='section-body'>

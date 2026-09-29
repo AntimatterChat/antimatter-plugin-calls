@@ -45,9 +45,9 @@ export const CallAlertConfigs: { [key: string]: CallAlertConfig } = {
     missingAudioInputPermissions: {
         type: CallAlertType.Error,
         icon: 'microphone-off',
-        bannerText: defineMessage({defaultMessage: 'Allow microphone access to Mattermost.'}),
+        bannerText: defineMessage({defaultMessage: 'Allow microphone access to Antimatter.'}),
         tooltipText: defineMessage({defaultMessage: 'No audio input permissions'}),
-        tooltipSubtext: defineMessage({defaultMessage: 'Allow microphone access to Mattermost.'}),
+        tooltipSubtext: defineMessage({defaultMessage: 'Allow microphone access to Antimatter.'}),
         dismissable: true,
     },
     missingVideoInput: {
@@ -61,9 +61,9 @@ export const CallAlertConfigs: { [key: string]: CallAlertConfig } = {
     missingVideoInputPermissions: {
         type: CallAlertType.Error,
         icon: 'video-off-outline',
-        bannerText: defineMessage({defaultMessage: 'Allow camera access to Mattermost.'}),
+        bannerText: defineMessage({defaultMessage: 'Allow camera access to Antimatter.'}),
         tooltipText: defineMessage({defaultMessage: 'No video input permissions'}),
-        tooltipSubtext: defineMessage({defaultMessage: 'Allow camera access to Mattermost.'}),
+        tooltipSubtext: defineMessage({defaultMessage: 'Allow camera access to Antimatter.'}),
         dismissable: true,
     },
     missingScreenPermissions: {
@@ -71,7 +71,7 @@ export const CallAlertConfigs: { [key: string]: CallAlertConfig } = {
         icon: 'monitor-off',
         bannerText: defineMessage({defaultMessage: 'Screen sharing access is not currently allowed or was canceled.'}),
         tooltipText: defineMessage({defaultMessage: 'No screen sharing permissions'}),
-        tooltipSubtext: defineMessage({defaultMessage: 'Allow screen sharing access to Mattermost.'}),
+        tooltipSubtext: defineMessage({defaultMessage: 'Allow screen sharing access to Antimatter.'}),
         dismissable: true,
     },
     degradedCallQuality: {
