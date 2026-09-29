@@ -76,7 +76,7 @@ func (p *Plugin) sendPushNotifications(channelID, createdPostID, threadID string
 		return
 	}
 
-	if err := p.canSendPushNotifications(config, p.API.GetLicense()); err != nil {
+	if err := p.canSendPushNotifications(config); err != nil {
 		return
 	}
 
@@ -125,7 +125,7 @@ func (p *Plugin) sendPushNotifications(channelID, createdPostID, threadID string
 		// any details of the push notification on the wire). Otherwise, we can send more information, unless the server
 		// has set GenericNoChannel.
 		if *config.EmailSettings.PushNotificationContents == model.IdLoadedNotification {
-			msg.IsIdLoaded = p.checkLicenseForIDLoaded()
+			msg.IsIdLoaded = true
 		} else {
 			nameFormat := p.getNotificationNameFormat(member.Id)
 			channelName := getChannelNameForNotification(channel, sender, members, nameFormat, member.Id)
@@ -145,14 +145,6 @@ func (p *Plugin) sendPushNotifications(channelID, createdPostID, threadID string
 			p.LogError(fmt.Sprintf("failed to send push notification for userID: %s", member.Id), "error", err.Error())
 		}
 	}
-}
-
-func (p *Plugin) checkLicenseForIDLoaded() bool {
-	licence := p.API.GetLicense()
-	if licence == nil || licence.Features == nil || licence.Features.IDLoadedPushNotifications == nil {
-		return false
-	}
-	return *licence.Features.IDLoadedPushNotifications
 }
 
 func buildPushNotificationMessage(senderName, locale string) string {

@@ -184,22 +184,15 @@ func TestPlugin_canSendPushNotifications(t *testing.T) {
 			PushNotificationServer: model.NewPointer(model.MHPNS),
 		},
 	}
-	license := &model.License{
-		Features: &model.Features{
-			MHPNS: model.NewPointer(true),
-		},
-	}
 	tests := []struct {
-		name    string
-		config  *model.Config
-		license *model.License
-		want    error
+		name   string
+		config *model.Config
+		want   error
 	}{
 		{
-			name:    "no config",
-			config:  nil,
-			license: nil,
-			want:    nil,
+			name:   "no config",
+			config: nil,
+			want:   nil,
 		},
 		{
 			name: "no push notification server",
@@ -208,8 +201,7 @@ func TestPlugin_canSendPushNotifications(t *testing.T) {
 					SendPushNotifications:  model.NewPointer(true),
 					PushNotificationServer: nil,
 				}},
-			license: nil,
-			want:    nil,
+			want: nil,
 		},
 		{
 			name: "push notification server blank",
@@ -218,8 +210,7 @@ func TestPlugin_canSendPushNotifications(t *testing.T) {
 					SendPushNotifications:  model.NewPointer(true),
 					PushNotificationServer: model.NewPointer(""),
 				}},
-			license: nil,
-			want:    nil,
+			want: nil,
 		},
 		{
 			name: "push notifications set to false",
@@ -228,36 +219,27 @@ func TestPlugin_canSendPushNotifications(t *testing.T) {
 					SendPushNotifications:  model.NewPointer(false),
 					PushNotificationServer: model.NewPointer(model.MHPNS),
 				}},
-			license: nil,
-			want:    nil,
+			want: nil,
 		},
 		{
-			name:    "no license",
-			config:  config,
-			license: nil,
-			want:    errors.New("push notifications have been disabled. Update your license or go to System Console > Environment > Push Notification Server to use a different server"),
-		},
-		{
-			name:   "no MHPNS in license",
+			name:   "hosted push notification service",
 			config: config,
-			license: &model.License{
-				Features: &model.Features{
-					MHPNS: model.NewPointer(false),
-				},
-			},
-			want: errors.New("push notifications have been disabled. Update your license or go to System Console > Environment > Push Notification Server to use a different server"),
+			want:   errors.New("push notifications have been disabled because the Mattermost-hosted push notification service is not supported. Go to System Console > Environment > Push Notification Server to use your own push proxy"),
 		},
 		{
-			name:    "allowed",
-			config:  config,
-			license: license,
-			want:    nil,
+			name: "own push proxy",
+			config: &model.Config{
+				EmailSettings: model.EmailSettings{
+					SendPushNotifications:  model.NewPointer(true),
+					PushNotificationServer: model.NewPointer("https://push.example.com"),
+				}},
+			want: nil,
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			p := &Plugin{}
-			assert.Equalf(t, tt.want, p.canSendPushNotifications(tt.config, tt.license), "test: %s", tt.name)
+			assert.Equalf(t, tt.want, p.canSendPushNotifications(tt.config), "test: %s", tt.name)
 		})
 	}
 }

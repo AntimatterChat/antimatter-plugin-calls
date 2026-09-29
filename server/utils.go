@@ -58,7 +58,7 @@ func (p *Plugin) getNotificationNameFormat(userID string) string {
 	return *config.TeamSettings.TeammateNameDisplay
 }
 
-func (p *Plugin) canSendPushNotifications(config *model.Config, license *model.License) error {
+func (p *Plugin) canSendPushNotifications(config *model.Config) error {
 	if config == nil ||
 		config.EmailSettings.SendPushNotifications == nil ||
 		!*config.EmailSettings.SendPushNotifications {
@@ -69,8 +69,8 @@ func (p *Plugin) canSendPushNotifications(config *model.Config, license *model.L
 		return nil
 	}
 	pushServer := *config.EmailSettings.PushNotificationServer
-	if pushServer == model.MHPNS && (license == nil || !*license.Features.MHPNS) {
-		return errors.New("push notifications have been disabled. Update your license or go to System Console > Environment > Push Notification Server to use a different server")
+	if pushServer == model.MHPNS {
+		return errors.New("push notifications have been disabled because the Mattermost-hosted push notification service is not supported. Go to System Console > Environment > Push Notification Server to use your own push proxy")
 	}
 
 	return nil

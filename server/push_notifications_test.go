@@ -31,8 +31,6 @@ func TestSendPushNotificationsRingingDisabled(t *testing.T) {
 		store: store,
 	}
 
-	mockAPI.On("GetLicense").Return(&model.License{}, nil).Times(2)
-
 	var cfg configuration
 	cfg.SetDefaults()
 	*cfg.EnableRinging = false
@@ -62,8 +60,6 @@ func TestSendPushNotificationsRingingNil(t *testing.T) {
 		store: store,
 	}
 
-	mockAPI.On("GetLicense").Return(&model.License{}, nil).Times(2)
-
 	var cfg configuration
 	cfg.SetDefaults()
 	cfg.EnableRinging = nil
@@ -91,9 +87,6 @@ func TestSendPushNotificationsRingingEnabled(t *testing.T) {
 		},
 		store: store,
 	}
-
-	// 2 calls inside setOverrides + 1 eager arg to canSendPushNotifications
-	mockAPI.On("GetLicense").Return(&model.License{}, nil).Times(3)
 
 	var cfg configuration
 	cfg.SetDefaults()
@@ -212,7 +205,6 @@ func TestNotificationWillBePushed(t *testing.T) {
 		var cfg configuration
 		cfg.SetDefaults()
 
-		mockAPI.On("GetLicense").Return(&model.License{}, nil).Times(2)
 		*cfg.EnableRinging = true
 		err := p.setConfiguration(cfg.Clone())
 		require.NoError(t, err)
