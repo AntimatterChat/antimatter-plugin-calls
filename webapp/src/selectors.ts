@@ -8,7 +8,6 @@ import {Team} from '@mattermost/types/teams';
 import {UserProfile} from '@mattermost/types/users';
 import {getAllChannels, getChannel, getCurrentChannelId} from 'mattermost-redux/selectors/entities/channels';
 import {getMyChannelMemberships} from 'mattermost-redux/selectors/entities/common';
-import {getLicense} from 'mattermost-redux/selectors/entities/general';
 import {getTeammateNameDisplaySetting} from 'mattermost-redux/selectors/entities/preferences';
 import {getMyChannelRoles, getMyTeamRoles} from 'mattermost-redux/selectors/entities/roles';
 import {getCurrentTeamId, getTeams} from 'mattermost-redux/selectors/entities/teams';
@@ -610,75 +609,11 @@ export const hasPermissionsToEnableCalls = (state: GlobalState, channelId: strin
         teamRoles.has('team_admin');
 };
 
-//
-// Selectors for Cloud and beta limits:
-//
-// Having trouble importing this, so embed.
-enum LicenseSkus {
-    Starter = 'starter',
-    Professional = 'professional',
-    Enterprise = 'enterprise',
-    EntepriseAdvanced = 'advanced',
-}
-
-const cloudSku = (state: GlobalState): string =>
-    callsConfig(state).sku_short_name;
-
-export const isCloud = (state: GlobalState): boolean =>
-    getLicense(state)?.Cloud === 'true';
-
-export const isCloudStarter = (state: GlobalState): boolean =>
-    isCloud(state) && cloudSku(state) === LicenseSkus.Starter;
-
-export const isCloudProfessional = (state: GlobalState): boolean =>
-    isCloud(state) && cloudSku(state) === LicenseSkus.Professional;
-
-export const isCloudEnterprise = (state: GlobalState): boolean =>
-    isCloud(state) && cloudSku(state) === LicenseSkus.Enterprise;
-
-export const isCloudEnterpriseAdvanced = (state: GlobalState): boolean =>
-    isCloud(state) && cloudSku(state) === LicenseSkus.EntepriseAdvanced;
-
-const getSubscription = (state: GlobalState) => state.entities.cloud.subscription;
-
-export const isCloudTrial = (state: GlobalState): boolean =>
-    getSubscription(state)?.is_free_trial === 'true';
-
-export const isCloudProfessionalOrEnterpriseorEnterpriseAdvanceOrTrial = (state: GlobalState): boolean =>
-    isCloudProfessional(state) || isCloudEnterprise(state) || isCloudEnterpriseAdvanced(state) || isCloudTrial(state);
-
-export const isCloudTrialCompleted = (state: GlobalState): boolean => {
-    const subscription = getSubscription(state);
-    return subscription?.is_free_trial === 'false' && subscription?.trial_end_at > 0;
-};
-
-export const isCloudTrialNeverStarted = (state: GlobalState): boolean =>
-    getSubscription(state)?.trial_end_at === 0;
-
 export const callsUserPreferences = (state: GlobalState): CallsUserPreferences =>
     pluginState(state).callsUserPreferences;
 
 export const shouldPlayJoinUserSound = (state: GlobalState): boolean =>
     profilesInCurrentCall(state).length < callsUserPreferences(state).joinSoundParticipantsThreshold;
-
-export const isOnPremNotEnterprise = (state: GlobalState): boolean => {
-    const license = getLicense(state);
-    const enterprise = license.SkuShortName === LicenseSkus.Enterprise || license.SkuShortName === LicenseSkus.EntepriseAdvanced;
-    return !isCloud(state) && !enterprise;
-};
-
-export const isAtLeastProfessional = (state: GlobalState): boolean => {
-    const sku = callsConfig(state).sku_short_name;
-    const enterprise = sku === LicenseSkus.Enterprise;
-    const professional = sku === LicenseSkus.Professional;
-    const enterpriseAdvanced = sku === LicenseSkus.EntepriseAdvanced;
-
-    return enterpriseAdvanced || enterprise || professional || isCloudProfessionalOrEnterpriseorEnterpriseAdvanceOrTrial(state);
-};
-
-export const areHostControlsAllowed = (state: GlobalState): boolean => callsConfig(state).HostControlsAllowed;
-
-export const areGroupCallsAllowed = (state: GlobalState): boolean => callsConfig(state).GroupCallsAllowed;
 
 export const adminStats = (state: GlobalState) => state.entities.admin.analytics;
 
