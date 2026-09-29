@@ -1,7 +1,7 @@
 sync
 ====
 
-The sync tool is a proof-of-concept implementation of a tool for synchronizing mattermost plugin
+The sync tool is a proof-of-concept implementation of a tool for synchronizing antimatter plugin
 repositories with the mattermost-plugin-starter-template repo.
 
 Overview
@@ -31,10 +31,10 @@ Running
 
 The tool can be executed from the root of this repository with a command:
 ```
-$ go run ./build/sync/main.go ./build/sync/plan.yml ../mattermost-plugin-github
+$ go run ./build/sync/main.go ./build/sync/plan.yml ../antimatter-plugin-github
 ```
 
-(assuming `mattermost-plugin-github` is the target repository we want to synchronize with the source).
+(assuming `antimatter-plugin-github` is the target repository we want to synchronize with the source).
 
 plan.yml
 ---------

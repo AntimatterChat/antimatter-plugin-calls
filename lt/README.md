@@ -3,7 +3,7 @@
 ## Requirements
 
 1. Golang and git installed.
-2. A running Mattermost installation with Calls enabled.
+2. A running Antimatter installation with Calls enabled.
 3. A system admin account with username/password credentials used to automatically create resources (e.g. channels).
 4. Open signups with no email verification to allow for the test users to join.
 5. At least one open team where users can join without invitation.
@@ -13,7 +13,7 @@
 ### Clone the repository
 
 ```
-git clone https://github.com/mattermost/mattermost-plugin-calls.git && cd mattermost-plugin-calls
+git clone https://github.com/antimatterchat/antimatter-plugin-calls.git && cd antimatter-plugin-calls
 ```
 
 ### Run on a team
@@ -88,7 +88,7 @@ cd ./lt && go run ./cmd/lt -url http://localhost:8065 \
   -unmuted int
     	The number of unmuted users per call
   -url string
-    	Mattermost SiteURL (default "http://localhost:8065")
+    	Antimatter SiteURL (default "http://localhost:8065")
   -user-password string
     	user password (default "testPass123$")
   -user-prefix string

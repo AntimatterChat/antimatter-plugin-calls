@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-# Build a lightweight plugin bundle for Mattermost Cloud instance.
+# Build a lightweight plugin bundle for Antimatter Cloud instance.
 #
 # Invoked via Make: `make dist-linux-amd64` (or any of the dist-<platform>
 # targets). The Make target is the canonical entry point.
