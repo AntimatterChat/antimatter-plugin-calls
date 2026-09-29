@@ -7,7 +7,7 @@ import (
 
 	sql "database/sql"
 
-	public "github.com/mattermost/mattermost-plugin-calls/server/public"
+	public "github.com/antimatterchat/antimatter-plugin-calls/server/public"
 	rtc "github.com/mattermost/rtcd/service/rtc"
 	mock "github.com/stretchr/testify/mock"
 )

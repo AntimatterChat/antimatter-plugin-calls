@@ -13,14 +13,14 @@ import (
 	"testing"
 	"time"
 
-	"github.com/mattermost/mattermost-plugin-calls/server/batching"
-	"github.com/mattermost/mattermost-plugin-calls/server/cluster"
-	"github.com/mattermost/mattermost-plugin-calls/server/db"
-	"github.com/mattermost/mattermost-plugin-calls/server/public"
+	"github.com/antimatterchat/antimatter-plugin-calls/server/batching"
+	"github.com/antimatterchat/antimatter-plugin-calls/server/cluster"
+	"github.com/antimatterchat/antimatter-plugin-calls/server/db"
+	"github.com/antimatterchat/antimatter-plugin-calls/server/public"
 
-	serverMocks "github.com/mattermost/mattermost-plugin-calls/server/mocks/github.com/mattermost/mattermost-plugin-calls/server/interfaces"
-	pluginMocks "github.com/mattermost/mattermost-plugin-calls/server/mocks/github.com/mattermost/mattermost/server/public/plugin"
-	rtcMocks "github.com/mattermost/mattermost-plugin-calls/server/mocks/github.com/mattermost/rtcd/service/rtc"
+	serverMocks "github.com/antimatterchat/antimatter-plugin-calls/server/mocks/github.com/antimatterchat/antimatter-plugin-calls/server/interfaces"
+	pluginMocks "github.com/antimatterchat/antimatter-plugin-calls/server/mocks/github.com/mattermost/mattermost/server/public/plugin"
+	rtcMocks "github.com/antimatterchat/antimatter-plugin-calls/server/mocks/github.com/mattermost/rtcd/service/rtc"
 
 	"github.com/mattermost/mattermost/server/public/model"
 	"github.com/mattermost/mattermost/server/public/plugin"

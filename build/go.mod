@@ -1,4 +1,4 @@
-module github.com/mattermost/mattermost-plugin-calls/build
+module github.com/antimatterchat/antimatter-plugin-calls/build
 
 go 1.26.7
 

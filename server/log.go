@@ -15,7 +15,7 @@ import (
 	"github.com/mattermost/mattermost/server/public/shared/mlog"
 )
 
-const pkgPath = "github.com/mattermost/mattermost-plugin-calls/server/"
+const pkgPath = "github.com/antimatterchat/antimatter-plugin-calls/server/"
 const rtcdPrefix = "/service/rtc"
 
 func (p *Plugin) logPanic(reason any) {

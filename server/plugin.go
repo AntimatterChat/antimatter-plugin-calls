@@ -12,10 +12,10 @@ import (
 
 	"golang.org/x/time/rate"
 
-	"github.com/mattermost/mattermost-plugin-calls/server/batching"
-	"github.com/mattermost/mattermost-plugin-calls/server/cluster"
-	"github.com/mattermost/mattermost-plugin-calls/server/db"
-	"github.com/mattermost/mattermost-plugin-calls/server/interfaces"
+	"github.com/antimatterchat/antimatter-plugin-calls/server/batching"
+	"github.com/antimatterchat/antimatter-plugin-calls/server/cluster"
+	"github.com/antimatterchat/antimatter-plugin-calls/server/db"
+	"github.com/antimatterchat/antimatter-plugin-calls/server/interfaces"
 
 	rtcd "github.com/mattermost/rtcd/service"
 	"github.com/mattermost/rtcd/service/rtc"

@@ -11,7 +11,7 @@ import (
 	"runtime"
 	"time"
 
-	"github.com/mattermost/mattermost-plugin-calls/server/cluster"
+	"github.com/antimatterchat/antimatter-plugin-calls/server/cluster"
 
 	"github.com/mattermost/rtcd/service/rtc"
 

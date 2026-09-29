@@ -4,7 +4,7 @@
 package main
 
 import (
-	"github.com/mattermost/mattermost-plugin-calls/server/performance"
+	"github.com/antimatterchat/antimatter-plugin-calls/server/performance"
 )
 
 // runMetricsUpdateJob runs a periodic job to update historical metrics from the database

@@ -1,4 +1,4 @@
-module github.com/mattermost/mattermost-plugin-calls
+module github.com/antimatterchat/antimatter-plugin-calls
 
 go 1.26.7
 
@@ -18,7 +18,7 @@ require (
 	github.com/mattermost/calls-recorder v0.8.8
 	github.com/mattermost/calls-transcriber v0.7.1
 	github.com/mattermost/logr/v2 v2.0.22
-	github.com/mattermost/mattermost-plugin-calls/server/public v0.0.3
+	github.com/antimatterchat/antimatter-plugin-calls/server/public v0.0.3
 	github.com/mattermost/mattermost/server/public v0.4.2
 	github.com/mattermost/morph v1.1.0
 	github.com/mattermost/rtcd v1.2.6
@@ -29,6 +29,9 @@ require (
 	golang.org/x/time v0.10.0
 	gopkg.in/yaml.v3 v3.0.1
 )
+
+// The public API module lives in this repository.
+replace github.com/antimatterchat/antimatter-plugin-calls/server/public => ./server/public
 
 replace github.com/pion/interceptor v0.1.44 => github.com/bgardner8008/interceptor v0.1.44-mm-mods
 

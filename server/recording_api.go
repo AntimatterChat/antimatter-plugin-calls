@@ -9,7 +9,7 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/mattermost/mattermost-plugin-calls/server/public"
+	"github.com/antimatterchat/antimatter-plugin-calls/server/public"
 
 	"github.com/mattermost/calls-offloader/public/job"
 

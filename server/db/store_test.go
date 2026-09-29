@@ -7,11 +7,11 @@ import (
 	"context"
 	"testing"
 
-	"github.com/mattermost/mattermost-plugin-calls/server/testutils"
+	"github.com/antimatterchat/antimatter-plugin-calls/server/testutils"
 	"github.com/mattermost/mattermost/server/public/model"
 
-	serverMocks "github.com/mattermost/mattermost-plugin-calls/server/mocks/github.com/mattermost/mattermost-plugin-calls/server/interfaces"
-	mlogMocks "github.com/mattermost/mattermost-plugin-calls/server/mocks/github.com/mattermost/mattermost/server/public/shared/mlog"
+	serverMocks "github.com/antimatterchat/antimatter-plugin-calls/server/mocks/github.com/antimatterchat/antimatter-plugin-calls/server/interfaces"
+	mlogMocks "github.com/antimatterchat/antimatter-plugin-calls/server/mocks/github.com/mattermost/mattermost/server/public/shared/mlog"
 
 	"github.com/lib/pq"
 	"github.com/stretchr/testify/mock"

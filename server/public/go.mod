@@ -1,4 +1,4 @@
-module github.com/mattermost/mattermost-plugin-calls/server/public
+module github.com/antimatterchat/antimatter-plugin-calls/server/public
 
 go 1.26.7
 

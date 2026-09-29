@@ -19,7 +19,7 @@ import (
 
 	"gopkg.in/hraban/opus.v2"
 
-	"github.com/mattermost/mattermost-plugin-calls/lt/client"
+	"github.com/antimatterchat/antimatter-plugin-calls/lt/client"
 )
 
 var script, siteURL, wsURL, channelID, teamID, userPassword, profile string

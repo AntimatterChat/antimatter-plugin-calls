@@ -8,9 +8,9 @@ import (
 
 	"golang.org/x/time/rate"
 
-	"github.com/mattermost/mattermost-plugin-calls/server/batching"
-	"github.com/mattermost/mattermost-plugin-calls/server/cluster"
-	"github.com/mattermost/mattermost-plugin-calls/server/performance"
+	"github.com/antimatterchat/antimatter-plugin-calls/server/batching"
+	"github.com/antimatterchat/antimatter-plugin-calls/server/cluster"
+	"github.com/antimatterchat/antimatter-plugin-calls/server/performance"
 
 	"github.com/mattermost/mattermost/server/public/model"
 	"github.com/mattermost/mattermost/server/public/plugin"

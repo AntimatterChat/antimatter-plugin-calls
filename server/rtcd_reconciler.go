@@ -8,7 +8,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/mattermost/mattermost-plugin-calls/server/db"
+	"github.com/antimatterchat/antimatter-plugin-calls/server/db"
 )
 
 const rtcdSessionReconcilerInterval = 30 * time.Second

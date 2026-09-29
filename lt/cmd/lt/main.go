@@ -18,7 +18,7 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/mattermost/mattermost-plugin-calls/lt/client"
+	"github.com/antimatterchat/antimatter-plugin-calls/lt/client"
 
 	"github.com/mattermost/mattermost/server/public/model"
 
@@ -26,7 +26,7 @@ import (
 )
 
 const (
-	pkgPrefix     = "github.com/mattermost/mattermost-plugin-calls/lt/"
+	pkgPrefix     = "github.com/antimatterchat/antimatter-plugin-calls/lt/"
 	rtcdPkgPrefix = "github.com/mattermost/rtcd/"
 )
 

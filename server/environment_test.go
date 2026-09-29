@@ -9,7 +9,7 @@ import (
 	"reflect"
 	"testing"
 
-	pluginMocks "github.com/mattermost/mattermost-plugin-calls/server/mocks/github.com/mattermost/mattermost/server/public/plugin"
+	pluginMocks "github.com/antimatterchat/antimatter-plugin-calls/server/mocks/github.com/mattermost/mattermost/server/public/plugin"
 
 	"github.com/mattermost/mattermost/server/public/plugin"
 	"github.com/mattermost/rtcd/service/rtc"
