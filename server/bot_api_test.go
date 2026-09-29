@@ -11,7 +11,6 @@ import (
 	"testing"
 
 	"github.com/mattermost/mattermost-plugin-calls/server/cluster"
-	"github.com/mattermost/mattermost-plugin-calls/server/enterprise"
 	"github.com/mattermost/mattermost-plugin-calls/server/public"
 	"github.com/mattermost/mattermost/server/public/model"
 	"github.com/mattermost/mattermost/server/public/plugin"
@@ -39,8 +38,6 @@ func TestHandleBotGetProfileForSession(t *testing.T) {
 		},
 		callsClusterLocks: map[string]*cluster.Mutex{},
 	}
-
-	p.licenseChecker = enterprise.NewLicenseChecker(p.API)
 
 	store, tearDown := NewTestStore(t)
 	t.Cleanup(tearDown)
@@ -228,8 +225,6 @@ func TestHandleBotUploadData(t *testing.T) {
 		},
 		callsClusterLocks: map[string]*cluster.Mutex{},
 	}
-
-	p.licenseChecker = enterprise.NewLicenseChecker(p.API)
 
 	mockMetrics.On("Handler").Return(nil).Once()
 

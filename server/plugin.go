@@ -15,7 +15,6 @@ import (
 	"github.com/mattermost/mattermost-plugin-calls/server/batching"
 	"github.com/mattermost/mattermost-plugin-calls/server/cluster"
 	"github.com/mattermost/mattermost-plugin-calls/server/db"
-	"github.com/mattermost/mattermost-plugin-calls/server/enterprise"
 	"github.com/mattermost/mattermost-plugin-calls/server/interfaces"
 
 	rtcd "github.com/mattermost/rtcd/service"
@@ -36,7 +35,6 @@ const (
 // Plugin implements the interface expected by the Mattermost server to communicate between the server and plugin processes.
 type Plugin struct {
 	plugin.MattermostPlugin
-	licenseChecker *enterprise.LicenseChecker
 
 	// configurationLock synchronizes access to the configuration.
 	configurationLock sync.RWMutex

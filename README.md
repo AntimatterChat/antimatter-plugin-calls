@@ -108,4 +108,4 @@ Please join the [Developers: Calls](https://community.mattermost.com/core/channe
 
 ## License
 
-See [LICENSE.txt](LICENSE.txt) and [LICENSE.enterprise](server/enterprise/LICENSE) for license rights and limitations.
+See [LICENSE.txt](LICENSE.txt) for license rights and limitations.

@@ -12,7 +12,6 @@ import (
 	"time"
 
 	"github.com/mattermost/mattermost-plugin-calls/server/cluster"
-	"github.com/mattermost/mattermost-plugin-calls/server/enterprise"
 
 	"github.com/mattermost/rtcd/service/rtc"
 
@@ -95,8 +94,6 @@ func (p *Plugin) OnActivate() (retErr error) {
 			}
 		}
 	}()
-
-	p.licenseChecker = enterprise.NewLicenseChecker(p.API)
 
 	if p.isSingleHandler() {
 		if err := p.cleanUpState(); err != nil {

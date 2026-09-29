@@ -8,7 +8,6 @@ import (
 	"time"
 
 	"github.com/mattermost/mattermost-plugin-calls/server/cluster"
-	"github.com/mattermost/mattermost-plugin-calls/server/enterprise"
 	"github.com/mattermost/mattermost-plugin-calls/server/public"
 
 	serverMocks "github.com/mattermost/mattermost-plugin-calls/server/mocks/github.com/mattermost/mattermost-plugin-calls/server/interfaces"
@@ -490,8 +489,6 @@ func TestAddUserSession(t *testing.T) {
 		},
 		sessions: map[string]*session{},
 	}
-
-	p.licenseChecker = enterprise.NewLicenseChecker(p.API)
 
 	store, tearDown := NewTestStore(t)
 	t.Cleanup(tearDown)

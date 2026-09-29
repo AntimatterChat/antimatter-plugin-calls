@@ -16,7 +16,6 @@ import (
 	"github.com/mattermost/mattermost-plugin-calls/server/batching"
 	"github.com/mattermost/mattermost-plugin-calls/server/cluster"
 	"github.com/mattermost/mattermost-plugin-calls/server/db"
-	"github.com/mattermost/mattermost-plugin-calls/server/enterprise"
 	"github.com/mattermost/mattermost-plugin-calls/server/public"
 
 	serverMocks "github.com/mattermost/mattermost-plugin-calls/server/mocks/github.com/mattermost/mattermost-plugin-calls/server/interfaces"
@@ -966,8 +965,6 @@ func TestHandleJoin(t *testing.T) {
 		dmNoAnswerTimers:       map[string]*time.Timer{},
 	}
 
-	p.licenseChecker = enterprise.NewLicenseChecker(p.API)
-
 	mockMetrics.On("RTCMetrics").Return(mockRTCMetrics).Once()
 	mockAPI.On("LogDebug", mock.Anything, mock.Anything, mock.Anything,
 		mock.Anything, mock.Anything, mock.Anything, mock.Anything,
@@ -1041,16 +1038,9 @@ func TestHandleJoin(t *testing.T) {
 			&model.WebsocketBroadcast{UserId: userID, ChannelId: channelID, ReliableClusterSend: true}).Once()
 		// Call started post creation
 		mockAPI.On("GetUser", userID).Return(&model.User{Id: userID}, nil).Once()
-		mockAPI.On("GetConfig").Return(&model.Config{}, nil).Times(4)
+		mockAPI.On("GetConfig").Return(&model.Config{}, nil).Times(3)
 		mockAPI.On("CreatePost", mock.AnythingOfType("*model.Post")).Return(&model.Post{Id: postID}, nil).Once()
 		createPost(t, store, postID, userID, channelID)
-
-		mockAPI.On("GetLicense").Return(&model.License{
-			SkuShortName: "enterprise",
-		}, nil)
-		defer mockAPI.On("GetLicense").Return(&model.License{
-			SkuShortName: "enterprise",
-		}, nil).Unset()
 
 		mockMetrics.On("IncWebSocketEvent", "out", wsEventCallStart).Once()
 		mockAPI.On("PublishWebSocketEvent", wsEventCallStart, mock.Anything,
@@ -1156,10 +1146,6 @@ func TestHandleJoin(t *testing.T) {
 		// Call unlock
 		mockAPI.On("KVDelete", "mutex_call_"+channelID).Return(nil).Once()
 
-		defer mockAPI.On("GetLicense").Return(&model.License{
-			SkuShortName: "enterprise",
-		}, nil).Unset()
-
 		// Who gets to be host is non deterministic as it depends on the order in which sessions leave
 		// so can only make a generic assertion.
 		mockMetrics.On("IncWebSocketEvent", "out", wsEventCallHostChanged)
@@ -1185,7 +1171,7 @@ func TestHandleJoin(t *testing.T) {
 			if i == 0 {
 				// Call started post creation
 				mockAPI.On("GetUser", userID).Return(&model.User{Id: userID}, nil).Once()
-				mockAPI.On("GetConfig").Return(&model.Config{}, nil).Times(4)
+				mockAPI.On("GetConfig").Return(&model.Config{}, nil).Times(3)
 				mockAPI.On("CreatePost", mock.AnythingOfType("*model.Post")).Return(&model.Post{Id: postID}, nil).Once()
 				createPost(t, store, postID, userID, channelID)
 
@@ -1193,10 +1179,6 @@ func TestHandleJoin(t *testing.T) {
 				mockAPI.On("PublishWebSocketEvent", wsEventCallStart, mock.Anything,
 					&model.WebsocketBroadcast{ChannelId: channelID, ReliableClusterSend: true}).Once()
 			}
-
-			mockAPI.On("GetLicense").Return(&model.License{
-				SkuShortName: "enterprise",
-			}, nil)
 
 			mockRTCMetrics.On("IncRTCSessions", "default").Once()
 
@@ -1314,10 +1296,6 @@ func TestHandleJoin(t *testing.T) {
 		// Call unlock
 		mockAPI.On("KVDelete", "mutex_call_"+channelID).Return(nil).Once()
 
-		defer mockAPI.On("GetLicense").Return(&model.License{
-			SkuShortName: "enterprise",
-		}, nil).Unset()
-
 		// Who gets to be host is non deterministic as it depends on the order in which sessions leave
 		// so can only make a generic assertion.
 		mockMetrics.On("IncWebSocketEvent", "out", wsEventCallHostChanged)
@@ -1342,9 +1320,6 @@ func TestHandleJoin(t *testing.T) {
 		defer mockMetrics.On("IncWebSocketEvent", "out", wsEventCallStart).Unset()
 		mockAPI.On("PublishWebSocketEvent", wsEventCallStart, mock.Anything,
 			&model.WebsocketBroadcast{ChannelId: channelID, ReliableClusterSend: true})
-		mockAPI.On("GetLicense").Return(&model.License{
-			SkuShortName: "enterprise",
-		}, nil)
 		mockRTCMetrics.On("IncRTCSessions", "default")
 		defer mockRTCMetrics.On("IncRTCSessions", "default").Unset()
 		mockMetrics.On("IncWebSocketEvent", "out", wsEventJoin)
@@ -1536,8 +1511,6 @@ func TestHandleJoin(t *testing.T) {
 		mockAPI.On("CreatePost", mock.AnythingOfType("*model.Post")).Return(&model.Post{Id: postID}, nil).Once()
 		createPost(t, store, postID, userID, channelID)
 
-		mockAPI.On("GetLicense").Return(&model.License{}, nil)
-
 		mockMetrics.On("IncWebSocketEvent", "out", wsEventCallStart).Once()
 		mockAPI.On("PublishWebSocketEvent", wsEventCallStart, mock.Anything,
 			&model.WebsocketBroadcast{ChannelId: channelID, ReliableClusterSend: true}).Once()
@@ -1555,12 +1528,10 @@ func TestHandleJoin(t *testing.T) {
 			Id: "channelID",
 		}, nil).Once()
 
-		mockAPI.On("IsEnterpriseReady").Return(false).Once()
-
 		mockAPI.On("CreatePost", &model.Post{
 			UserId:    "",
 			ChannelId: "channelID",
-			Message:   ":warning: app.admin.concurrent_sessions_warning.intro\r\n\r\napp.admin.concurrent_sessions_warning.team",
+			Message:   ":warning: app.admin.concurrent_sessions_warning.intro\r\n\r\napp.admin.concurrent_sessions_warning.rtcd",
 		}).Return(&model.Post{Id: "postID"}, nil).Once()
 
 		mockRTCMetrics.On("IncRTCSessions", "default").Once()
