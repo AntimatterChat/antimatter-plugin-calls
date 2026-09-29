@@ -52,11 +52,6 @@ func TestHandleBotGetProfileForSession(t *testing.T) {
 	mockMetrics.On("ObserveClusterMutexLockedTime", "mutex_call", mock.AnythingOfType("float64"))
 	mockMetrics.On("Handler").Return(nil).Once()
 
-	mockAPI.On("GetConfig").Return(&model.Config{}, nil)
-	mockAPI.On("GetLicense").Return(&model.License{
-		SkuShortName: "enterprise",
-	}, nil)
-
 	apiRouter := p.newAPIRouter()
 
 	t.Run("no call ongoing", func(t *testing.T) {
@@ -253,10 +248,6 @@ func TestHandleBotUploadData(t *testing.T) {
 
 		uploadID := model.NewId()
 
-		mockAPI.On("GetConfig").Return(&model.Config{}, nil).Once()
-		mockAPI.On("GetLicense").Return(&model.License{
-			SkuShortName: "enterprise",
-		}, nil).Once()
 		mockAPI.On("GetUploadSession", uploadID).Return(nil, &model.AppError{
 			Message:    "upload session not found",
 			StatusCode: http.StatusNotFound,
@@ -288,10 +279,6 @@ func TestHandleBotUploadData(t *testing.T) {
 			UserId: botUserID,
 		}
 
-		mockAPI.On("GetConfig").Return(&model.Config{}, nil).Once()
-		mockAPI.On("GetLicense").Return(&model.License{
-			SkuShortName: "enterprise",
-		}, nil).Once()
 		mockAPI.On("GetUploadSession", uploadID).Return(us, nil).Once()
 
 		w := httptest.NewRecorder()
@@ -321,10 +308,6 @@ func TestHandleBotUploadData(t *testing.T) {
 			UserId: otherUserID,
 		}
 
-		mockAPI.On("GetConfig").Return(&model.Config{}, nil).Once()
-		mockAPI.On("GetLicense").Return(&model.License{
-			SkuShortName: "enterprise",
-		}, nil).Once()
 		mockAPI.On("GetUploadSession", uploadID).Return(us, nil).Once()
 
 		w := httptest.NewRecorder()
@@ -353,10 +336,6 @@ func TestHandleBotUploadData(t *testing.T) {
 			UserId: botUserID,
 		}
 
-		mockAPI.On("GetConfig").Return(&model.Config{}).Once()
-		mockAPI.On("GetLicense").Return(&model.License{
-			SkuShortName: "enterprise",
-		}, nil).Once()
 		mockAPI.On("GetUploadSession", uploadID).Return(us, nil).Once()
 		mockAPI.On("GetConfig").Return(nil).Once()
 
@@ -393,10 +372,6 @@ func TestHandleBotUploadData(t *testing.T) {
 			},
 		}
 
-		mockAPI.On("GetConfig").Return(&model.Config{}).Once()
-		mockAPI.On("GetLicense").Return(&model.License{
-			SkuShortName: "enterprise",
-		}, nil).Once()
 		mockAPI.On("GetUploadSession", uploadID).Return(us, nil).Once()
 		mockAPI.On("GetConfig").Return(config).Once()
 		mockAPI.On("UploadData", us, mock.Anything).Return(nil, &model.AppError{
@@ -437,10 +412,6 @@ func TestHandleBotUploadData(t *testing.T) {
 			},
 		}
 
-		mockAPI.On("GetConfig").Return(&model.Config{}).Once()
-		mockAPI.On("GetLicense").Return(&model.License{
-			SkuShortName: "enterprise",
-		}, nil).Once()
 		mockAPI.On("GetUploadSession", uploadID).Return(us, nil).Once()
 		mockAPI.On("GetConfig").Return(config).Once()
 		mockAPI.On("UploadData", us, mock.Anything).Return(nil, nil).Once()
@@ -479,10 +450,6 @@ func TestHandleBotUploadData(t *testing.T) {
 			Size: 100,
 		}
 
-		mockAPI.On("GetConfig").Return(&model.Config{}).Once()
-		mockAPI.On("GetLicense").Return(&model.License{
-			SkuShortName: "enterprise",
-		}, nil).Once()
 		mockAPI.On("GetUploadSession", uploadID).Return(us, nil).Once()
 		mockAPI.On("GetConfig").Return(config).Once()
 		mockAPI.On("UploadData", us, mock.Anything).Return(fileInfo, nil).Once()

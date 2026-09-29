@@ -133,11 +133,6 @@ func (p *Plugin) newAPIRouter() *mux.Router {
 				return
 			}
 
-			if !p.licenseChecker.RecordingsAllowed() {
-				http.Error(w, "Forbidden", http.StatusForbidden)
-				return
-			}
-
 			next.ServeHTTP(w, r)
 		})
 	})

@@ -249,12 +249,6 @@ func (p *Plugin) handleRecordingAction(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if !p.licenseChecker.RecordingsAllowed() {
-		res.Err = "Recordings are not allowed by your license"
-		res.Code = http.StatusForbidden
-		return
-	}
-
 	if cfg := p.getConfiguration(); !cfg.recordingsEnabled() {
 		res.Err = "Recordings are not enabled"
 		res.Code = http.StatusForbidden

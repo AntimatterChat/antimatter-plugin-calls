@@ -151,7 +151,7 @@ func (p *Plugin) OnActivate() (retErr error) {
 		p.LogError(appErr.Error())
 	}
 
-	if p.licenseChecker.RecordingsAllowed() && cfg.recordingsEnabled() {
+	if cfg.recordingsEnabled() {
 		go func() {
 			if err := p.initJobService(); err != nil {
 				err = fmt.Errorf("failed to initialize job service: %w", err)
