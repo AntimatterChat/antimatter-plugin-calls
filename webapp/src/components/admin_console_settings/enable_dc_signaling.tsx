@@ -6,7 +6,7 @@ import {useIntl} from 'react-intl';
 import {useSelector} from 'react-redux';
 import {leftCol, RadioInput, RadioInputLabel, rightCol} from 'src/components/admin_console_settings/common';
 import {callsConfig, callsConfigEnvOverrides} from 'src/selectors';
-import {CustomComponentProps} from 'src/types/mattermost-webapp';
+import {CustomComponentProps} from 'src/types/antimatter-webapp';
 
 export default function EnableDCSignaling(props: CustomComponentProps) {
     const {formatMessage} = useIntl();

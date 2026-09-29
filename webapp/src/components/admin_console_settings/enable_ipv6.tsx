@@ -7,7 +7,7 @@ import {useSelector} from 'react-redux';
 import {leftCol, RadioInput, RadioInputLabel, rightCol} from 'src/components/admin_console_settings/common';
 import {useHelptext} from 'src/components/admin_console_settings/hooks';
 import {callsConfig, callsConfigEnvOverrides, rtcdEnabled} from 'src/selectors';
-import {CustomComponentProps} from 'src/types/mattermost-webapp';
+import {CustomComponentProps} from 'src/types/antimatter-webapp';
 
 export const EnableIPv6 = (props: CustomComponentProps) => {
     const {formatMessage} = useIntl();

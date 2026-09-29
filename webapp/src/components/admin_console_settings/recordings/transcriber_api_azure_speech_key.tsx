@@ -13,7 +13,7 @@ import {
     transcribeAPI,
     transcriptionsEnabled,
 } from 'src/selectors';
-import {CustomComponentProps} from 'src/types/mattermost-webapp';
+import {CustomComponentProps} from 'src/types/antimatter-webapp';
 
 const TranscribeAPIAzureSpeechKey = (props: CustomComponentProps) => {
     const {formatMessage} = useIntl();

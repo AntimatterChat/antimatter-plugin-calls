@@ -22,7 +22,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func initMMSchema(t *testing.T, store *Store) {
+func initAMSchema(t *testing.T, store *Store) {
 	t.Helper()
 
 	_, err := store.wDB.Exec(`
@@ -133,7 +133,7 @@ func testStore(t *testing.T, tests map[string]func(t *testing.T, store *Store)) 
 			require.NotNil(t, store)
 			t.Cleanup(tearDown)
 
-			initMMSchema(t, store)
+			initAMSchema(t, store)
 
 			err := store.Migrate(models.Up, false)
 			require.NoError(t, err)

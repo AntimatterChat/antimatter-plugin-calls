@@ -32,7 +32,7 @@ import {threadIDForCallInChannel} from './selectors';
 import JoinSelfSound from './sounds/join_self.mp3';
 import JoinUserSound from './sounds/join_user.mp3';
 import LeaveSelfSound from './sounds/leave_self.mp3';
-import {Store} from './types/mattermost-webapp';
+import {Store} from './types/antimatter-webapp';
 
 export function getPluginStaticPath() {
     return `${window.basename || ''}/static/plugins/${pluginId}`;

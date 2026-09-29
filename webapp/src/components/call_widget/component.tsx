@@ -71,7 +71,7 @@ import {
     reverseKeyMappings,
     SHARE_UNSHARE_SCREEN,
 } from 'src/shortcuts';
-import {ModalData} from 'src/types/mattermost-webapp';
+import {ModalData} from 'src/types/antimatter-webapp';
 import {
     CallAlertStates,
     CallAlertStatesDefault,

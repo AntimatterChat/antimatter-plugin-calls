@@ -9,7 +9,7 @@ import {
 } from 'src/components/admin_console_settings/common';
 import manifest from 'src/manifest';
 import {callsConfig, callsConfigEnvOverrides, recordingsEnabled} from 'src/selectors';
-import {CustomComponentProps} from 'src/types/mattermost-webapp';
+import {CustomComponentProps} from 'src/types/antimatter-webapp';
 
 const JobServiceURL = (props: CustomComponentProps) => {
     const {formatMessage} = useIntl();

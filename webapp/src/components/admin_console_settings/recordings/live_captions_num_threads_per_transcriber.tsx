@@ -13,7 +13,7 @@ import {
     recordingsEnabled,
     transcriptionsEnabled,
 } from 'src/selectors';
-import {CustomComponentProps} from 'src/types/mattermost-webapp';
+import {CustomComponentProps} from 'src/types/antimatter-webapp';
 
 const LiveCaptionsNumThreadsPerTranscriber = (props: CustomComponentProps) => {
     const {formatMessage} = useIntl();

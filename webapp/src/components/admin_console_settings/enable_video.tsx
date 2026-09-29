@@ -4,7 +4,7 @@
 import React, {ChangeEvent} from 'react';
 import {useIntl} from 'react-intl';
 import {leftCol, RadioInput, RadioInputLabel, rightCol} from 'src/components/admin_console_settings/common';
-import {CustomComponentProps} from 'src/types/mattermost-webapp';
+import {CustomComponentProps} from 'src/types/antimatter-webapp';
 
 export default function EnableVideo(props: CustomComponentProps) {
     const {formatMessage} = useIntl();

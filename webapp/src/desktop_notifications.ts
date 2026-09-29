@@ -10,7 +10,7 @@ import {
     ringingEnabled,
     threadIDForCurrentCall,
 } from 'src/selectors';
-import {DesktopNotificationArgs, Store} from 'src/types/mattermost-webapp';
+import {DesktopNotificationArgs, Store} from 'src/types/antimatter-webapp';
 import {RealNewPostMessageProps} from 'src/types/types';
 import {isDmGmChannel} from 'src/utils';
 

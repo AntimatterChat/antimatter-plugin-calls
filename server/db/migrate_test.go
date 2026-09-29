@@ -22,7 +22,7 @@ func TestMigrate(t *testing.T) {
 			require.NotNil(t, store)
 			t.Cleanup(tearDown)
 
-			initMMSchema(t, store)
+			initAMSchema(t, store)
 
 			_, err := store.wDB.Exec(`SELECT COUNT(*) FROM calls_channels`)
 			require.ErrorContains(t, err, `pq: relation "calls_channels" does not exist`)

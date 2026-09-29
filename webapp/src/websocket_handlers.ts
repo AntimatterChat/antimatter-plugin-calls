@@ -90,7 +90,7 @@ import {
     ringingEnabled,
     shouldPlayJoinUserSound,
 } from './selectors';
-import {Store} from './types/mattermost-webapp';
+import {Store} from './types/antimatter-webapp';
 import {
     followThread,
     getCallsClient,

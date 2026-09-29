@@ -28,7 +28,7 @@ import {
     hostIDForCurrentCall,
     isRecordingInCurrentCall,
 } from './selectors';
-import {Store} from './types/mattermost-webapp';
+import {Store} from './types/antimatter-webapp';
 import {getCallsClient, getCallsWindow, getPersistentStorage, getPluginPath, sendDesktopEvent, shouldRenderDesktopWidget} from './utils';
 
 type joinCallFn = (channelId: string, teamId?: string, title?: string, rootId?: string) => void;

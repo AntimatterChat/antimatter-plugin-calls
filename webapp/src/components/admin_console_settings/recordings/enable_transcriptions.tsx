@@ -7,7 +7,7 @@ import {useDispatch, useSelector} from 'react-redux';
 import {setTranscriptionsEnabled} from 'src/actions';
 import {leftCol, RadioInput, RadioInputLabel, rightCol} from 'src/components/admin_console_settings/common';
 import {callsConfig, callsConfigEnvOverrides, recordingsEnabled} from 'src/selectors';
-import {CustomComponentProps} from 'src/types/mattermost-webapp';
+import {CustomComponentProps} from 'src/types/antimatter-webapp';
 
 export const EnableTranscriptions = (props: CustomComponentProps) => {
     const dispatch = useDispatch();

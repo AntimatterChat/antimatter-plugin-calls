@@ -7,7 +7,7 @@ import {ChannelTypes} from 'mattermost-redux/action_types';
 import {getCurrentUserLocale} from 'mattermost-redux/selectors/entities/i18n';
 import {logErr, logInfo} from 'plugin/log';
 import {pluginId} from 'plugin/manifest';
-import {Store} from 'plugin/types/mattermost-webapp';
+import {Store} from 'plugin/types/antimatter-webapp';
 import {
     getPluginPath,
     getTranslations,

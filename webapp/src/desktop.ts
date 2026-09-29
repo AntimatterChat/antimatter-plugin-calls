@@ -15,7 +15,7 @@ import {
     desktopGTE,
 } from 'src/utils';
 
-import {Store} from './types/mattermost-webapp';
+import {Store} from './types/antimatter-webapp';
 
 export function handleDesktopJoinedCall(store: Store, msg: CallsDesktopJoinResponse) {
     logDebug('handleDesktopJoinedCall');

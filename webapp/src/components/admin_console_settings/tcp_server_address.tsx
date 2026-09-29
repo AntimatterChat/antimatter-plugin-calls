@@ -10,7 +10,7 @@ import {
 import {useHelptext} from 'src/components/admin_console_settings/hooks';
 import manifest from 'src/manifest';
 import {callsConfig, callsConfigEnvOverrides, rtcdEnabled} from 'src/selectors';
-import {CustomComponentProps} from 'src/types/mattermost-webapp';
+import {CustomComponentProps} from 'src/types/antimatter-webapp';
 
 const TCPServerAddress = (props: CustomComponentProps) => {
     const {formatMessage} = useIntl();

@@ -5,7 +5,7 @@ import {CallHostChangedData, UserJoinedData} from '@mattermost/calls-common/lib/
 import {WebSocketMessage} from '@mattermost/client/websocket';
 import {getCurrentUserId, getUser} from 'mattermost-redux/selectors/entities/users';
 import {loadProfilesByIdsIfMissing, removeIncomingCallNotification, setDMCalleeAnsweredAt} from 'src/actions';
-import {Store} from 'src/types/mattermost-webapp';
+import {Store} from 'src/types/antimatter-webapp';
 
 import {CALL_HOST, HOST_CONTROL_NOTICE, USER_JOINED} from './action_types';
 import {

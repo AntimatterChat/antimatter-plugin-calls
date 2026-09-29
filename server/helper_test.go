@@ -35,7 +35,7 @@ func createPost(t *testing.T, store *db.Store, postID, userID, channelID string)
 	require.NoError(t, err)
 }
 
-func initMMSchema(t *testing.T, store *db.Store) {
+func initAMSchema(t *testing.T, store *db.Store) {
 	t.Helper()
 
 	_, err := store.WriterDB().Exec(`
@@ -107,7 +107,7 @@ func NewTestStore(t *testing.T) (*db.Store, func()) {
 	require.NoError(t, err)
 	require.NotNil(t, store)
 
-	initMMSchema(t, store)
+	initAMSchema(t, store)
 
 	err = store.Migrate(models.Up, false)
 	require.NoError(t, err)

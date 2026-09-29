@@ -153,7 +153,7 @@ import {
 } from './selectors';
 import {JOIN_CALL, keyToAction} from './shortcuts';
 import {convertStatsToPanels} from './stats';
-import {DesktopNotificationArgs, PluginRegistry, Store, WebAppUtils} from './types/mattermost-webapp';
+import {DesktopNotificationArgs, PluginRegistry, Store, WebAppUtils} from './types/antimatter-webapp';
 import {
     followThread,
     getCallsClient,

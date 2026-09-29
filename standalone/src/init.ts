@@ -52,7 +52,7 @@ import {pluginId} from 'plugin/manifest';
 import reducer from 'plugin/reducers';
 import RestClient from 'plugin/rest_client';
 import {callsConfig, callsVersionInfo, iceServers, needsTURNCredentials} from 'plugin/selectors';
-import {DesktopNotificationArgs, Store, WebAppUtils} from 'plugin/types/mattermost-webapp';
+import {DesktopNotificationArgs, Store, WebAppUtils} from 'plugin/types/antimatter-webapp';
 import {
     getPluginPath,
     getWSConnectionURL,

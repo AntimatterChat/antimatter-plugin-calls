@@ -12,7 +12,7 @@ import {
 } from 'src/components/admin_console_settings/common';
 import manifest from 'src/manifest';
 import {callsConfig, callsConfigEnvOverrides} from 'src/selectors';
-import {CustomComponentProps} from 'src/types/mattermost-webapp';
+import {CustomComponentProps} from 'src/types/antimatter-webapp';
 
 const RTCDServiceURL = (props: CustomComponentProps) => {
     const {formatMessage} = useIntl();

@@ -11,7 +11,7 @@ import {LabelRow,
     rightCol,
 } from 'src/components/admin_console_settings/common';
 import {callsConfig, callsConfigEnvOverrides} from 'src/selectors';
-import {CustomComponentProps} from 'src/types/mattermost-webapp';
+import {CustomComponentProps} from 'src/types/antimatter-webapp';
 
 const EnableRecordings = (props: CustomComponentProps) => {
     const {formatMessage} = useIntl();

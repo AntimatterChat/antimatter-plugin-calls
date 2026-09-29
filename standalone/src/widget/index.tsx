@@ -20,7 +20,7 @@ import CallWidget from 'plugin/components/call_widget';
 import {
     logDebug,
 } from 'plugin/log';
-import {Store} from 'plugin/types/mattermost-webapp';
+import {Store} from 'plugin/types/antimatter-webapp';
 import {
     getTranslations,
     playSound, sendDesktopError,

@@ -8,7 +8,7 @@ import {useSelector} from 'react-redux';
 import {LabelRow, leftCol, rightCol} from 'src/components/admin_console_settings/common';
 import manifest from 'src/manifest';
 import {callsConfig, callsConfigEnvOverrides, recordingsEnabled, transcribeAPI, transcriptionsEnabled} from 'src/selectors';
-import {CustomComponentProps} from 'src/types/mattermost-webapp';
+import {CustomComponentProps} from 'src/types/antimatter-webapp';
 
 const TranscriberModelSize = (props: CustomComponentProps) => {
     const {formatMessage} = useIntl();

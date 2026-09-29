@@ -3,7 +3,7 @@
 
 import {GlobalState} from '@mattermost/types/store';
 import {ActionFunc, ActionFuncAsync} from 'mattermost-redux/types/actions';
-import {WebAppUtils} from 'src/types/mattermost-webapp';
+import {WebAppUtils} from 'src/types/antimatter-webapp';
 
 export const {
     modals,
