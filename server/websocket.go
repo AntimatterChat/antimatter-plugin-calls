@@ -1214,7 +1214,7 @@ func (p *Plugin) WebSocketMessageHasBeenPosted(connID, userID string, req *model
 		return
 	}
 
-	// This is the standard ping message handled by Mattermost server. Nothing to do here.
+	// This is the standard ping message handled by Antimatter server. Nothing to do here.
 	if msg.Type == "ping" {
 		return
 	}

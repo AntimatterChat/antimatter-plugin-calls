@@ -1,7 +1,7 @@
 [
     {
         "id": "app.admin.concurrent_sessions_warning.intro",
-        "translation": "Deine Installation wird durch Mattermost-Aufrufe stark beansprucht, was sich negativ auf die Systemleistung und Reaktionsfähigkeit auswirken kann."
+        "translation": "Deine Installation wird durch Antimatter-Aufrufe stark beansprucht, was sich negativ auf die Systemleistung und Reaktionsfähigkeit auswirken kann."
     },
     {
         "id": "app.call.ended_message",
@@ -37,7 +37,7 @@
     },
     {
         "id": "app.admin.concurrent_sessions_warning.rtcd",
-        "translation": "Wir empfehlen dringend, [den RTCD-Dienst](https://mattermost.com/pl/calls-deployment-the-rtcd-service) einzusetzen, um die Verarbeitung von Anrufen auf eine separate Instanz zu verlagern, damit die Leistung, Skalierbarkeit und Zuverlässigkeit deines Mattermost-Hauptservers erhalten bleibt."
+        "translation": "Wir empfehlen dringend, [den RTCD-Dienst](https://docs.antimatter.example/pl/calls-deployment-the-rtcd-service) einzusetzen, um die Verarbeitung von Anrufen auf eine separate Instanz zu verlagern, damit die Leistung, Skalierbarkeit und Zuverlässigkeit deines Antimatter-Hauptservers erhalten bleibt."
     },
     {
         "id": "app.call.started_message",

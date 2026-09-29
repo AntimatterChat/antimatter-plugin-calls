@@ -70,7 +70,7 @@ func (p *Plugin) canSendPushNotifications(config *model.Config) error {
 	}
 	pushServer := *config.EmailSettings.PushNotificationServer
 	if pushServer == model.MHPNS {
-		return errors.New("push notifications have been disabled because the Mattermost-hosted push notification service is not supported. Go to System Console > Environment > Push Notification Server to use your own push proxy")
+		return errors.New("push notifications have been disabled because the hosted push notification service is not supported. Go to System Console > Environment > Push Notification Server to use your own push proxy")
 	}
 
 	return nil

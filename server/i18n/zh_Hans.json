@@ -1,7 +1,7 @@
 [
     {
         "id": "app.admin.concurrent_sessions_warning.intro",
-        "translation": "Mattermost Calls 占用了您的部署的过多资源，可能对系统性能和响应能力造成负面影响。"
+        "translation": "Antimatter Calls 占用了您的部署的过多资源，可能对系统性能和响应能力造成负面影响。"
     },
     {
         "id": "app.call.ended_message",
@@ -37,7 +37,7 @@
     },
     {
         "id": "app.admin.concurrent_sessions_warning.rtcd",
-        "translation": "我们非常推荐[部署 RTCD 服务](https://mattermost.com/pl/calls-deployment-the-rtcd-service)以将通话处理分载到一个独立的实例上，以保持您的主 Mattermost 服务器的性能、可扩展性，和可靠性。"
+        "translation": "我们非常推荐[部署 RTCD 服务](https://docs.antimatter.example/pl/calls-deployment-the-rtcd-service)以将通话处理分载到一个独立的实例上，以保持您的主 Antimatter 服务器的性能、可扩展性，和可靠性。"
     },
     {
         "id": "app.push_notification.inviting_message",

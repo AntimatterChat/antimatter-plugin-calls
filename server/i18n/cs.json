@@ -1,11 +1,11 @@
 [
     {
         "id": "app.admin.concurrent_sessions_warning.rtcd",
-        "translation": "Důrazně doporučujeme [deploying the RTCD service](https://mattermost.com/pl/calls-deployment-the-rtcd-service) pro přenesení zpracování hovorů na samostatnou instanci, aby byla zachována výkonnost, škálovatelnost a spolehlivost vašeho hlavního serveru Mattermost."
+        "translation": "Důrazně doporučujeme [deploying the RTCD service](https://docs.antimatter.example/pl/calls-deployment-the-rtcd-service) pro přenesení zpracování hovorů na samostatnou instanci, aby byla zachována výkonnost, škálovatelnost a spolehlivost vašeho hlavního serveru Antimatter."
     },
     {
         "id": "app.admin.concurrent_sessions_warning.intro",
-        "translation": "Vaše instalace zažívá vysoké zatížení kvůli Mattermost hovorům, což může negativně ovlivnit výkon systému a jeho odezvu."
+        "translation": "Vaše instalace zažívá vysoké zatížení kvůli Antimatter hovorům, což může negativně ovlivnit výkon systému a jeho odezvu."
     },
     {
         "id": "app.call.ended_message",

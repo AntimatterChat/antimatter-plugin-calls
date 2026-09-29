@@ -5,7 +5,7 @@
     },
     {
         "id": "app.admin.concurrent_sessions_warning.intro",
-        "translation": "시스템 성능과 응답성에 부정적인 영향을 줄 수 있는 Mattermost 호출의 사용량이 너무 많아지고 있습니다."
+        "translation": "시스템 성능과 응답성에 부정적인 영향을 줄 수 있는 Antimatter 호출의 사용량이 너무 많아지고 있습니다."
     },
     {
         "id": "app.call.new_recording_and_transcription_message",

@@ -1,7 +1,7 @@
 [
     {
         "id": "app.admin.concurrent_sessions_warning.intro",
-        "translation": "Ваша установка интенсивно используется Mattermost Calls, что может негативно сказаться на производительности и отзывчивости системы."
+        "translation": "Ваша установка интенсивно используется Antimatter Calls, что может негативно сказаться на производительности и отзывчивости системы."
     },
     {
         "id": "app.call.ended_message",
@@ -41,6 +41,6 @@
     },
     {
         "id": "app.admin.concurrent_sessions_warning.rtcd",
-        "translation": "Мы настоятельно рекомендуем [развернуть службу RTCD](https://mattermost.com/pl/calls-deployment-the-rtcd-service), чтобы разгрузить обработку вызовов на отдельный экземпляр, чтобы сохранить производительность, масштабируемость и надежность вашего основного сервера Mattermost."
+        "translation": "Мы настоятельно рекомендуем [развернуть службу RTCD](https://docs.antimatter.example/pl/calls-deployment-the-rtcd-service), чтобы разгрузить обработку вызовов на отдельный экземпляр, чтобы сохранить производительность, масштабируемость и надежность вашего основного сервера Antimatter."
     }
 ]

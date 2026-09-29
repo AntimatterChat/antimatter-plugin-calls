@@ -7,8 +7,8 @@ import (
 	"errors"
 	"testing"
 
-	transcriber "github.com/mattermost/calls-transcriber/cmd/transcriber/config"
 	pluginMocks "github.com/antimatterchat/antimatter-plugin-calls/server/mocks/github.com/mattermost/mattermost/server/public/plugin"
+	transcriber "github.com/mattermost/calls-transcriber/cmd/transcriber/config"
 	"github.com/mattermost/mattermost/server/public/plugin"
 
 	"github.com/mattermost/mattermost/server/public/model"

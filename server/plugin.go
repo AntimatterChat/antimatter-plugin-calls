@@ -32,7 +32,7 @@ const (
 	callTranscriptionType = "custom_calls_transcription"
 )
 
-// Plugin implements the interface expected by the Mattermost server to communicate between the server and plugin processes.
+// Plugin implements the interface expected by the Antimatter server to communicate between the server and plugin processes.
 type Plugin struct {
 	plugin.MattermostPlugin
 

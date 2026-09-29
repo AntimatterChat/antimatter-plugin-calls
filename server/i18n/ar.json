@@ -1,11 +1,11 @@
 [
     {
         "id": "app.admin.concurrent_sessions_warning.rtcd",
-        "translation": "نوصي بشدة [بنشر خدمة RTCD] (https://mattermost.com/pl/calls-deployment-the-rtcd-service) لإلغاء تحميل معالجة المكالمات إلى مثيل منفصل من أجل الحفاظ على أداء خادم Mattermost الرئيسي وقابلية التوسع والموثوقية."
+        "translation": "نوصي بشدة [بنشر خدمة RTCD] (https://docs.antimatter.example/pl/calls-deployment-the-rtcd-service) لإلغاء تحميل معالجة المكالمات إلى مثيل منفصل من أجل الحفاظ على أداء خادم Antimatter الرئيسي وقابلية التوسع والموثوقية."
     },
     {
         "id": "app.admin.concurrent_sessions_warning.intro",
-        "translation": "يواجه التثبيت الخاص بك استخدامًا كثيفًا من مكالمات Mattermost Calls التي يمكن أن تؤثر سلبًا على أداء النظام واستجابته."
+        "translation": "يواجه التثبيت الخاص بك استخدامًا كثيفًا من مكالمات Antimatter Calls التي يمكن أن تؤثر سلبًا على أداء النظام واستجابته."
     },
     {
         "id": "app.call.new_recording_message",

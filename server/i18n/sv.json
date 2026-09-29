@@ -29,11 +29,11 @@
     },
     {
         "id": "app.admin.concurrent_sessions_warning.rtcd",
-        "translation": "Vi rekommenderar starkt att [implementera RTCD-tjänsten](https://mattermost.com/pl/calls-deployment-the-rtcd-service) och hantera samtalsfunktionerna på en separat instans för att bibehålla prestanda, skalbarhet och tillförlitlighet för din primära Mattermost-server."
+        "translation": "Vi rekommenderar starkt att [implementera RTCD-tjänsten](https://docs.antimatter.example/pl/calls-deployment-the-rtcd-service) och hantera samtalsfunktionerna på en separat instans för att bibehålla prestanda, skalbarhet och tillförlitlighet för din primära Antimatter-server."
     },
     {
         "id": "app.admin.concurrent_sessions_warning.intro",
-        "translation": "Din användning av Mattermost Calls är hög och det kan påverka systemets prestanda och svarstid negativt."
+        "translation": "Din användning av Antimatter Calls är hög och det kan påverka systemets prestanda och svarstid negativt."
     },
     {
         "id": "app.call.new_recording_message",

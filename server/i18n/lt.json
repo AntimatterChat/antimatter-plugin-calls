@@ -25,11 +25,11 @@
     },
     {
         "id": "app.admin.concurrent_sessions_warning.rtcd",
-        "translation": "Labai rekomenduojame [diegti RTCD paslaugą](https://mattermost.com/pl/calls-deployment-the-rtcd-service), kad skambučių apdorojimas būtų perkeltas į atskirą egzempliorių ir būtų išlaikytas pagrindinio \"Mattermost\" serverio našumas, mastelio keitimas ir patikimumas."
+        "translation": "Labai rekomenduojame [diegti RTCD paslaugą](https://docs.antimatter.example/pl/calls-deployment-the-rtcd-service), kad skambučių apdorojimas būtų perkeltas į atskirą egzempliorių ir būtų išlaikytas pagrindinio \"Antimatter\" serverio našumas, mastelio keitimas ir patikimumas."
     },
     {
         "id": "app.admin.concurrent_sessions_warning.intro",
-        "translation": "Jūsų įrenginys yra intensyviai naudojamas \"Mattermost\" skambučių, o tai gali neigiamai paveikti sistemos veikimą ir reakciją."
+        "translation": "Jūsų įrenginys yra intensyviai naudojamas \"Antimatter\" skambučių, o tai gali neigiamai paveikti sistemos veikimą ir reakciją."
     },
     {
         "id": "app.push_notification.inviting_message",

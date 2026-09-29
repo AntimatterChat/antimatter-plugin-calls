@@ -1,11 +1,11 @@
 [
     {
         "id": "app.admin.concurrent_sessions_warning.rtcd",
-        "translation": "É altamente recomendável que você [implemente o serviço RTCD] (https://mattermost.com/pl/calls-deployment-the-rtcd-service) para descarregar o processamento de chamadas em uma instância separada, a fim de manter o desempenho, a escalabilidade e a confiabilidade do seu servidor Mattermost principal."
+        "translation": "É altamente recomendável que você [implemente o serviço RTCD] (https://docs.antimatter.example/pl/calls-deployment-the-rtcd-service) para descarregar o processamento de chamadas em uma instância separada, a fim de manter o desempenho, a escalabilidade e a confiabilidade do seu servidor Antimatter principal."
     },
     {
         "id": "app.admin.concurrent_sessions_warning.intro",
-        "translation": "Sua instalação está sofrendo uso intenso das chamadas do Mattermost, o que pode afetar negativamente o desempenho e a capacidade de resposta do sistema."
+        "translation": "Sua instalação está sofrendo uso intenso das chamadas do Antimatter, o que pode afetar negativamente o desempenho e a capacidade de resposta do sistema."
     },
     {
         "id": "app.call.ended_message",

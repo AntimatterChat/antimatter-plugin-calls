@@ -72,7 +72,7 @@ func main() {
 
 	flag.StringVar(&teamID, "team", "", "The team ID to start calls in")
 	flag.StringVar(&channelID, "channel", "", "The channel ID to start the call in")
-	flag.StringVar(&siteURL, "url", "http://localhost:8065", "Mattermost SiteURL")
+	flag.StringVar(&siteURL, "url", "http://localhost:8065", "Antimatter SiteURL")
 	flag.StringVar(&userPrefix, "user-prefix", "testuser-", "The user prefix used to create and log in users")
 	flag.StringVar(&userPassword, "user-password", "testPass123$", "user password")
 	flag.IntVar(&numUnmuted, "unmuted", 0, "The number of unmuted users per call")

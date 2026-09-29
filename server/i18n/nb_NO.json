@@ -1,7 +1,7 @@
 [
     {
         "id": "app.admin.concurrent_sessions_warning.intro",
-        "translation": "Installasjonen din opplever tung bruk fra Mattermost Calls, og det kan påvirke systemytelsen og responsen negativt."
+        "translation": "Installasjonen din opplever tung bruk fra Antimatter Calls, og det kan påvirke systemytelsen og responsen negativt."
     },
     {
         "id": "app.push_notification.inviting_message",
@@ -13,7 +13,7 @@
     },
     {
         "id": "app.admin.concurrent_sessions_warning.rtcd",
-        "translation": "Vi vil sterkt anbefale å [distribuere RTCD-tjenesten](https://mattermost.com/pl/calls-deployment-the-rtcd-service) for å overføre samtalebehandling til en separat instans for å opprettholde ytelsen, skalerbarheten og påliteligheten til din hovedserver for Mattermost."
+        "translation": "Vi vil sterkt anbefale å [distribuere RTCD-tjenesten](https://docs.antimatter.example/pl/calls-deployment-the-rtcd-service) for å overføre samtalebehandling til en separat instans for å opprettholde ytelsen, skalerbarheten og påliteligheten til din hovedserver for Antimatter."
     },
     {
         "id": "app.call.ended_message",

@@ -1,11 +1,11 @@
 [
     {
         "id": "app.admin.concurrent_sessions_warning.rtcd",
-        "translation": "Mattermostサーバー自体のパフォーマンス、スケーラビリティ、信頼性を維持するために、通話処理を別のインスタンスにオフロード可能な[RTCDサービス](https://mattermost.com/pl/calls-deployment-the-rtcd-service)をデプロイすることを強く推奨します。"
+        "translation": "Antimatterサーバー自体のパフォーマンス、スケーラビリティ、信頼性を維持するために、通話処理を別のインスタンスにオフロード可能な[RTCDサービス](https://docs.antimatter.example/pl/calls-deployment-the-rtcd-service)をデプロイすることを強く推奨します。"
     },
     {
         "id": "app.admin.concurrent_sessions_warning.intro",
-        "translation": "Mattermost Callsの使用量が多く、システムのパフォーマンスと応答性に悪影響を及ぼしている可能性があります。"
+        "translation": "Antimatter Callsの使用量が多く、システムのパフォーマンスと応答性に悪影響を及ぼしている可能性があります。"
     },
     {
         "id": "app.call.ended_message",

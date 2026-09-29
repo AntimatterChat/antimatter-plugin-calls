@@ -224,7 +224,7 @@ func TestPlugin_canSendPushNotifications(t *testing.T) {
 		{
 			name:   "hosted push notification service",
 			config: config,
-			want:   errors.New("push notifications have been disabled because the Mattermost-hosted push notification service is not supported. Go to System Console > Environment > Push Notification Server to use your own push proxy"),
+			want:   errors.New("push notifications have been disabled because the hosted push notification service is not supported. Go to System Console > Environment > Push Notification Server to use your own push proxy"),
 		},
 		{
 			name: "own push proxy",

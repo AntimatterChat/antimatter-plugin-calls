@@ -1,11 +1,11 @@
 [
     {
         "id": "app.admin.concurrent_sessions_warning.rtcd",
-        "translation": "Ana Mattermost sunucunuzun performansını, ölçeklenebilirliğini ve güvenilirliğini korumak amacıyla çağrı işlemeyi ayrı bir örneğe boşaltmak için [RTCD hizmetini dağıtmanızı] (https://mattermost.com/pl/calls-deployment-the-rtcd-service) önemle tavsiye ederiz."
+        "translation": "Ana Antimatter sunucunuzun performansını, ölçeklenebilirliğini ve güvenilirliğini korumak amacıyla çağrı işlemeyi ayrı bir örneğe boşaltmak için [RTCD hizmetini dağıtmanızı] (https://docs.antimatter.example/pl/calls-deployment-the-rtcd-service) önemle tavsiye ederiz."
     },
     {
         "id": "app.admin.concurrent_sessions_warning.intro",
-        "translation": "Kurulumunuz, sistem performansını ve yanıt verme hızını olumsuz etkileyebilecek Mattermost Çağrıları tarafından yoğun bir şekilde kullanılıyor."
+        "translation": "Kurulumunuz, sistem performansını ve yanıt verme hızını olumsuz etkileyebilecek Antimatter Çağrıları tarafından yoğun bir şekilde kullanılıyor."
     },
     {
         "id": "app.call.new_transcription_message",

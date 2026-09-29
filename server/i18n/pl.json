@@ -1,7 +1,7 @@
 [
     {
         "id": "app.admin.concurrent_sessions_warning.intro",
-        "translation": "Twoja instalacja jest intensywnie wykorzystywana przez połączenia Mattermost, co może negatywnie wpływać na wydajność i szybkość reakcji systemu."
+        "translation": "Twoja instalacja jest intensywnie wykorzystywana przez połączenia Antimatter, co może negatywnie wpływać na wydajność i szybkość reakcji systemu."
     },
     {
         "id": "app.call.ended_message",
@@ -37,7 +37,7 @@
     },
     {
         "id": "app.admin.concurrent_sessions_warning.rtcd",
-        "translation": "Zdecydowanie zalecamy [wdrożenie usługi RTCD](https://mattermost.com/pl/calls-deployment-the-rtcd-service), aby odciążyć przetwarzanie połączeń do oddzielnej instancji w celu utrzymania wydajności, skalowalności i niezawodności głównego serwera Mattermost."
+        "translation": "Zdecydowanie zalecamy [wdrożenie usługi RTCD](https://docs.antimatter.example/pl/calls-deployment-the-rtcd-service), aby odciążyć przetwarzanie połączeń do oddzielnej instancji w celu utrzymania wydajności, skalowalności i niezawodności głównego serwera Antimatter."
     },
     {
         "id": "app.push_notification.generic_message",

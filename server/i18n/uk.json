@@ -13,7 +13,7 @@
     },
     {
         "id": "app.admin.concurrent_sessions_warning.rtcd",
-        "translation": "Ми наполегливо рекомендуємо [розгорнути службу RTCD](https://mattermost.com/pl/calls-deployment-the-rtcd-service), щоб перенести обробку дзвінків на окремий сервер. Це дозволить зберегти продуктивність, масштабованість і надійність основного сервера Mattermost."
+        "translation": "Ми наполегливо рекомендуємо [розгорнути службу RTCD](https://docs.antimatter.example/pl/calls-deployment-the-rtcd-service), щоб перенести обробку дзвінків на окремий сервер. Це дозволить зберегти продуктивність, масштабованість і надійність основного сервера Antimatter."
     },
     {
         "id": "app.call.new_recording_and_transcription_message",
@@ -21,7 +21,7 @@
     },
     {
         "id": "app.admin.concurrent_sessions_warning.intro",
-        "translation": "Ваша інсталяція зазнає інтенсивного використання Mattermost Calls, що може негативно вплинути на продуктивність системи та швидкість відгуку."
+        "translation": "Ваша інсталяція зазнає інтенсивного використання Antimatter Calls, що може негативно вплинути на продуктивність системи та швидкість відгуку."
     },
     {
         "id": "app.call.started_message",

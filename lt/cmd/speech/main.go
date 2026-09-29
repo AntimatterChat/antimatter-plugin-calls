@@ -27,8 +27,8 @@ var setup bool
 
 func main() {
 	flag.StringVar(&script, "script", "script.txt", "Script for the tts, to be found in lt/scripts; assumes you will be running the lt program from the repo/lt directory")
-	flag.StringVar(&siteURL, "siteURL", "http://localhost:8065", "Mattermost SiteURL")
-	flag.StringVar(&wsURL, "wsURL", "ws://localhost:8065", "Mattermost wsURL")
+	flag.StringVar(&siteURL, "siteURL", "http://localhost:8065", "Antimatter SiteURL")
+	flag.StringVar(&wsURL, "wsURL", "ws://localhost:8065", "Antimatter wsURL")
 	flag.StringVar(&channelID, "channelID", "", "ChannelID of the call")
 	flag.StringVar(&teamID, "teamID", "", "TeamID of the call")
 	flag.BoolVar(&setup, "setup", false, "setup users (needs teamID and valid sysadmin login)")
