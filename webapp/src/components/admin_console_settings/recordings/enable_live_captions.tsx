@@ -6,14 +6,12 @@ import {useIntl} from 'react-intl';
 import {useDispatch, useSelector} from 'react-redux';
 import {setLiveCaptionsEnabled} from 'src/actions';
 import {leftCol, RadioInput, RadioInputLabel, rightCol} from 'src/components/admin_console_settings/common';
-import {callsConfig, callsConfigEnvOverrides, isCloud, isOnPremNotEnterprise, recordingsEnabled, transcriptionsEnabled} from 'src/selectors';
+import {callsConfig, callsConfigEnvOverrides, recordingsEnabled, transcriptionsEnabled} from 'src/selectors';
 import {CustomComponentProps} from 'src/types/mattermost-webapp';
 
 export const EnableLiveCaptions = (props: CustomComponentProps) => {
     const dispatch = useDispatch();
     const {formatMessage} = useIntl();
-    const restricted = useSelector(isOnPremNotEnterprise);
-    const cloud = useSelector(isCloud);
     const recordingEnabled = useSelector(recordingsEnabled);
     const transcriptionEnabled = useSelector(transcriptionsEnabled);
     const config = useSelector(callsConfig);
@@ -44,7 +42,7 @@ export const EnableLiveCaptions = (props: CustomComponentProps) => {
 
     const disabled = props.disabled || overridden;
 
-    if (cloud || restricted || !recordingEnabled || !transcriptionEnabled) {
+    if (!recordingEnabled || !transcriptionEnabled) {
         return null;
     }
 

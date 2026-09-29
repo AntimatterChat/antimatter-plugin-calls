@@ -29,13 +29,6 @@ describe('CallTranscriptionsSection', () => {
                     EnableRecordings: true,
                 },
             },
-            entities: {
-                general: {
-                    license: {
-                        SkuShortName: 'enterprise',
-                    },
-                },
-            },
             ...storeOverrides,
         });
 
@@ -70,43 +63,5 @@ describe('CallTranscriptionsSection', () => {
         expect(screen.getByText('Allows calls to be transcribed to text files. To enable call transcriptions, recordings must be enabled first')).toBeInTheDocument();
         expect(screen.queryByTestId('setting1')).not.toBeInTheDocument();
         expect(screen.queryByTestId('setting2')).not.toBeInTheDocument();
-    });
-
-    it('should not render on cloud', () => {
-        renderComponent({
-            'plugins-com.mattermost.calls': {
-                callsConfig: {
-                    EnableRecordings: true,
-                },
-            },
-            entities: {
-                general: {
-                    license: {
-                        Cloud: 'true',
-                        SkuShortName: 'enterprise',
-                    },
-                },
-            },
-        });
-
-        expect(screen.queryByText('Call transcriptions')).not.toBeInTheDocument();
-    });
-
-    it('should not render when not enterprise', () => {
-        renderComponent({
-            'plugins-com.mattermost.calls': {
-                callsConfig: {
-                    EnableRecordings: true,
-                },
-            },
-            entities: {
-                general: {
-                    license: {
-                    },
-                },
-            },
-        });
-
-        expect(screen.queryByText('Call transcriptions')).not.toBeInTheDocument();
     });
 });

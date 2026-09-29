@@ -30,13 +30,6 @@ describe('CallLiveCaptionsSection', () => {
                     EnableTranscriptions: true,
                 },
             },
-            entities: {
-                general: {
-                    license: {
-                        SkuShortName: 'enterprise',
-                    },
-                },
-            },
             ...storeOverrides,
         });
 
@@ -88,32 +81,5 @@ describe('CallLiveCaptionsSection', () => {
         expect(screen.getByText('Displays spoken words as text captions during a call. To enable live captions, recordings and transcriptions must be enabled first')).toBeInTheDocument();
         expect(screen.queryByTestId('setting1')).not.toBeInTheDocument();
         expect(screen.queryByTestId('setting2')).not.toBeInTheDocument();
-    });
-
-    it('should not render on cloud', () => {
-        renderComponent({
-            entities: {
-                general: {
-                    license: {
-                        Cloud: 'true',
-                        SkuShortName: 'enterprise',
-                    },
-                },
-            },
-        });
-
-        expect(screen.queryByText('Live captions')).not.toBeInTheDocument();
-    });
-
-    it('should not render when not enterprise', () => {
-        renderComponent({
-            entities: {
-                general: {
-                    license: {},
-                },
-            },
-        });
-
-        expect(screen.queryByText('Live captions')).not.toBeInTheDocument();
     });
 });

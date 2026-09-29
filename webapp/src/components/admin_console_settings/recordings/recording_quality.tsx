@@ -5,19 +5,17 @@ import React, {ChangeEvent} from 'react';
 import {useIntl} from 'react-intl';
 import {useSelector} from 'react-redux';
 import {LabelRow, leftCol, rightCol} from 'src/components/admin_console_settings/common';
-import {callsConfig, callsConfigEnvOverrides, isCloud, isOnPremNotEnterprise, recordingsEnabled} from 'src/selectors';
+import {callsConfig, callsConfigEnvOverrides, recordingsEnabled} from 'src/selectors';
 import {CustomComponentProps} from 'src/types/mattermost-webapp';
 
 const RecordingQuality = (props: CustomComponentProps) => {
     const {formatMessage} = useIntl();
-    const restricted = useSelector(isOnPremNotEnterprise);
-    const cloud = useSelector(isCloud);
     const recordingEnabled = useSelector(recordingsEnabled);
     const config = useSelector(callsConfig);
     const overrides = useSelector(callsConfigEnvOverrides);
     const overridden = 'RecordingQuality' in overrides;
 
-    if (cloud || restricted || !recordingEnabled) {
+    if (!recordingEnabled) {
         return null;
     }
 

@@ -40,13 +40,6 @@ describe('LiveCaptionsLanguage', () => {
                 },
                 callsConfigEnvOverrides: {},
             },
-            entities: {
-                general: {
-                    license: {
-                        SkuShortName: 'enterprise',
-                    },
-                },
-            },
             ...storeOverrides,
         });
 
@@ -151,30 +144,6 @@ describe('LiveCaptionsLanguage', () => {
                     LiveCaptionsLanguage: 'en',
                 },
                 callsConfigEnvOverrides: {},
-            },
-        });
-
-        expect(screen.queryByText('Live captions language')).not.toBeInTheDocument();
-    });
-
-    it('should not render on cloud', () => {
-        renderComponent({}, {
-            'plugins-com.mattermost.calls': {
-                callsConfig: {
-                    EnableRecordings: true,
-                    EnableTranscriptions: true,
-                    EnableLiveCaptions: true,
-                    LiveCaptionsLanguage: 'en',
-                },
-                callsConfigEnvOverrides: {},
-            },
-            entities: {
-                general: {
-                    license: {
-                        Cloud: 'true',
-                        SkuShortName: 'enterprise',
-                    },
-                },
             },
         });
 

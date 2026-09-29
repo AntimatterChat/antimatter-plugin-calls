@@ -9,8 +9,6 @@ import manifest from 'src/manifest';
 import {
     callsConfig,
     callsConfigEnvOverrides,
-    isCloud,
-    isOnPremNotEnterprise,
     liveCaptionsEnabled,
     recordingsEnabled,
     transcriptionsEnabled,
@@ -19,8 +17,6 @@ import {CustomComponentProps} from 'src/types/mattermost-webapp';
 
 const LiveCaptionsNumThreadsPerTranscriber = (props: CustomComponentProps) => {
     const {formatMessage} = useIntl();
-    const restricted = useSelector(isOnPremNotEnterprise);
-    const cloud = useSelector(isCloud);
     const recordingEnabled = useSelector(recordingsEnabled);
     const transcriptionEnabled = useSelector(transcriptionsEnabled);
     const liveCaptionEnabled = useSelector(liveCaptionsEnabled);
@@ -28,7 +24,7 @@ const LiveCaptionsNumThreadsPerTranscriber = (props: CustomComponentProps) => {
     const overrides = useSelector(callsConfigEnvOverrides);
     const overridden = 'LiveCaptionsNumThreadsPerTranscriber' in overrides;
 
-    if (cloud || restricted || !recordingEnabled || !transcriptionEnabled || !liveCaptionEnabled) {
+    if (!recordingEnabled || !transcriptionEnabled || !liveCaptionEnabled) {
         return null;
     }
 

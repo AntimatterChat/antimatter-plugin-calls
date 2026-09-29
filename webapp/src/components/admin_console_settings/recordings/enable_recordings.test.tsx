@@ -37,13 +37,6 @@ describe('EnableRecordings', () => {
                 },
                 callsConfigEnvOverrides: {},
             },
-            entities: {
-                general: {
-                    license: {
-                        SkuShortName: 'enterprise',
-                    },
-                },
-            },
             ...storeOverrides,
         });
 
@@ -66,13 +59,6 @@ describe('EnableRecordings', () => {
                     EnableRecordings: true,
                 },
                 callsConfigEnvOverrides: {},
-            },
-            entities: {
-                general: {
-                    license: {
-                        SkuShortName: 'enterprise',
-                    },
-                },
             },
         });
 
@@ -168,26 +154,5 @@ describe('EnableRecordings', () => {
         expect(screen.getByText('This setting has been set through an environment variable. It cannot be changed through the System Console.')).toBeInTheDocument();
         expect(screen.getByTestId('EnableRecordingstrue')).toBeDisabled();
         expect(screen.getByTestId('EnableRecordingsfalse')).toBeDisabled();
-    });
-
-    it('should not render on cloud', () => {
-        renderComponent({}, {
-            'plugins-com.mattermost.calls': {
-                callsConfig: {
-                    EnableRecordings: true,
-                },
-                callsConfigEnvOverrides: {},
-            },
-            entities: {
-                general: {
-                    license: {
-                        Cloud: 'true',
-                        SkuShortName: 'enterprise',
-                    },
-                },
-            },
-        });
-
-        expect(screen.queryByText('Enable call recordings')).not.toBeInTheDocument();
     });
 });

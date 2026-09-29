@@ -6,14 +6,12 @@ import {useIntl} from 'react-intl';
 import {useDispatch, useSelector} from 'react-redux';
 import {setTranscriptionsEnabled} from 'src/actions';
 import {leftCol, RadioInput, RadioInputLabel, rightCol} from 'src/components/admin_console_settings/common';
-import {callsConfig, callsConfigEnvOverrides, isCloud, isOnPremNotEnterprise, recordingsEnabled} from 'src/selectors';
+import {callsConfig, callsConfigEnvOverrides, recordingsEnabled} from 'src/selectors';
 import {CustomComponentProps} from 'src/types/mattermost-webapp';
 
 export const EnableTranscriptions = (props: CustomComponentProps) => {
     const dispatch = useDispatch();
     const {formatMessage} = useIntl();
-    const restricted = useSelector(isOnPremNotEnterprise);
-    const cloud = useSelector(isCloud);
     const recordingEnabled = useSelector(recordingsEnabled);
     const config = useSelector(callsConfig);
     const overrides = useSelector(callsConfigEnvOverrides);
@@ -43,7 +41,7 @@ export const EnableTranscriptions = (props: CustomComponentProps) => {
 
     const disabled = props.disabled || overridden;
 
-    if (cloud || restricted || !recordingEnabled) {
+    if (!recordingEnabled) {
         return null;
     }
 

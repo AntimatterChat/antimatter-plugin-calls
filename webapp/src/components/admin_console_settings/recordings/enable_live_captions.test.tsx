@@ -39,13 +39,6 @@ describe('EnableLiveCaptions', () => {
                 },
                 callsConfigEnvOverrides: {},
             },
-            entities: {
-                general: {
-                    license: {
-                        SkuShortName: 'enterprise',
-                    },
-                },
-            },
             ...storeOverrides,
         });
 
@@ -70,13 +63,6 @@ describe('EnableLiveCaptions', () => {
                     EnableLiveCaptions: true,
                 },
                 callsConfigEnvOverrides: {},
-            },
-            entities: {
-                general: {
-                    license: {
-                        SkuShortName: 'enterprise',
-                    },
-                },
             },
         });
 
@@ -202,49 +188,6 @@ describe('EnableLiveCaptions', () => {
                     EnableLiveCaptions: true,
                 },
                 callsConfigEnvOverrides: {},
-            },
-        });
-
-        expect(screen.queryByText('Enable live captions (Beta)')).not.toBeInTheDocument();
-    });
-
-    it('should not render on cloud', () => {
-        renderComponent({}, {
-            'plugins-com.mattermost.calls': {
-                callsConfig: {
-                    EnableRecordings: true,
-                    EnableTranscriptions: true,
-                    EnableLiveCaptions: true,
-                },
-                callsConfigEnvOverrides: {},
-            },
-            entities: {
-                general: {
-                    license: {
-                        Cloud: 'true',
-                        SkuShortName: 'enterprise',
-                    },
-                },
-            },
-        });
-
-        expect(screen.queryByText('Enable live captions (Beta)')).not.toBeInTheDocument();
-    });
-
-    it('should not render when not enterprise', () => {
-        renderComponent({}, {
-            'plugins-com.mattermost.calls': {
-                callsConfig: {
-                    EnableRecordings: true,
-                    EnableTranscriptions: true,
-                    EnableLiveCaptions: true,
-                },
-                callsConfigEnvOverrides: {},
-            },
-            entities: {
-                general: {
-                    license: {},
-                },
             },
         });
 

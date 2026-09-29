@@ -9,8 +9,6 @@ import {LabelRow, leftCol, rightCol} from 'src/components/admin_console_settings
 import {
     callsConfig,
     callsConfigEnvOverrides,
-    isCloud,
-    isOnPremNotEnterprise,
     recordingsEnabled,
     transcribeAPI,
     transcriptionsEnabled,
@@ -19,8 +17,6 @@ import {CustomComponentProps} from 'src/types/mattermost-webapp';
 
 const TranscribeAPIAzureSpeechKey = (props: CustomComponentProps) => {
     const {formatMessage} = useIntl();
-    const restricted = useSelector(isOnPremNotEnterprise);
-    const cloud = useSelector(isCloud);
     const recordingEnabled = useSelector(recordingsEnabled);
     const transcriptionEnabled = useSelector(transcriptionsEnabled);
     const api = useSelector(transcribeAPI);
@@ -28,7 +24,7 @@ const TranscribeAPIAzureSpeechKey = (props: CustomComponentProps) => {
     const overrides = useSelector(callsConfigEnvOverrides);
     const overridden = 'TranscribeAPIAzureSpeechKey' in overrides;
 
-    if (cloud || restricted || !recordingEnabled || !transcriptionEnabled || api !== TranscribeAPI.AzureAI) {
+    if (!recordingEnabled || !transcriptionEnabled || api !== TranscribeAPI.AzureAI) {
         return null;
     }
 

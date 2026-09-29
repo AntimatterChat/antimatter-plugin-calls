@@ -38,13 +38,6 @@ describe('EnableTranscriptions', () => {
                 },
                 callsConfigEnvOverrides: {},
             },
-            entities: {
-                general: {
-                    license: {
-                        SkuShortName: 'enterprise',
-                    },
-                },
-            },
             ...storeOverrides,
         });
 
@@ -68,13 +61,6 @@ describe('EnableTranscriptions', () => {
                     EnableTranscriptions: true,
                 },
                 callsConfigEnvOverrides: {},
-            },
-            entities: {
-                general: {
-                    license: {
-                        SkuShortName: 'enterprise',
-                    },
-                },
             },
         });
 
@@ -182,47 +168,6 @@ describe('EnableTranscriptions', () => {
                     EnableTranscriptions: true,
                 },
                 callsConfigEnvOverrides: {},
-            },
-        });
-
-        expect(screen.queryByText('Enable call transcriptions (Beta)')).not.toBeInTheDocument();
-    });
-
-    it('should not render on cloud', () => {
-        renderComponent({}, {
-            'plugins-com.mattermost.calls': {
-                callsConfig: {
-                    EnableRecordings: true,
-                    EnableTranscriptions: true,
-                },
-                callsConfigEnvOverrides: {},
-            },
-            entities: {
-                general: {
-                    license: {
-                        Cloud: 'true',
-                        SkuShortName: 'enterprise',
-                    },
-                },
-            },
-        });
-
-        expect(screen.queryByText('Enable call transcriptions (Beta)')).not.toBeInTheDocument();
-    });
-
-    it('should not render when not enterprise', () => {
-        renderComponent({}, {
-            'plugins-com.mattermost.calls': {
-                callsConfig: {
-                    EnableRecordings: true,
-                    EnableTranscriptions: true,
-                },
-                callsConfigEnvOverrides: {},
-            },
-            entities: {
-                general: {
-                    license: {},
-                },
             },
         });
 

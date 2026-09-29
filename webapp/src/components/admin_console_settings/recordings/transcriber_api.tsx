@@ -7,14 +7,12 @@ import {useDispatch, useSelector} from 'react-redux';
 import {setTranscribeAPI} from 'src/actions';
 import {LabelRow, leftCol, rightCol} from 'src/components/admin_console_settings/common';
 import manifest from 'src/manifest';
-import {callsConfig, callsConfigEnvOverrides, isCloud, isOnPremNotEnterprise, recordingsEnabled, transcriptionsEnabled} from 'src/selectors';
+import {callsConfig, callsConfigEnvOverrides, recordingsEnabled, transcriptionsEnabled} from 'src/selectors';
 import {CustomComponentProps} from 'src/types/mattermost-webapp';
 
 const TranscribeAPI = (props: CustomComponentProps) => {
     const {formatMessage} = useIntl();
     const dispatch = useDispatch();
-    const restricted = useSelector(isOnPremNotEnterprise);
-    const cloud = useSelector(isCloud);
     const hasTranscriptions = useSelector(transcriptionsEnabled);
     const recordingEnabled = useSelector(recordingsEnabled);
     const config = useSelector(callsConfig);
@@ -30,7 +28,7 @@ const TranscribeAPI = (props: CustomComponentProps) => {
         }
     }, [dispatch, api]);
 
-    if (cloud || restricted || !hasTranscriptions || !recordingEnabled) {
+    if (!hasTranscriptions || !recordingEnabled) {
         return null;
     }
 

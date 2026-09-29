@@ -38,13 +38,6 @@ describe('JobServiceURL', () => {
                 },
                 callsConfigEnvOverrides: {},
             },
-            entities: {
-                general: {
-                    license: {
-                        SkuShortName: 'enterprise',
-                    },
-                },
-            },
             ...storeOverrides,
         });
 
@@ -113,47 +106,6 @@ describe('JobServiceURL', () => {
                     JobServiceURL: 'http://localhost:8086',
                 },
                 callsConfigEnvOverrides: {},
-            },
-        });
-
-        expect(screen.queryByText('Job service URL')).not.toBeInTheDocument();
-    });
-
-    it('should not render on cloud', () => {
-        renderComponent({}, {
-            'plugins-com.mattermost.calls': {
-                callsConfig: {
-                    EnableRecordings: true,
-                    JobServiceURL: 'http://localhost:8086',
-                },
-                callsConfigEnvOverrides: {},
-            },
-            entities: {
-                general: {
-                    license: {
-                        Cloud: 'true',
-                        SkuShortName: 'enterprise',
-                    },
-                },
-            },
-        });
-
-        expect(screen.queryByText('Job service URL')).not.toBeInTheDocument();
-    });
-
-    it('should not render when not enterprise', () => {
-        renderComponent({}, {
-            'plugins-com.mattermost.calls': {
-                callsConfig: {
-                    EnableRecordings: true,
-                    JobServiceURL: 'http://localhost:8086',
-                },
-                callsConfigEnvOverrides: {},
-            },
-            entities: {
-                general: {
-                    license: {},
-                },
             },
         });
 

@@ -7,13 +7,11 @@ import {useIntl} from 'react-intl';
 import {useSelector} from 'react-redux';
 import {LabelRow, leftCol, rightCol} from 'src/components/admin_console_settings/common';
 import manifest from 'src/manifest';
-import {callsConfig, callsConfigEnvOverrides, isCloud, isOnPremNotEnterprise, recordingsEnabled, transcribeAPI, transcriptionsEnabled} from 'src/selectors';
+import {callsConfig, callsConfigEnvOverrides, recordingsEnabled, transcribeAPI, transcriptionsEnabled} from 'src/selectors';
 import {CustomComponentProps} from 'src/types/mattermost-webapp';
 
 const TranscriberNumThreads = (props: CustomComponentProps) => {
     const {formatMessage} = useIntl();
-    const restricted = useSelector(isOnPremNotEnterprise);
-    const cloud = useSelector(isCloud);
     const hasTranscriptions = useSelector(transcriptionsEnabled);
     const recordingEnabled = useSelector(recordingsEnabled);
     const api = useSelector(transcribeAPI);
@@ -21,7 +19,7 @@ const TranscriberNumThreads = (props: CustomComponentProps) => {
     const overrides = useSelector(callsConfigEnvOverrides);
     const overridden = 'TranscriberNumThreads' in overrides;
 
-    if (cloud || restricted || !hasTranscriptions || !recordingEnabled || api !== TranscribeAPI.WhisperCPP) {
+    if (!hasTranscriptions || !recordingEnabled || api !== TranscribeAPI.WhisperCPP) {
         return null;
     }
 

@@ -10,13 +10,12 @@ import {LabelRow,
     RadioInputLabel,
     rightCol,
 } from 'src/components/admin_console_settings/common';
-import {callsConfig, callsConfigEnvOverrides, isCloud} from 'src/selectors';
+import {callsConfig, callsConfigEnvOverrides} from 'src/selectors';
 import {CustomComponentProps} from 'src/types/mattermost-webapp';
 
 const EnableRecordings = (props: CustomComponentProps) => {
     const {formatMessage} = useIntl();
     const dispatch = useDispatch();
-    const cloud = useSelector(isCloud);
     const config = useSelector(callsConfig);
     const overrides = useSelector(callsConfigEnvOverrides);
     const overridden = 'EnableRecordings' in overrides;
@@ -43,10 +42,6 @@ const EnableRecordings = (props: CustomComponentProps) => {
     }
 
     const disabled = props.disabled || overridden;
-
-    if (cloud) {
-        return null;
-    }
 
     const checked = value === 'true' || value === true;
 
