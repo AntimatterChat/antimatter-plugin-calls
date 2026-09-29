@@ -150,14 +150,6 @@ func (p *Plugin) newAPIRouter() *mux.Router {
 	// TURN
 	router.HandleFunc("/turn-credentials", p.handleGetTURNCredentials).Methods("GET")
 
-	// Cloud
-	router.HandleFunc("/cloud-notify-admins", func(w http.ResponseWriter, r *http.Request) {
-		// End user has requested to notify their admin about upgrading for calls
-		if err := p.handleCloudNotifyAdmins(w, r); err != nil {
-			p.handleError(w, err)
-		}
-	}).Methods("POST")
-
 	// Stats
 	router.HandleFunc("/stats", func(w http.ResponseWriter, r *http.Request) {
 		if userID := r.Header.Get("Mattermost-User-Id"); !p.API.HasPermissionTo(userID, model.PermissionManageSystem) {

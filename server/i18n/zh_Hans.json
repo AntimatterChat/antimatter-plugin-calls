@@ -36,16 +36,8 @@
         "translation": "保存配置失败。"
     },
     {
-        "id": "app.admin.concurrent_sessions_warning.enterprise",
+        "id": "app.admin.concurrent_sessions_warning.rtcd",
         "translation": "我们非常推荐[部署 RTCD 服务](https://mattermost.com/pl/calls-deployment-the-rtcd-service)以将通话处理分载到一个独立的实例上，以保持您的主 Mattermost 服务器的性能、可扩展性，和可靠性。"
-    },
-    {
-        "id": "app.admin.concurrent_sessions_warning.pro_or_e0",
-        "translation": "我们非常推荐升级到[企业版](https://mattermost.com/pricing/)并[部署 RTCD 服务](https://mattermost.com/pl/calls-deployment-the-rtcd-service)以将通话处理分载到一个独立的实例上，以保持您的主 Mattermost 服务器的性能、可扩展性，和可靠性。"
-    },
-    {
-        "id": "app.admin.concurrent_sessions_warning.team",
-        "translation": "我们非常推荐切换到 [Mattermost 企业版](https://mattermost.com/pl/install-enterprise-install-upgrade)并[部署 RTCD 服务](https://mattermost.com/pl/calls-deployment-the-rtcd-service)以将通话处理分载到一个独立的实例上，以保持您的主 Mattermost 服务器的性能、可扩展性，和可靠性。"
     },
     {
         "id": "app.push_notification.inviting_message",

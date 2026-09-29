@@ -28,20 +28,12 @@
         "translation": "Misslyckades med att spara konfigurationen."
     },
     {
-        "id": "app.admin.concurrent_sessions_warning.enterprise",
+        "id": "app.admin.concurrent_sessions_warning.rtcd",
         "translation": "Vi rekommenderar starkt att [implementera RTCD-tjänsten](https://mattermost.com/pl/calls-deployment-the-rtcd-service) och hantera samtalsfunktionerna på en separat instans för att bibehålla prestanda, skalbarhet och tillförlitlighet för din primära Mattermost-server."
     },
     {
         "id": "app.admin.concurrent_sessions_warning.intro",
         "translation": "Din användning av Mattermost Calls är hög och det kan påverka systemets prestanda och svarstid negativt."
-    },
-    {
-        "id": "app.admin.concurrent_sessions_warning.pro_or_e0",
-        "translation": "Vi rekommenderar starkt att du uppgraderar till [Enterprise] (https://mattermost.com/pricing/) och att [RTCD-tjänsten implementeras](https://mattermost.com/pl/calls-deployment-the-rtcd-service) för att hantera samtalsfunktionerna på en separat instans för att bibehålla prestanda, skalbarhet och tillförlitlighet för din primära Mattermost-server."
-    },
-    {
-        "id": "app.admin.concurrent_sessions_warning.team",
-        "translation": "Vi rekommenderar starkt att du byter till [Mattermost Enterprise Edition](https://mattermost.com/pl/install-enterprise-install-upgrade) och att [RTCD-tjänsten implementeras](https://mattermost.com/pl/calls-deployment-the-rtcd-service) för att hantera samtalsfunktionerna på en separat instans för att bibehålla prestanda, skalbarhet och tillförlitlighet för din primära Mattermost-server."
     },
     {
         "id": "app.call.new_recording_message",

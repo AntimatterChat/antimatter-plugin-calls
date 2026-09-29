@@ -4,10 +4,6 @@
         "translation": "Twoja instalacja jest intensywnie wykorzystywana przez połączenia Mattermost, co może negatywnie wpływać na wydajność i szybkość reakcji systemu."
     },
     {
-        "id": "app.admin.concurrent_sessions_warning.team",
-        "translation": "Zdecydowanie zalecamy przejście na [Mattermost Enterprise Edition](https://mattermost.com/pl/install-enterprise-install-upgrade) i [wdrożenie usługi RTCD](https://mattermost.com/pl/calls-deployment-the-rtcd-service), aby odciążyć przetwarzanie połączeń do oddzielnej instancji w celu utrzymania wydajności, skalowalności i niezawodności głównego serwera Mattermost."
-    },
-    {
         "id": "app.call.ended_message",
         "translation": "Połączenie zakończone"
     },
@@ -40,15 +36,11 @@
         "translation": "Nie udało się zapisać konfiguracji."
     },
     {
-        "id": "app.admin.concurrent_sessions_warning.enterprise",
+        "id": "app.admin.concurrent_sessions_warning.rtcd",
         "translation": "Zdecydowanie zalecamy [wdrożenie usługi RTCD](https://mattermost.com/pl/calls-deployment-the-rtcd-service), aby odciążyć przetwarzanie połączeń do oddzielnej instancji w celu utrzymania wydajności, skalowalności i niezawodności głównego serwera Mattermost."
     },
     {
         "id": "app.push_notification.generic_message",
         "translation": "Zostałeś zaproszony do rozmowy"
-    },
-    {
-        "id": "app.admin.concurrent_sessions_warning.pro_or_e0",
-        "translation": "Zdecydowanie zalecamy aktualizację do wersji [Enterprise](https://mattermost.com/pricing/) i [wdrożenie usługi RTCD](https://mattermost.com/pl/calls-deployment-the-rtcd-service), aby odciążyć przetwarzanie połączeń do oddzielnej instancji w celu utrzymania wydajności, skalowalności i niezawodności głównego serwera Mattermost."
     }
 ]

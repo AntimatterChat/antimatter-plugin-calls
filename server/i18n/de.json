@@ -36,16 +36,8 @@
         "translation": "Hier ist die Aufzeichnung des Anrufs"
     },
     {
-        "id": "app.admin.concurrent_sessions_warning.enterprise",
+        "id": "app.admin.concurrent_sessions_warning.rtcd",
         "translation": "Wir empfehlen dringend, [den RTCD-Dienst](https://mattermost.com/pl/calls-deployment-the-rtcd-service) einzusetzen, um die Verarbeitung von Anrufen auf eine separate Instanz zu verlagern, damit die Leistung, Skalierbarkeit und Zuverlässigkeit deines Mattermost-Hauptservers erhalten bleibt."
-    },
-    {
-        "id": "app.admin.concurrent_sessions_warning.pro_or_e0",
-        "translation": "Wir empfehlen dringend ein Upgrade auf [Enterprise] (https://mattermost.com/pricing/) und [Einsatz des RTCD-Dienstes] (https://mattermost.com/pl/calls-deployment-the-rtcd-service), um die Verarbeitung von Anrufen auf eine separate Instanz zu verlagern, damit die Leistung, Skalierbarkeit und Zuverlässigkeit deines Mattermost-Hauptservers erhalten bleibt."
-    },
-    {
-        "id": "app.admin.concurrent_sessions_warning.team",
-        "translation": "Wir empfehlen dringend, auf [Mattermost Enterprise Edition](https://mattermost.com/pl/install-enterprise-install-upgrade) zu wechseln und [den RTCD-Dienst einzusetzen](https://mattermost.com/pl/calls-deployment-the-rtcd-service), um die Verarbeitung von Anrufen auf eine separate Instanz zu verlagern, damit die Leistung, Skalierbarkeit und Zuverlässigkeit deines Mattermost-Hauptservers erhalten bleibt."
     },
     {
         "id": "app.call.started_message",

@@ -20,16 +20,8 @@
         "translation": "No se ha podido guardar la configuración."
     },
     {
-        "id": "app.admin.concurrent_sessions_warning.enterprise",
+        "id": "app.admin.concurrent_sessions_warning.rtcd",
         "translation": "Recomendamos encarecidamente [desplegar el servicio RTCD](https://mattermost.com/pl/calls-deployment-the-rtcd-service) para descargar el procesamiento de llamadas a una instancia separada, con el fin de mantener el rendimiento, la escalabilidad y la fiabilidad de tu servidor Mattermost principal."
-    },
-    {
-        "id": "app.admin.concurrent_sessions_warning.pro_or_e0",
-        "translation": "Recomendamos encarecidamente actualizar a [Enterprise](https://mattermost.com/pricing/) y [desplegar el servicio RTCD](https://mattermost.com/pl/calls-deployment-the-rtcd-service) para descargar el procesamiento de llamadas a una instancia separada, con el fin de mantener el rendimiento, la escalabilidad y la fiabilidad de tu servidor Mattermost principal."
-    },
-    {
-        "id": "app.admin.concurrent_sessions_warning.team",
-        "translation": "Recomendamos encarecidamente cambiar a [Mattermost Enterprise Edition](https://mattermost.com/pl/install-enterprise-install-upgrade) y [desplegar el servicio RTCD](https://mattermost.com/pl/calls-deployment-the-rtcd-service) para descargar el procesamiento de llamadas a una instancia separada, con el fin de mantener el rendimiento, la escalabilidad y la fiabilidad de tu servidor Mattermost principal."
     },
     {
         "id": "app.call.started_message",

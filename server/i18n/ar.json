@@ -1,19 +1,11 @@
 [
     {
-        "id": "app.admin.concurrent_sessions_warning.enterprise",
+        "id": "app.admin.concurrent_sessions_warning.rtcd",
         "translation": "نوصي بشدة [بنشر خدمة RTCD] (https://mattermost.com/pl/calls-deployment-the-rtcd-service) لإلغاء تحميل معالجة المكالمات إلى مثيل منفصل من أجل الحفاظ على أداء خادم Mattermost الرئيسي وقابلية التوسع والموثوقية."
-    },
-    {
-        "id": "app.admin.concurrent_sessions_warning.pro_or_e0",
-        "translation": "نوصي بشدة بالترقية إلى [Enterprise] (https://mattermost.com/pricing/) و [نشر خدمة RTCD] (https://mattermost.com/pl/calls-deployment-the-rtcd-service) لإلغاء تحميل معالجة المكالمات إلى مثيل منفصل من أجل الحفاظ على أداء خادم Mattermost الرئيسي وقابلية التوسع والموثوقية الخاصة بك."
     },
     {
         "id": "app.admin.concurrent_sessions_warning.intro",
         "translation": "يواجه التثبيت الخاص بك استخدامًا كثيفًا من مكالمات Mattermost Calls التي يمكن أن تؤثر سلبًا على أداء النظام واستجابته."
-    },
-    {
-        "id": "app.admin.concurrent_sessions_warning.team",
-        "translation": "نوصي بشدة بالتبديل إلى [إصدار ماترموست إنتربرايز] (https://mattermost.com/pl/install-enterprise-install-upgrade) و[نشر خدمة RTCD] (https://mattermost.com/pl/calls-deployment-the-rtcd-service) لإلغاء تحميل معالجة المكالمات إلى مثيل منفصل من أجل الحفاظ على أداء خادم ماترموست الرئيسي وقابلية تطويره وموثوقيته."
     },
     {
         "id": "app.call.new_recording_message",

@@ -1,19 +1,11 @@
 [
     {
-        "id": "app.admin.concurrent_sessions_warning.enterprise",
+        "id": "app.admin.concurrent_sessions_warning.rtcd",
         "translation": "Mattermostサーバー自体のパフォーマンス、スケーラビリティ、信頼性を維持するために、通話処理を別のインスタンスにオフロード可能な[RTCDサービス](https://mattermost.com/pl/calls-deployment-the-rtcd-service)をデプロイすることを強く推奨します。"
     },
     {
         "id": "app.admin.concurrent_sessions_warning.intro",
         "translation": "Mattermost Callsの使用量が多く、システムのパフォーマンスと応答性に悪影響を及ぼしている可能性があります。"
-    },
-    {
-        "id": "app.admin.concurrent_sessions_warning.pro_or_e0",
-        "translation": "Mattermostサーバー自体のパフォーマンス、スケーラビリティ、信頼性を維持するために、[Enterprise版](https://mattermost.com/pricing/)にアップグレードし、[RTCDサービス](https://mattermost.com/pl/calls-deployment-the-rtcd-service)をデプロイすることで、通話処理を別のインスタンスにオフロードすることを強く推奨します。"
-    },
-    {
-        "id": "app.admin.concurrent_sessions_warning.team",
-        "translation": "Mattermostサーバ自体のパフォーマンス、スケーラビリティ、および信頼性を維持するために、[Mattermost Enterprise Edition](https://mattermost.com/pl/install-enterprise-install-upgrade) と [RTCDサービス](https://mattermost.com/pl/calls-deployment-the-rtcd-service) の利用に切り替え、通話処理を別のインスタンスにオフロードすることを強く推奨します。"
     },
     {
         "id": "app.call.ended_message",

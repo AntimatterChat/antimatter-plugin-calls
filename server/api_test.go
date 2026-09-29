@@ -644,7 +644,6 @@ func TestCreateCallStartedPost(t *testing.T) {
 			user := &model.User{Id: userID, Username: "caller"}
 			mockAPI.On("GetUser", userID).Return(user, nil).Once()
 			mockAPI.On("GetConfig").Return(&model.Config{}, nil)
-			mockAPI.On("GetLicense").Return(nil, nil).Once()
 
 			var capturedPost *model.Post
 			createdPostID := model.NewId()

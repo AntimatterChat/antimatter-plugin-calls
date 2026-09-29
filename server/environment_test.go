@@ -210,7 +210,6 @@ func TestSetOverridesDeprecatedRTCDURL(t *testing.T) {
 	setup := func(t *testing.T) (*Plugin, *pluginMocks.MockAPI) {
 		t.Helper()
 		mockAPI := &pluginMocks.MockAPI{}
-		mockAPI.On("GetLicense").Return(nil)
 		// Allow LogError calls (e.g. from applyEnvOverrides on parse failures) without requiring them.
 		mockAPI.On("LogError", mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return().Maybe()
 		p := &Plugin{

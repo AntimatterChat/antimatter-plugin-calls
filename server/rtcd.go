@@ -21,7 +21,6 @@ import (
 	"github.com/mattermost/mattermost-plugin-calls/server/cluster"
 	"github.com/mattermost/mattermost-plugin-calls/server/db"
 	"github.com/mattermost/mattermost-plugin-calls/server/interfaces"
-	"github.com/mattermost/mattermost-plugin-calls/server/license"
 	"github.com/mattermost/mattermost-plugin-calls/server/public"
 
 	rtcd "github.com/mattermost/rtcd/service"
@@ -472,9 +471,6 @@ func (m *rtcdClientManager) getRTCDClientConfig(rtcdURL string) (rtcd.ClientConf
 	// Give precedence to environment to override everything else.
 	cfg.ClientID = os.Getenv("MM_CLOUD_INSTALLATION_ID")
 	if cfg.ClientID == "" {
-		if license.IsCloud(m.ctx.API.GetLicense()) {
-			m.ctx.LogError("installation id is missing")
-		}
 		cfg.ClientID = os.Getenv("MM_CALLS_RTCD_CLIENT_ID")
 	} else {
 		m.ctx.LogDebug("installation id is set", "id", cfg.ClientID)

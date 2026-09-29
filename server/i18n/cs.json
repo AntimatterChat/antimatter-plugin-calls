@@ -1,15 +1,11 @@
 [
     {
-        "id": "app.admin.concurrent_sessions_warning.enterprise",
+        "id": "app.admin.concurrent_sessions_warning.rtcd",
         "translation": "Důrazně doporučujeme [deploying the RTCD service](https://mattermost.com/pl/calls-deployment-the-rtcd-service) pro přenesení zpracování hovorů na samostatnou instanci, aby byla zachována výkonnost, škálovatelnost a spolehlivost vašeho hlavního serveru Mattermost."
     },
     {
         "id": "app.admin.concurrent_sessions_warning.intro",
         "translation": "Vaše instalace zažívá vysoké zatížení kvůli Mattermost hovorům, což může negativně ovlivnit výkon systému a jeho odezvu."
-    },
-    {
-        "id": "app.admin.concurrent_sessions_warning.team",
-        "translation": "Důrazně doporučujeme přejít na [Mattermost Enterprise Edition](https://mattermost.com/pl/install-enterprise-install-upgrade) a [deploying the RTCD service](https://mattermost.com/pl/calls-deployment-the-rtcd-service) pro přenesení zpracování hovorů na samostatnou instanci, aby byla zachována výkonnost, škálovatelnost a spolehlivost vašeho hlavního serveru Mattermost."
     },
     {
         "id": "app.call.ended_message",
@@ -22,10 +18,6 @@
     {
         "id": "app.call.new_recording_message",
         "translation": "Zde je nahrávka hovoru"
-    },
-    {
-        "id": "app.admin.concurrent_sessions_warning.pro_or_e0",
-        "translation": "Důrazně doporučujeme přejít na[Enterprise](https://mattermost.com/pricing/) a [deploying the RTCD service](https://mattermost.com/pl/calls-deployment-the-rtcd-service) pro přenesení zpracování hovorů na samostatnou instanci, aby byla zachována výkonnost, škálovatelnost a spolehlivost vašeho hlavního serveru Mattermost."
     },
     {
         "id": "app.call.new_transcription_message",

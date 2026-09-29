@@ -183,89 +183,9 @@ func TestSendConcurrentSessionsWarning(t *testing.T) {
 		"The number of active call sessions is high. Consider deploying a dedicated RTCD service.",
 		mock.Anything, mock.Anything)
 
-	t.Run("cloud", func(t *testing.T) {
+	t.Run("single admin", func(t *testing.T) {
 		defer mockAPI.AssertExpectations(t)
 		defer mockMetrics.AssertExpectations(t)
-
-		mockAPI.On("GetLicense").Return(&model.License{
-			Features: &model.Features{
-				Cloud: model.NewPointer(true),
-			},
-		}, nil).Once()
-
-		mockAPI.On("LogWarn",
-			"unexpected Cloud license",
-			mock.Anything, mock.Anything)
-
-		err := p.sendConcurrentSessionsWarning()
-		require.NoError(t, err)
-	})
-
-	t.Run("team", func(t *testing.T) {
-		defer mockAPI.AssertExpectations(t)
-		defer mockMetrics.AssertExpectations(t)
-
-		mockAPI.On("GetLicense").Return(nil).Once()
-
-		mockAPI.On("GetUsers", mock.AnythingOfType("*model.UserGetOptions")).Return([]*model.User{
-			{
-				Id:     "adminID",
-				Locale: "it",
-			},
-		}, nil).Once()
-
-		mockAPI.On("GetDirectChannel", "adminID", "botID").Return(&model.Channel{
-			Id: "channelID",
-		}, nil).Once()
-
-		mockAPI.On("IsEnterpriseReady").Return(false).Once()
-
-		mockAPI.On("CreatePost", &model.Post{
-			UserId:    "botID",
-			ChannelId: "channelID",
-			Message:   ":warning: app.admin.concurrent_sessions_warning.intro\r\n\r\napp.admin.concurrent_sessions_warning.team",
-		}).Return(&model.Post{Id: "postID"}, nil).Once()
-
-		err := p.sendConcurrentSessionsWarning()
-		require.NoError(t, err)
-	})
-
-	t.Run("e0", func(t *testing.T) {
-		defer mockAPI.AssertExpectations(t)
-		defer mockMetrics.AssertExpectations(t)
-
-		mockAPI.On("GetLicense").Return(nil).Once()
-
-		mockAPI.On("GetUsers", mock.AnythingOfType("*model.UserGetOptions")).Return([]*model.User{
-			{
-				Id:     "adminID",
-				Locale: "it",
-			},
-		}, nil).Once()
-
-		mockAPI.On("GetDirectChannel", "adminID", "botID").Return(&model.Channel{
-			Id: "channelID",
-		}, nil).Once()
-
-		mockAPI.On("IsEnterpriseReady").Return(true).Once()
-
-		mockAPI.On("CreatePost", &model.Post{
-			UserId:    "botID",
-			ChannelId: "channelID",
-			Message:   ":warning: app.admin.concurrent_sessions_warning.intro\r\n\r\napp.admin.concurrent_sessions_warning.pro_or_e0",
-		}).Return(&model.Post{Id: "postID"}, nil).Once()
-
-		err := p.sendConcurrentSessionsWarning()
-		require.NoError(t, err)
-	})
-
-	t.Run("professional", func(t *testing.T) {
-		defer mockAPI.AssertExpectations(t)
-		defer mockMetrics.AssertExpectations(t)
-
-		mockAPI.On("GetLicense").Return(&model.License{
-			SkuShortName: model.LicenseShortSkuProfessional,
-		}, nil).Once()
 
 		mockAPI.On("GetUsers", mock.AnythingOfType("*model.UserGetOptions")).Return([]*model.User{
 			{
@@ -281,36 +201,7 @@ func TestSendConcurrentSessionsWarning(t *testing.T) {
 		mockAPI.On("CreatePost", &model.Post{
 			UserId:    "botID",
 			ChannelId: "channelID",
-			Message:   ":warning: app.admin.concurrent_sessions_warning.intro\r\n\r\napp.admin.concurrent_sessions_warning.pro_or_e0",
-		}).Return(&model.Post{Id: "postID"}, nil).Once()
-
-		err := p.sendConcurrentSessionsWarning()
-		require.NoError(t, err)
-	})
-
-	t.Run("enterprise", func(t *testing.T) {
-		defer mockAPI.AssertExpectations(t)
-		defer mockMetrics.AssertExpectations(t)
-
-		mockAPI.On("GetLicense").Return(&model.License{
-			SkuShortName: model.LicenseShortSkuEnterprise,
-		}, nil).Once()
-
-		mockAPI.On("GetUsers", mock.AnythingOfType("*model.UserGetOptions")).Return([]*model.User{
-			{
-				Id:     "adminID",
-				Locale: "it",
-			},
-		}, nil).Once()
-
-		mockAPI.On("GetDirectChannel", "adminID", "botID").Return(&model.Channel{
-			Id: "channelID",
-		}, nil).Once()
-
-		mockAPI.On("CreatePost", &model.Post{
-			UserId:    "botID",
-			ChannelId: "channelID",
-			Message:   ":warning: app.admin.concurrent_sessions_warning.intro\r\n\r\napp.admin.concurrent_sessions_warning.enterprise",
+			Message:   ":warning: app.admin.concurrent_sessions_warning.intro\r\n\r\napp.admin.concurrent_sessions_warning.rtcd",
 		}).Return(&model.Post{Id: "postID"}, nil).Once()
 
 		err := p.sendConcurrentSessionsWarning()
@@ -320,8 +211,6 @@ func TestSendConcurrentSessionsWarning(t *testing.T) {
 	t.Run("multiple admins", func(t *testing.T) {
 		defer mockAPI.AssertExpectations(t)
 		defer mockMetrics.AssertExpectations(t)
-
-		mockAPI.On("GetLicense").Return(nil).Once()
 
 		mockAPI.On("GetUsers", mock.AnythingOfType("*model.UserGetOptions")).Return([]*model.User{
 			{
@@ -342,18 +231,16 @@ func TestSendConcurrentSessionsWarning(t *testing.T) {
 			Id: "channelIDB",
 		}, nil).Once()
 
-		mockAPI.On("IsEnterpriseReady").Return(false).Twice()
-
 		mockAPI.On("CreatePost", &model.Post{
 			UserId:    "botID",
 			ChannelId: "channelIDA",
-			Message:   ":warning: app.admin.concurrent_sessions_warning.intro\r\n\r\napp.admin.concurrent_sessions_warning.team",
+			Message:   ":warning: app.admin.concurrent_sessions_warning.intro\r\n\r\napp.admin.concurrent_sessions_warning.rtcd",
 		}).Return(&model.Post{Id: "postID"}, nil).Once()
 
 		mockAPI.On("CreatePost", &model.Post{
 			UserId:    "botID",
 			ChannelId: "channelIDB",
-			Message:   ":warning: app.admin.concurrent_sessions_warning.intro\r\n\r\napp.admin.concurrent_sessions_warning.team",
+			Message:   ":warning: app.admin.concurrent_sessions_warning.intro\r\n\r\napp.admin.concurrent_sessions_warning.rtcd",
 		}).Return(&model.Post{Id: "postID"}, nil).Once()
 
 		err := p.sendConcurrentSessionsWarning()

@@ -40,15 +40,7 @@
         "translation": "Не удалось сохранить конфигурацию."
     },
     {
-        "id": "app.admin.concurrent_sessions_warning.enterprise",
+        "id": "app.admin.concurrent_sessions_warning.rtcd",
         "translation": "Мы настоятельно рекомендуем [развернуть службу RTCD](https://mattermost.com/pl/calls-deployment-the-rtcd-service), чтобы разгрузить обработку вызовов на отдельный экземпляр, чтобы сохранить производительность, масштабируемость и надежность вашего основного сервера Mattermost."
-    },
-    {
-        "id": "app.admin.concurrent_sessions_warning.pro_or_e0",
-        "translation": "Мы настоятельно рекомендуем перейти на [Enterprise](https://mattermost.com/pricing/) и [развернуть службу RTCD](https://mattermost.com/pl/calls-deployment-the-rtcd-service), чтобы разгрузить обработку звонков на отдельный экземпляр и сохранить производительность, масштабируемость и надежность вашего основного сервера Mattermost."
-    },
-    {
-        "id": "app.admin.concurrent_sessions_warning.team",
-        "translation": "Мы настоятельно рекомендуем перейти на [Mattermost Enterprise Edition](https://mattermost.com/pl/install-enterprise-install-upgrade) и [развернуть сервис RTCD](https://mattermost.com/pl/calls-deployment-the-rtcd-service), чтобы разгрузить обработку вызовов на отдельный экземпляр, чтобы сохранить производительность, масштабируемость и надежность вашего основного сервера Mattermost."
     }
 ]
