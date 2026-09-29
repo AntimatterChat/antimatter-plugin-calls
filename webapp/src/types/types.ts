@@ -18,10 +18,10 @@ export const CallsConfigDefault: CallsConfig = {
     EnableRinging: true,
     EnableTranscriptions: false,
     EnableLiveCaptions: false,
-    HostControlsAllowed: false,
+    HostControlsAllowed: true,
     EnableAV1: false,
     TranscribeAPI: TranscribeAPI.WhisperCPP,
-    GroupCallsAllowed: false,
+    GroupCallsAllowed: true,
     EnableDCSignaling: false,
     EnableVideo: false,
 };

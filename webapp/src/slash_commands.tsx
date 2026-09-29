@@ -22,7 +22,6 @@ import RestClient from 'src/rest_client';
 
 import {flushLogsToAccumulated, getClientLogs, logDebug} from './log';
 import {
-    areGroupCallsAllowed,
     channelHasCall,
     channelIDForCurrentCall,
     hostIDForCallInChannel,
@@ -30,7 +29,7 @@ import {
     isRecordingInCurrentCall,
 } from './selectors';
 import {Store} from './types/mattermost-webapp';
-import {getCallsClient, getCallsWindow, getPersistentStorage, getPluginPath, isDMChannel, sendDesktopEvent, shouldRenderDesktopWidget} from './utils';
+import {getCallsClient, getCallsWindow, getPersistentStorage, getPluginPath, sendDesktopEvent, shouldRenderDesktopWidget} from './utils';
 
 type joinCallFn = (channelId: string, teamId?: string, title?: string, rootId?: string) => void;
 
@@ -57,14 +56,6 @@ export default async function slashCommandsHandler(store: Store, joinCall: joinC
         if (!channel) {
             const res = await store.dispatch(getChannelAction(args.channel_id)) as ActionResult;
             channel = res.data;
-        }
-
-        if (!isDMChannel(channel) && !areGroupCallsAllowed(store.getState())) {
-            store.dispatch(displayGenericErrorModal(
-                defineMessage({defaultMessage: 'Unable to join call'}),
-                defineMessage({defaultMessage: 'Calls are only available in DM channels.'}),
-            ));
-            return {};
         }
 
         if (subCmd === 'start') {

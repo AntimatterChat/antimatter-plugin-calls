@@ -128,7 +128,6 @@ interface Props extends RouteComponentProps {
     recordingPromptDismissedAt: (callID: string, dismissedAt: number) => void,
     transcriptionsEnabled: boolean,
     isAdmin: boolean,
-    hostControlsAllowed: boolean,
     openModal: <P>(modalData: ModalData<P>) => void;
     enableVideo: boolean;
     otherSessions: UserSessionState[];
@@ -1297,7 +1296,7 @@ export default class ExpandedView extends React.PureComponent<Props, State> {
         const isChatUnread = Boolean(this.props.threadUnreadReplies);
 
         const isHost = this.props.callHostID === this.props.currentUserID;
-        const hostControlsAvailable = this.props.hostControlsAllowed && (isHost || this.props.isAdmin);
+        const hostControlsAvailable = isHost || this.props.isAdmin;
         const showMuteOthers = hostControlsAvailable && this.props.sessions.some((s) => s.unmuted && s.user_id !== this.props.currentUserID);
 
         const isRecording = isHost && this.props.isRecording;

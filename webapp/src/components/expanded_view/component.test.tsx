@@ -113,7 +113,6 @@ const props = {
     recordingPromptDismissedAt: jest.fn(),
     transcriptionsEnabled: false,
     isAdmin: false,
-    hostControlsAllowed: false,
     openModal: jest.fn(),
     enableVideo: true,
     otherSessions: [],

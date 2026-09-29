@@ -71,16 +71,12 @@ const baseProps: Omit<Props, 'onRemove'> = {
 };
 
 type StoreOpts = {
-    hostControlsAllowed?: boolean;
     iAmAdmin?: boolean;
 };
 
-// useHostControls reads the plugin config and the current user's roles straight off the store, so
-// both slices have to be modelled rather than left as the default empty stub.
-const stubState = ({hostControlsAllowed = true, iAmAdmin = false}: StoreOpts) => ({
-    'plugins-com.mattermost.calls': {
-        callsConfig: {HostControlsAllowed: hostControlsAllowed},
-    },
+// useHostControls reads the current user's roles straight off the store, so that slice has to be
+// modelled rather than left as the default empty stub.
+const stubState = ({iAmAdmin = false}: StoreOpts) => ({
     entities: {
         users: {
             currentUserId: 'my-user-id',
@@ -218,14 +214,6 @@ describe('ParticipantCell', () => {
         renderCell({size: TileSize.Medium, iAmHost: true});
 
         expect(screen.getByRole('listitem')).toHaveStyle({width: '128px', padding: '16px', gap: '12px'});
-    });
-
-    test('should offer no host controls when the server does not allow them', () => {
-        renderCell({iAmHost: true}, {hostControlsAllowed: false});
-
-        hoverOverTile();
-
-        expect(screen.queryByTestId('three-dots-button')).not.toBeInTheDocument();
     });
 
     test('should offer no host controls before the pointer reaches the tile', () => {

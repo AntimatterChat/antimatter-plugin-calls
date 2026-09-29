@@ -76,7 +76,7 @@ const stubState = (currentUserID: string) => ({
         users: {currentUserId: currentUserID, profiles: {[callerID]: caller, [calleeID]: callee}},
         teams: {currentTeamId: '', teams: {}},
         threads: {threads: {}},
-        general: {config: {}, license: {}},
+        general: {config: {}},
         preferences: {myPreferences: {}},
     },
 });
