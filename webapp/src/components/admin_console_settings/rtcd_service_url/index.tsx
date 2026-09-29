@@ -11,18 +11,17 @@ import {
     rightCol,
 } from 'src/components/admin_console_settings/common';
 import manifest from 'src/manifest';
-import {callsConfig, callsConfigEnvOverrides, isOnPremNotEnterprise} from 'src/selectors';
+import {callsConfig, callsConfigEnvOverrides} from 'src/selectors';
 import {CustomComponentProps} from 'src/types/mattermost-webapp';
 
 const RTCDServiceURL = (props: CustomComponentProps) => {
     const {formatMessage} = useIntl();
     const dispatch = useDispatch();
-    const restricted = useSelector(isOnPremNotEnterprise);
     const config = useSelector(callsConfig);
     const overrides = useSelector(callsConfigEnvOverrides);
     const overridden = 'RTCDServiceURL' in overrides;
 
-    const [enabled, setEnabled] = useState(() => !restricted && props.value?.length > 0);
+    const [enabled, setEnabled] = useState(() => props.value?.length > 0);
 
     // Update global state with a local state change, or props change (eg, remounting)
     useEffect(() => {

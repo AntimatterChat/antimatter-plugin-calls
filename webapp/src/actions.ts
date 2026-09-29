@@ -3,7 +3,6 @@
 
 /* eslint-disable max-lines */
 import {CallsConfig, CallState, CallsVersionInfo} from '@mattermost/calls-common/lib/types';
-import {ClientError} from '@mattermost/client';
 import {Channel} from '@mattermost/types/channels';
 import {UserTypes} from 'mattermost-redux/action_types';
 import {getChannel as loadChannel} from 'mattermost-redux/actions/channels';
@@ -192,27 +191,6 @@ export const setTranscribeAPI = (val: string) => (dispatch: Dispatch) => {
         type: TRANSCRIBE_API,
         data: val,
     });
-};
-
-export const requestOnPremTrialLicense = async (users: number, termsAccepted: boolean, receiveEmailsAccepted: boolean) => {
-    try {
-        const response = await RestClient.fetch(
-            `${RestClient.getBaseRoute()}/trial-license`,
-            {
-                method: 'post',
-                body: JSON.stringify({
-                    users,
-                    terms_accepted: termsAccepted,
-                    receive_emails_accepted: receiveEmailsAccepted,
-                }),
-            },
-        );
-        return {data: response};
-    } catch (e) {
-        // In the event that the status code returned is 451, this request has been blocked because it originated from an embargoed country
-        const err = e as ClientError;
-        return {error: err.message, data: {status: err.status_code}};
-    }
 };
 
 export const hostEndCallForEveryone = (channelID: string) => {

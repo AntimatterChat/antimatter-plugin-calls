@@ -37,13 +37,6 @@ describe('RTCDServiceURL', () => {
                 },
                 callsConfigEnvOverrides: {},
             },
-            entities: {
-                general: {
-                    license: {
-                        SkuShortName: 'enterprise',
-                    },
-                },
-            },
             ...storeOverrides,
         });
 
@@ -114,13 +107,6 @@ describe('RTCDServiceURL', () => {
                 },
                 callsConfigEnvOverrides: {},
                 rtcdEnabled: false,
-            },
-            entities: {
-                general: {
-                    license: {
-                        SkuShortName: 'enterprise',
-                    },
-                },
             },
         });
 
