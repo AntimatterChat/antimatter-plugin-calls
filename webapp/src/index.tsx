@@ -25,7 +25,6 @@ import {batchActions} from 'redux-batched-actions';
 import {
     displayCallErrorModal,
     displayCallsTestModeUser,
-    displayFreeTrial,
     getCallsConfig,
     getCallsConfigEnvOverrides,
     getCallsStats,
@@ -84,7 +83,6 @@ import TURNCredentialsExpirationMinutes from 'src/components/admin_console_setti
 import TURNStaticAuthSecret from 'src/components/admin_console_settings/turn_static_auth_secret';
 import UDPServerAddress from 'src/components/admin_console_settings/udp_server_address';
 import UDPServerPort from 'src/components/admin_console_settings/udp_server_port';
-import {PostTypeCloudTrialRequest} from 'src/components/custom_post_types/post_type_cloud_trial_request';
 import {PostTypeRecording} from 'src/components/custom_post_types/post_type_recording';
 import {
     IDStopRecordingConfirmation,
@@ -148,7 +146,6 @@ import {
     defaultEnabled,
     hasPermissionsToEnableCalls,
     iceServers,
-    isCloudStarter,
     isLimitRestricted,
     needsTURNCredentials,
     ringingEnabled,
@@ -361,7 +358,6 @@ export default class Plugin {
         registry.registerPostTypeComponent(CALL_EVENT_POST_TYPE, PostTypeEvent);
         registry.registerPostTypeComponent(CALL_RECORDING_POST_TYPE, PostTypeRecording);
         registry.registerPostTypeComponent(CALL_TRANSCRIPTION_POST_TYPE, PostTypeTranscription);
-        registry.registerPostTypeComponent('custom_cloud_trial_req', PostTypeCloudTrialRequest);
         registry.registerNeedsTeamRoute('/expanded', injectIntl(ExpandedView));
         registry.registerGlobalComponent(injectIntl(SwitchCallModal));
         registry.registerGlobalComponent(injectIntl(ScreenSourceModal));
@@ -448,11 +444,6 @@ export default class Plugin {
             // Note: not super happy with using explicitlyDisabled both here and below, but wanted to keep the "able to start" logic confined to one place.
             if (channelHasCall(store.getState(), channelId) || explicitlyEnabled || (!explicitlyDisabled && defaultEnabled(store.getState()))) {
                 if (isLimitRestricted(store.getState())) {
-                    if (isCloudStarter(store.getState())) {
-                        store.dispatch(displayFreeTrial());
-                        return;
-                    }
-
                     // Don't allow a join if over limits (UI will have shown this info).
                     return;
                 }

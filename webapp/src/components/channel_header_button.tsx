@@ -3,21 +3,18 @@
 
 import {GlobalState} from '@mattermost/types/store';
 import {getCurrentChannel} from 'mattermost-redux/selectors/entities/channels';
-import {getCurrentUserId, getUser, isCurrentUserSystemAdmin} from 'mattermost-redux/selectors/entities/users';
+import {getCurrentUserId, getUser} from 'mattermost-redux/selectors/entities/users';
 import React, {useState} from 'react';
 import {OverlayTrigger, Tooltip} from 'react-bootstrap';
 import {useIntl} from 'react-intl';
 import {useSelector} from 'react-redux';
 import CompassIcon from 'src/components/icons/compassIcon';
-import {Header, Spinner, SubHeader} from 'src/components/shared';
+import {Header, Spinner} from 'src/components/shared';
 import {
-    areGroupCallsAllowed,
     callsShowButton,
     channelIDForCurrentCall,
     clientConnecting,
     currentChannelHasCall,
-    isCloudProfessionalOrEnterpriseorEnterpriseAdvanceOrTrial,
-    isCloudStarter,
     isLimitRestricted,
     maxParticipants,
 } from 'src/selectors';
@@ -33,26 +30,21 @@ const ChannelHeaderButton = () => {
     const show = useSelector((state: GlobalState) => callsShowButton(state, channel?.id || ''));
     const inCall = useSelector(channelIDForCurrentCall) === channel?.id;
     const hasCall = useSelector(currentChannelHasCall);
-    const isAdmin = useSelector(isCurrentUserSystemAdmin);
-    const cloudStarter = useSelector(isCloudStarter);
-    const isCloudPaid = useSelector(isCloudProfessionalOrEnterpriseorEnterpriseAdvanceOrTrial);
     const limitRestricted = useSelector(isLimitRestricted);
     const maxCallParticipants = useSelector(maxParticipants);
     const isChannelArchived = channel && channel.delete_at > 0;
     const isClientConnecting = useSelector(clientConnecting);
-    const callsAllowed = useSelector(areGroupCallsAllowed) || isDMChannel(channel);
 
     const {formatMessage} = useIntl();
 
     const [joining, setJoining] = useState(false); // doesn't matter, will be set below
     const onClick = () => setJoining(hasCall);
 
-    if (!show || !channel || !callsAllowed) {
+    if (!show || !channel) {
         return null;
     }
 
     const restricted = limitRestricted || isChannelArchived || isDeactivatedDM;
-    const withUpsellIcon = (limitRestricted && cloudStarter && !inCall);
 
     let callButtonText;
     if (hasCall) {
@@ -73,7 +65,6 @@ const ChannelHeaderButton = () => {
             className={'style--none call-button ' + (inCall || restricted ? 'disabled' : '')}
             disabled={isChannelArchived || isDeactivatedDM || isClientConnecting}
             $restricted={restricted}
-            $isCloudPaid={isCloudPaid}
             $isClientConnecting={isClientConnecting}
             onClick={onClick}
         >
@@ -81,9 +72,6 @@ const ChannelHeaderButton = () => {
             <CallButtonText>
                 {callButtonText}
             </CallButtonText>
-            {withUpsellIcon &&
-                <UpsellIcon className={'icon icon-key-variant'}/>
-            }
         </CallButton>
     );
 
@@ -119,28 +107,6 @@ const ChannelHeaderButton = () => {
         );
     }
 
-    if (withUpsellIcon) {
-        return (
-            <OverlayTrigger
-                placement='bottom'
-                rootClose={true}
-                overlay={
-                    <Tooltip id='tooltip-limit-header'>
-                        <Header>
-                            {formatMessage({defaultMessage: 'Mattermost Cloud Professional feature'})}
-                        </Header>
-                        <SubHeader>
-                            {formatMessage({defaultMessage: 'This is a paid feature, available with a free 30-day trial'})}
-                        </SubHeader>
-                    </Tooltip>
-                }
-            >
-                {button}
-            </OverlayTrigger>
-        );
-    }
-
-    // TODO: verify isCloudPaid message (asked in channel)
     if (limitRestricted && !inCall) {
         return (
             <OverlayTrigger
@@ -151,22 +117,6 @@ const ChannelHeaderButton = () => {
                         <Header>
                             {formatMessage({defaultMessage: 'This call is at its maximum capacity of {count, plural, =1 {# participant} other {# participants}}.'}, {count: maxCallParticipants})}
                         </Header>
-
-                        {cloudStarter && !isAdmin &&
-                            <SubHeader>
-                                {formatMessage({defaultMessage: 'Contact your system admin for more information about call capacity.'})}
-                            </SubHeader>
-                        }
-                        {cloudStarter && isAdmin &&
-                            <SubHeader>
-                                {formatMessage({defaultMessage: 'Upgrade to Cloud Professional or Cloud Enterprise to enable group calls with more than {count, plural, =1 {# participant} other {# participants}}.'}, {count: maxCallParticipants})}
-                            </SubHeader>
-                        }
-                        {isCloudPaid &&
-                            <SubHeader>
-                                {formatMessage({defaultMessage: 'At the moment, {count} is the participant limit for cloud calls.'}, {count: maxCallParticipants})}
-                            </SubHeader>
-                        }
                     </Tooltip>
                 }
             >
@@ -178,7 +128,7 @@ const ChannelHeaderButton = () => {
     return button;
 };
 
-const CallButton = styled.button<{ $restricted: boolean, $isCloudPaid: boolean, $isClientConnecting: boolean }>`
+const CallButton = styled.button<{ $restricted: boolean, $isClientConnecting: boolean }>`
     gap: 6px;
 
     // &&& is to override the call-button styles
@@ -188,7 +138,7 @@ const CallButton = styled.button<{ $restricted: boolean, $isCloudPaid: boolean, 
             border: 1px solid rgba(var(--center-channel-color-rgb), 0.16);
             margin-right: 4px;
         `}
-        cursor: ${(props) => (props.$restricted && props.$isCloudPaid ? 'not-allowed' : 'pointer')};
+        cursor: pointer;
     }
 
     ${(props) => props.$isClientConnecting && css`
@@ -197,20 +147,6 @@ const CallButton = styled.button<{ $restricted: boolean, $isCloudPaid: boolean, 
         color: var(--button-bg);
       }
     `}
-`;
-
-const UpsellIcon = styled.i`
-    // &&&&& is to override the call-button styles
-    &&&&& {
-        position: absolute;
-        right: 52px;
-        top: 12px;
-        color: var(--button-bg);
-        width: 16px;
-        height: 16px;
-        background-color: var(--center-channel-bg);
-        border-radius: 50%;
-    }
 `;
 
 const CallButtonText = styled.span`

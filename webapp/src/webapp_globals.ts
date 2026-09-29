@@ -16,7 +16,6 @@ export const {
 global.WebappUtils ?? {};
 
 // @ts-ignore
-export const openPricingModal = global.openPricingModal;
 
 export const {
     closeRhs,

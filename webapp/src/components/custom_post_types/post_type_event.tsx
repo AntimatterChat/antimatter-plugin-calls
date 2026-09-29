@@ -22,14 +22,13 @@ import CompassIcon from 'src/components/icons/compassIcon';
 import LeaveCallIcon from 'src/components/icons/leave_call_icon';
 import {useDismissJoin} from 'src/components/incoming_calls/hooks';
 import {LeaveCallMenu} from 'src/components/leave_call_menu';
-import {Header, SubHeader} from 'src/components/shared';
+import {Header} from 'src/components/shared';
 import Timestamp from 'src/components/timestamp';
 import {MESSAGE_DISPLAY, MESSAGE_DISPLAY_COMPACT, MESSAGE_DISPLAY_DEFAULT} from 'src/constants';
 import {
     channelIDForCurrentCall,
     hostIDForCallInChannel,
     idForCallInChannel,
-    isCloudProfessionalOrEnterpriseorEnterpriseAdvanceOrTrial,
     maxParticipants,
     numUsersInCallInChannel,
     profilesInCallInChannel,
@@ -105,7 +104,6 @@ export const PostTypeEvent = ({post, isRHS}: Props) => {
     // profile hasn't been fetched yet, which would read as a call nobody has answered.
     const numUsers = useSelector((state: GlobalState) => numUsersInCallInChannel(state, post.channel_id));
     const isHost = useSelector((state: GlobalState) => hostIDForCallInChannel(state, post.channel_id)) === currentUserID;
-    const isCloudPaid = useSelector(isCloudProfessionalOrEnterpriseorEnterpriseAdvanceOrTrial);
     const maxCallParticipants = useSelector(maxParticipants);
     const militaryTime = useSelector((state: GlobalState) => getBool(state, Preferences.CATEGORY_DISPLAY_SETTINGS, Preferences.USE_MILITARY_TIME, false));
     const compactDisplay = useSelector((state: GlobalState) => get(state, Preferences.CATEGORY_DISPLAY_SETTINGS, MESSAGE_DISPLAY, MESSAGE_DISPLAY_DEFAULT)) === MESSAGE_DISPLAY_COMPACT;
@@ -256,11 +254,6 @@ export const PostTypeEvent = ({post, isRHS}: Props) => {
                         <Header>
                             {formatMessage({defaultMessage: 'Sorry, participants per call are currently limited to {count}.'}, {count: maxCallParticipants})}
                         </Header>
-                        {isCloudPaid &&
-                            <SubHeader>
-                                {formatMessage({defaultMessage: 'This is because calls is in the beta phase. We’re working to remove this limit soon.'})}
-                            </SubHeader>
-                        }
                     </Tooltip>
                 }
             >

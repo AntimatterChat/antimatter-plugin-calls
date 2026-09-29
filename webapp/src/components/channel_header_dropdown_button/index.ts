@@ -3,14 +3,11 @@
 
 import {GlobalState} from '@mattermost/types/store';
 import {getCurrentChannel} from 'mattermost-redux/selectors/entities/channels';
-import {isCurrentUserSystemAdmin} from 'mattermost-redux/selectors/entities/users';
 import {connect} from 'react-redux';
 import {
     callsShowButton,
     channelIDForCurrentCall,
     currentChannelHasCall,
-    isCloudProfessionalOrEnterpriseorEnterpriseAdvanceOrTrial,
-    isCloudStarter,
     isLimitRestricted,
     maxParticipants,
 } from 'src/selectors';
@@ -24,9 +21,6 @@ const mapStateToProps = (state: GlobalState) => {
         show: callsShowButton(state, channel?.id),
         inCall: Boolean(channelIDForCurrentCall(state) && channelIDForCurrentCall(state) === channel?.id),
         hasCall: currentChannelHasCall(state),
-        isAdmin: isCurrentUserSystemAdmin(state),
-        isCloudStarter: isCloudStarter(state),
-        isCloudPaid: isCloudProfessionalOrEnterpriseorEnterpriseAdvanceOrTrial(state),
         isLimitRestricted: isLimitRestricted(state),
         maxParticipants: maxParticipants(state),
         isChannelArchived: Boolean(channel && channel.delete_at > 0),

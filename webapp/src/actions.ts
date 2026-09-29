@@ -13,12 +13,11 @@ import {getProfilesByIds as getProfilesByIdsAction} from 'mattermost-redux/actio
 import {getChannel} from 'mattermost-redux/selectors/entities/channels';
 import {getCurrentTeamId} from 'mattermost-redux/selectors/entities/teams';
 import {getThread} from 'mattermost-redux/selectors/entities/threads';
-import {getCurrentUserId, getUser, isCurrentUserSystemAdmin} from 'mattermost-redux/selectors/entities/users';
+import {getCurrentUserId, getUser} from 'mattermost-redux/selectors/entities/users';
 import {ActionFunc, ActionFuncAsync, DispatchFunc, GetStateFunc} from 'mattermost-redux/types/actions';
 import {MessageDescriptor} from 'react-intl';
 import {AnyAction, Dispatch} from 'redux';
 import {batchActions} from 'redux-batched-actions';
-import {CloudFreeTrialModalAdmin, CloudFreeTrialModalUser, IDAdmin, IDUser} from 'src/cloud_pricing/modals';
 import {CallErrorModal, CallErrorModalID} from 'src/components/call_error_modal';
 import {GenericErrorModal, IDGenericErrorModal} from 'src/components/generic_error_modal';
 import {CallsInTestModeModal, IDTestModeUser} from 'src/components/modals';
@@ -43,7 +42,7 @@ import {
     isGMChannel,
     notificationsStopRinging,
 } from 'src/utils';
-import {modals, notificationSounds, openPricingModal} from 'src/webapp_globals';
+import {modals, notificationSounds} from 'src/webapp_globals';
 
 import {
     ADD_INCOMING_CALL,
@@ -193,45 +192,6 @@ export const setTranscribeAPI = (val: string) => (dispatch: Dispatch) => {
         type: TRANSCRIBE_API,
         data: val,
     });
-};
-
-export const notifyAdminCloudFreeTrial = async () => {
-    return RestClient.fetch(
-        `${getPluginPath()}/cloud-notify-admins`,
-        {method: 'post'},
-    );
-};
-
-export const displayFreeTrial = () => {
-    return async (dispatch: DispatchFunc, getState: GetStateFunc) => {
-        const isAdmin = isCurrentUserSystemAdmin(getState());
-
-        if (isAdmin) {
-            dispatch(modals.openModal({
-                modalId: IDAdmin,
-                dialogType: CloudFreeTrialModalAdmin,
-            }));
-        } else {
-            dispatch(modals.openModal({
-                modalId: IDUser,
-                dialogType: CloudFreeTrialModalUser,
-            }));
-        }
-
-        return {};
-    };
-};
-
-export const displayCloudPricing = () => {
-    return async (_: DispatchFunc, getState: GetStateFunc) => {
-        const isAdmin = isCurrentUserSystemAdmin(getState());
-        if (!isAdmin) {
-            return {};
-        }
-
-        openPricingModal()({trackingLocation: 'calls > '});
-        return {};
-    };
 };
 
 export const requestOnPremTrialLicense = async (users: number, termsAccepted: boolean, receiveEmailsAccepted: boolean) => {

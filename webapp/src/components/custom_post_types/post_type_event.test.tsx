@@ -95,7 +95,7 @@ const stubState = ({
             })),
         },
         hosts: {[channelID]: {hostID: callerID, hostChangeAt: 0}},
-        callsConfig: {MaxCallParticipants: maxCallParticipants, sku_short_name: ''},
+        callsConfig: {MaxCallParticipants: maxCallParticipants},
         clientStateReducer: {channelID: connected ? channelID : ''},
     },
     entities: {
@@ -105,10 +105,8 @@ const stubState = ({
             profiles: Object.fromEntries(knownProfiles.map((profile) => [profile.id, profile])),
         },
 
-        // Read for the participant limit's upsell copy and for 12h/24h timestamps, both of which
-        // these cases leave at their defaults.
-        general: {license: {}},
-        cloud: {subscription: {}},
+        // Read for 12h/24h timestamps, which these cases leave at their defaults.
+        general: {},
         preferences: {
             myPreferences: compactDisplay ? {
                 'display_settings--message_display': {
