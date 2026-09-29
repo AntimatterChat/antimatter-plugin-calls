@@ -12,6 +12,7 @@ import (
 	"log"
 	"net"
 	"os"
+	"strings"
 )
 
 const helpText = `
@@ -58,8 +59,20 @@ func pluginctl() error {
 	}
 }
 
+// getEnv returns the value of the AM_-prefixed environment variable name, falling back to the
+// legacy MM_-prefixed name when the AM_ one is unset or empty.
+func getEnv(name string) string {
+	if value := os.Getenv(name); value != "" {
+		return value
+	}
+	if legacy, ok := strings.CutPrefix(name, "AM_"); ok {
+		return os.Getenv("MM_" + legacy)
+	}
+	return ""
+}
+
 func getClient() (*model.Client4, error) {
-	socketPath := os.Getenv("MM_LOCALSOCKETPATH")
+	socketPath := getEnv("AM_LOCALSOCKETPATH")
 	if socketPath == "" {
 		socketPath = model.LocalModeSocketPath
 	}
@@ -70,14 +83,14 @@ func getClient() (*model.Client4, error) {
 		return client, nil
 	}
 
-	if os.Getenv("MM_LOCALSOCKETPATH") != "" {
+	if getEnv("AM_LOCALSOCKETPATH") != "" {
 		log.Printf("No socket found at %s for local mode deployment. Attempting to authenticate with credentials.", socketPath)
 	}
 
 	siteURL := os.Getenv("MM_SERVICESETTINGS_SITEURL")
-	adminToken := os.Getenv("MM_ADMIN_TOKEN")
-	adminUsername := os.Getenv("MM_ADMIN_USERNAME")
-	adminPassword := os.Getenv("MM_ADMIN_PASSWORD")
+	adminToken := getEnv("AM_ADMIN_TOKEN")
+	adminUsername := getEnv("AM_ADMIN_USERNAME")
+	adminPassword := getEnv("AM_ADMIN_PASSWORD")
 
 	if siteURL == "" {
 		return nil, errors.New("MM_SERVICESETTINGS_SITEURL is not set")
@@ -101,7 +114,7 @@ func getClient() (*model.Client4, error) {
 		return client, nil
 	}
 
-	return nil, errors.New("one of MM_ADMIN_TOKEN or MM_ADMIN_USERNAME/MM_ADMIN_PASSWORD must be defined")
+	return nil, errors.New("one of AM_ADMIN_TOKEN or AM_ADMIN_USERNAME/AM_ADMIN_PASSWORD (or their MM_ equivalents) must be defined")
 }
 
 func getUnixClient(socketPath string) (*model.Client4, bool) {

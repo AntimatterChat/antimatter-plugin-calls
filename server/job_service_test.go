@@ -90,46 +90,61 @@ func TestJobServiceStopJob(t *testing.T) {
 
 func TestJobServiceApplyEnvOverrides(t *testing.T) {
 	t.Run("matching prefix is applied", func(t *testing.T) {
-		t.Setenv("MM_CALLS_RECORDER_TLS_CA_CERT_FILE", "/certs/ca.pem")
+		t.Setenv("AM_CALLS_RECORDER_TLS_CA_CERT_FILE", "/certs/ca.pem")
 		data := job.InputData{}
-		applyEnvOverrides(data, "MM_CALLS_RECORDER_")
+		applyEnvOverrides(data, "AM_CALLS_RECORDER_")
 		require.Equal(t, "/certs/ca.pem", data["tls_ca_cert_file"])
 	})
 
 	t.Run("non-matching prefix is ignored", func(t *testing.T) {
-		t.Setenv("MM_CALLS_TRANSCRIBER_TLS_CA_CERT_FILE", "/certs/ca.pem")
+		t.Setenv("AM_CALLS_TRANSCRIBER_TLS_CA_CERT_FILE", "/certs/ca.pem")
 		data := job.InputData{}
-		applyEnvOverrides(data, "MM_CALLS_RECORDER_")
+		applyEnvOverrides(data, "AM_CALLS_RECORDER_")
 		require.Empty(t, data)
 	})
 
 	t.Run("key collision: env overrides existing entry", func(t *testing.T) {
-		t.Setenv("MM_CALLS_RECORDER_SITE_URL", "https://override.example.com")
+		t.Setenv("AM_CALLS_RECORDER_SITE_URL", "https://override.example.com")
 		data := job.InputData{"site_url": "https://original.example.com"}
-		applyEnvOverrides(data, "MM_CALLS_RECORDER_")
+		applyEnvOverrides(data, "AM_CALLS_RECORDER_")
 		require.Equal(t, "https://override.example.com", data["site_url"])
 	})
 
 	t.Run("equals sign in value is preserved", func(t *testing.T) {
-		t.Setenv("MM_CALLS_RECORDER_EXTRA_CHROMIUM_ARGS", "--proxy-server=http://proxy:8080")
+		t.Setenv("AM_CALLS_RECORDER_EXTRA_CHROMIUM_ARGS", "--proxy-server=http://proxy:8080")
 		data := job.InputData{}
-		applyEnvOverrides(data, "MM_CALLS_RECORDER_")
+		applyEnvOverrides(data, "AM_CALLS_RECORDER_")
 		require.Equal(t, "--proxy-server=http://proxy:8080", data["extra_chromium_args"])
 	})
 
 	t.Run("multiple matching vars all applied", func(t *testing.T) {
-		t.Setenv("MM_CALLS_RECORDER_TLS_CA_CERT_FILE", "/certs/ca.pem")
-		t.Setenv("MM_CALLS_RECORDER_TLS_INSECURE_SKIP_VERIFY", "true")
+		t.Setenv("AM_CALLS_RECORDER_TLS_CA_CERT_FILE", "/certs/ca.pem")
+		t.Setenv("AM_CALLS_RECORDER_TLS_INSECURE_SKIP_VERIFY", "true")
 		data := job.InputData{}
-		applyEnvOverrides(data, "MM_CALLS_RECORDER_")
+		applyEnvOverrides(data, "AM_CALLS_RECORDER_")
 		require.Equal(t, "/certs/ca.pem", data["tls_ca_cert_file"])
 		require.Equal(t, "true", data["tls_insecure_skip_verify"])
 	})
 
-	t.Run("key is lowercased", func(t *testing.T) {
-		t.Setenv("MM_CALLS_RECORDER_SITE_URL", "http://localhost:8065")
+	t.Run("legacy MM_ prefix is still applied", func(t *testing.T) {
+		t.Setenv("MM_CALLS_RECORDER_TLS_CA_CERT_FILE", "/certs/legacy.pem")
 		data := job.InputData{}
-		applyEnvOverrides(data, "MM_CALLS_RECORDER_")
+		applyEnvOverrides(data, "AM_CALLS_RECORDER_")
+		require.Equal(t, "/certs/legacy.pem", data["tls_ca_cert_file"])
+	})
+
+	t.Run("AM_ prefix wins over legacy MM_ prefix", func(t *testing.T) {
+		t.Setenv("MM_CALLS_RECORDER_TLS_CA_CERT_FILE", "/certs/legacy.pem")
+		t.Setenv("AM_CALLS_RECORDER_TLS_CA_CERT_FILE", "/certs/ca.pem")
+		data := job.InputData{}
+		applyEnvOverrides(data, "AM_CALLS_RECORDER_")
+		require.Equal(t, "/certs/ca.pem", data["tls_ca_cert_file"])
+	})
+
+	t.Run("key is lowercased", func(t *testing.T) {
+		t.Setenv("AM_CALLS_RECORDER_SITE_URL", "http://localhost:8065")
+		data := job.InputData{}
+		applyEnvOverrides(data, "AM_CALLS_RECORDER_")
 		require.Contains(t, data, "site_url")
 		require.NotContains(t, data, "SITE_URL")
 	})

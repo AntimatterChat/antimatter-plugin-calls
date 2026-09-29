@@ -10,10 +10,11 @@ import (
 	"maps"
 	"net"
 	"net/http"
-	"os"
 	"reflect"
 	"strconv"
 	"strings"
+
+	"github.com/antimatterchat/antimatter-plugin-calls/server/amenv"
 
 	transcriber "github.com/mattermost/calls-transcriber/cmd/transcriber/config"
 	"github.com/mattermost/rtcd/service/rtc"
@@ -465,19 +466,20 @@ func (c *configuration) Clone() *configuration {
 }
 
 func (c *configuration) getRTCDURL() string {
-	if url := os.Getenv("MM_CALLS_RTCD_SERVICE_URL"); url != "" {
+	if url := amenv.Get("AM_CALLS_RTCD_SERVICE_URL"); url != "" {
 		return url
 	}
 
-	// v1.8.0 (MM-62732) MM_CALLS_RTCD_URL is DEPRECATED in favor of MM_CALLS_RTCD_SERVICE_URL.
-	if url := os.Getenv("MM_CALLS_RTCD_URL"); url != "" {
+	// v1.8.0 (MM-62732) AM_CALLS_RTCD_URL (legacy MM_CALLS_RTCD_URL) is DEPRECATED in favor of
+	// AM_CALLS_RTCD_SERVICE_URL (legacy MM_CALLS_RTCD_SERVICE_URL).
+	if url := amenv.Get("AM_CALLS_RTCD_URL"); url != "" {
 		return url
 	}
 	return c.RTCDServiceURL
 }
 
 func (c *configuration) getJobServiceURL() string {
-	if url := os.Getenv("MM_CALLS_JOB_SERVICE_URL"); url != "" {
+	if url := amenv.Get("AM_CALLS_JOB_SERVICE_URL"); url != "" {
 		return url
 	}
 	return c.JobServiceURL
@@ -675,28 +677,30 @@ func (p *Plugin) ConfigurationWillBeSaved(newCfg *model.Config) (*model.Config, 
 }
 
 func (p *Plugin) setOverrides(cfg *configuration) {
-	p.configEnvOverrides = p.applyEnvOverrides(cfg, "MM_CALLS")
+	p.configEnvOverrides = p.applyEnvOverrides(cfg, "AM_CALLS")
 
 	cfg.AllowEnableCalls = model.NewPointer(true)
 
 	// nolint:revive
-	if maxPart := os.Getenv("MM_CALLS_MAX_CALL_PARTICIPANTS"); maxPart != "" {
+	if maxPart := amenv.Get("AM_CALLS_MAX_CALL_PARTICIPANTS"); maxPart != "" {
 		// Nothing to do because we parsed this already through applyEnvOverrides.
-	} else if maxPart := os.Getenv("MM_CALLS_MAX_PARTICIPANTS"); maxPart != "" {
-		// v1.8.0 (MM-62732) MM_CALLS_MAX_PARTICIPANTS is DEPRECATED in favor of MM_CALLS_MAX_CALL_PARTICIPANTS.
+	} else if maxPart := amenv.Get("AM_CALLS_MAX_PARTICIPANTS"); maxPart != "" {
+		// v1.8.0 (MM-62732) AM_CALLS_MAX_PARTICIPANTS (legacy MM_CALLS_MAX_PARTICIPANTS) is DEPRECATED in favor of
+		// AM_CALLS_MAX_CALL_PARTICIPANTS (legacy MM_CALLS_MAX_CALL_PARTICIPANTS).
 		// Allow env var to permanently override system console settings
 		if maxVal, err := strconv.Atoi(maxPart); err == nil {
 			*cfg.MaxCallParticipants = maxVal
 		} else {
-			p.LogError("setOverrides", "failed to parse MM_CALLS_MAX_PARTICIPANTS", err.Error())
+			p.LogError("setOverrides", "failed to parse AM_CALLS_MAX_PARTICIPANTS", err.Error())
 		}
 	}
 
-	// v1.8.0 (MM-62732) MM_CALLS_RTCD_URL is DEPRECATED in favor of MM_CALLS_RTCD_SERVICE_URL.
+	// v1.8.0 (MM-62732) AM_CALLS_RTCD_URL (legacy MM_CALLS_RTCD_URL) is DEPRECATED in favor of
+	// AM_CALLS_RTCD_SERVICE_URL (legacy MM_CALLS_RTCD_SERVICE_URL).
 	// If the canonical env var didn't win, check the deprecated one and surface it so /env reflects reality.
 	if _, alreadySet := p.configEnvOverrides["RTCDServiceURL"]; !alreadySet {
-		if url := os.Getenv("MM_CALLS_RTCD_URL"); url != "" {
-			p.LogWarn("MM_CALLS_RTCD_URL is deprecated and will be removed in a future release, please use MM_CALLS_RTCD_SERVICE_URL instead")
+		if url := amenv.Get("AM_CALLS_RTCD_URL"); url != "" {
+			p.LogWarn("AM_CALLS_RTCD_URL (or legacy MM_CALLS_RTCD_URL) is deprecated and will be removed in a future release, please use AM_CALLS_RTCD_SERVICE_URL instead")
 			cfg.RTCDServiceURL = url
 			p.configEnvOverrides["RTCDServiceURL"] = url
 		}

@@ -5,12 +5,13 @@ package main
 
 import (
 	"encoding/json"
-	"os"
 	"reflect"
 	"regexp"
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/antimatterchat/antimatter-plugin-calls/server/amenv"
 
 	"github.com/mattermost/rtcd/service/rtc"
 )
@@ -19,8 +20,9 @@ import (
 // environment variables that match the pattern PREFIX_FIELD_NAME and applies
 // those values to the corresponding fields in the config.
 //
-// Example: With prefix "MM_CALLS" and config field "RTCDServiceURL",
-// it will look for env var "MM_CALLS_RTCD_SERVICE_URL"
+// Example: With prefix "AM_CALLS" and config field "RTCDServiceURL",
+// it will look for env var "AM_CALLS_RTCD_SERVICE_URL", falling back to the
+// legacy "MM_CALLS_RTCD_SERVICE_URL" when the AM_ variable is not set.
 //
 // The function handles various field types including strings, booleans, integers,
 // floats, and durations. It also supports embedded structs, treating their fields
@@ -106,7 +108,7 @@ func (p *Plugin) processStructFields(val reflect.Value, prefix, fieldPath string
 			envVar := prefix + envKey
 
 			// Check if environment variable exists
-			if envValue, exists := os.LookupEnv(envVar); exists {
+			if envValue, exists := amenv.Lookup(envVar); exists {
 				// Special handling for ICEServersConfigs to store the raw JSON
 				if field.Type().String() == "main.ICEServersConfigs" ||
 					(field.Kind() == reflect.Pointer && field.Type().Elem().String() == "main.ICEServersConfigs") {

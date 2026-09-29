@@ -5,9 +5,10 @@ package main
 
 import (
 	"fmt"
-	"os"
 	"strconv"
 	"time"
+
+	"github.com/antimatterchat/antimatter-plugin-calls/server/amenv"
 
 	"github.com/mattermost/mattermost/server/public/model"
 )
@@ -22,7 +23,7 @@ const (
 )
 
 func getConcurrentSessionsThreshold() int64 {
-	val, err := strconv.Atoi(os.Getenv("MM_CALLS_CONCURRENT_SESSIONS_THRESHOLD"))
+	val, err := strconv.Atoi(amenv.Get("AM_CALLS_CONCURRENT_SESSIONS_THRESHOLD"))
 	if err != nil {
 		return int64(concurrentSessionsThresholdDefault)
 	}
@@ -30,7 +31,7 @@ func getConcurrentSessionsThreshold() int64 {
 }
 
 func getConcurrentSessionsWarningBackoffTime() time.Duration {
-	val, err := time.ParseDuration(os.Getenv("MM_CALLS_CONCURRENT_SESSIONS_WARNING_BACKOFF_TIME"))
+	val, err := time.ParseDuration(amenv.Get("AM_CALLS_CONCURRENT_SESSIONS_WARNING_BACKOFF_TIME"))
 	if err != nil {
 		return concurrentSessionsWarningBackoffTimeDefault
 	}

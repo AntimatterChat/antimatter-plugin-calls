@@ -7,9 +7,10 @@ import (
 	"database/sql"
 	"fmt"
 	"net/url"
-	"os"
 	"strconv"
 	"time"
+
+	"github.com/antimatterchat/antimatter-plugin-calls/server/amenv"
 
 	"github.com/mattermost/mattermost/server/public/shared/mlog"
 
@@ -28,13 +29,13 @@ func (s *Store) setupDBConn(dsn string) (*sql.DB, error) {
 
 	maxIdleConns := max(*s.settings.MaxIdleConns/10, 5)
 	maxOpenConns := max(*s.settings.MaxOpenConns/10, 10)
-	if val := os.Getenv("MM_CALLS_MAX_IDLE_CONNS"); val != "" {
+	if val := amenv.Get("AM_CALLS_MAX_IDLE_CONNS"); val != "" {
 		conns, err := strconv.Atoi(val)
 		if err == nil && conns > 0 {
 			maxIdleConns = conns
 		}
 	}
-	if val := os.Getenv("MM_CALLS_MAX_OPEN_CONNS"); val != "" {
+	if val := amenv.Get("AM_CALLS_MAX_OPEN_CONNS"); val != "" {
 		conns, err := strconv.Atoi(val)
 		if err == nil && conns > 0 {
 			maxOpenConns = conns

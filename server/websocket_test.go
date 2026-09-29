@@ -1484,8 +1484,8 @@ func TestHandleJoin(t *testing.T) {
 		postID := model.NewId()
 		authSessionID := ""
 
-		os.Setenv("MM_CALLS_CONCURRENT_SESSIONS_THRESHOLD", "1")
-		defer os.Unsetenv("MM_CALLS_CONCURRENT_SESSIONS_THRESHOLD")
+		os.Setenv("AM_CALLS_CONCURRENT_SESSIONS_THRESHOLD", "1")
+		defer os.Unsetenv("AM_CALLS_CONCURRENT_SESSIONS_THRESHOLD")
 
 		mockAPI.On("HasPermissionToChannel", userID, channelID, model.PermissionCreatePost).Return(true).Once()
 		mockAPI.On("GetChannel", channelID).Return(&model.Channel{

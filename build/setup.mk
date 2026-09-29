@@ -37,7 +37,7 @@ HAS_WEBAPP ?= $(shell build/bin/manifest has_webapp)
 HAS_PUBLIC ?= $(wildcard public/.)
 
 # Determine if the mattermost-utilities repo is present
-HAS_MM_UTILITIES ?= $(wildcard $(MM_UTILITIES_DIR)/.)
+HAS_AM_UTILITIES ?= $(wildcard $(AM_UTILITIES_DIR)/.)
 
 # Store the current path for later use
 PWD ?= $(shell pwd)

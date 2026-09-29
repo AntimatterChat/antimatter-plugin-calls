@@ -56,10 +56,10 @@ func TestSetupConn(t *testing.T) {
 			})
 
 			t.Run("overrides", func(t *testing.T) {
-				os.Setenv("MM_CALLS_MAX_OPEN_CONNS", "45")
-				defer os.Unsetenv("MM_CALLS_MAX_OPEN_CONNS")
-				os.Setenv("MM_CALLS_MAX_IDLE_CONNS", "45")
-				defer os.Unsetenv("MM_CALLS_MAX_IDLE_CONNS")
+				os.Setenv("AM_CALLS_MAX_OPEN_CONNS", "45")
+				defer os.Unsetenv("AM_CALLS_MAX_OPEN_CONNS")
+				os.Setenv("AM_CALLS_MAX_IDLE_CONNS", "45")
+				defer os.Unsetenv("AM_CALLS_MAX_IDLE_CONNS")
 
 				var settings model.SqlSettings
 				settings.SetDefaults(false)

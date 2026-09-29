@@ -77,14 +77,14 @@ func TestApplyEnvOverrides(t *testing.T) {
 
 	// Clear environment and set test values
 	os.Clearenv()
-	os.Setenv("MM_CALLS_RTCD_SERVICE_URL", "https://rtcd.example.com")
-	os.Setenv("MM_CALLS_JOB_SERVICE_URL", "https://jobs.example.com")
-	os.Setenv("MM_CALLS_UDP_SERVER_PORT", "8443")
-	os.Setenv("MM_CALLS_TCP_SERVER_PORT", "8444")
-	os.Setenv("MM_CALLS_MAX_CALL_PARTICIPANTS", "25")
-	os.Setenv("MM_CALLS_ENABLE_RECORDINGS", "true")
-	os.Setenv("MM_CALLS_ENABLE_TRANSCRIPTIONS", "true")
-	os.Setenv("MM_CALLS_ENABLE_RINGING", "true")
+	os.Setenv("AM_CALLS_RTCD_SERVICE_URL", "https://rtcd.example.com")
+	os.Setenv("AM_CALLS_JOB_SERVICE_URL", "https://jobs.example.com")
+	os.Setenv("AM_CALLS_UDP_SERVER_PORT", "8443")
+	os.Setenv("AM_CALLS_TCP_SERVER_PORT", "8444")
+	os.Setenv("AM_CALLS_MAX_CALL_PARTICIPANTS", "25")
+	os.Setenv("AM_CALLS_ENABLE_RECORDINGS", "true")
+	os.Setenv("AM_CALLS_ENABLE_TRANSCRIPTIONS", "true")
+	os.Setenv("AM_CALLS_ENABLE_RINGING", "true")
 
 	// Test ICEServersConfigs JSON parsing
 	iceServers := []rtc.ICEServerConfig{
@@ -99,14 +99,14 @@ func TestApplyEnvOverrides(t *testing.T) {
 	}
 	iceServersJSON, err := json.Marshal(iceServers)
 	require.NoError(t, err)
-	os.Setenv("MM_CALLS_ICE_SERVERS_CONFIGS", string(iceServersJSON))
+	os.Setenv("AM_CALLS_ICE_SERVERS_CONFIGS", string(iceServersJSON))
 
 	// Create real config
 	cfg := &configuration{}
 	cfg.SetDefaults() // Initialize with defaults
 
 	// Apply overrides
-	overrides := p.applyEnvOverrides(cfg, "MM_CALLS")
+	overrides := p.applyEnvOverrides(cfg, "AM_CALLS")
 
 	// Verify results
 	assert.Equal(t, "https://rtcd.example.com", cfg.RTCDServiceURL)
@@ -133,6 +133,47 @@ func TestApplyEnvOverrides(t *testing.T) {
 	assert.Equal(t, "true", overrides["EnableTranscriptions"])
 	assert.Equal(t, "true", overrides["EnableRinging"])
 	assert.Equal(t, string(iceServersJSON), overrides["ICEServersConfigs"])
+}
+
+func TestApplyEnvOverridesLegacyPrefix(t *testing.T) {
+	mockAPI := &pluginMocks.MockAPI{}
+	mockAPI.On("LogError", mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return().Maybe()
+
+	p := &Plugin{
+		MattermostPlugin: plugin.MattermostPlugin{
+			API: mockAPI,
+		},
+	}
+
+	originalEnv := os.Environ()
+	defer func() {
+		os.Clearenv()
+		for _, e := range originalEnv {
+			pair := splitEnvPair(e)
+			os.Setenv(pair[0], pair[1])
+		}
+	}()
+
+	os.Clearenv()
+	// Legacy MM_ names are still honored.
+	os.Setenv("MM_CALLS_JOB_SERVICE_URL", "https://legacy-jobs.example.com")
+	os.Setenv("MM_CALLS_UDP_SERVER_PORT", "9443")
+	// When both are set, the AM_ name wins.
+	os.Setenv("MM_CALLS_RTCD_SERVICE_URL", "https://legacy-rtcd.example.com")
+	os.Setenv("AM_CALLS_RTCD_SERVICE_URL", "https://rtcd.example.com")
+
+	cfg := &configuration{}
+	cfg.SetDefaults()
+
+	overrides := p.applyEnvOverrides(cfg, "AM_CALLS")
+
+	assert.Equal(t, "https://legacy-jobs.example.com", cfg.JobServiceURL)
+	assert.Equal(t, 9443, *cfg.UDPServerPort)
+	assert.Equal(t, "https://rtcd.example.com", cfg.RTCDServiceURL)
+
+	assert.Equal(t, "https://legacy-jobs.example.com", overrides["JobServiceURL"])
+	assert.Equal(t, "9443", overrides["UDPServerPort"])
+	assert.Equal(t, "https://rtcd.example.com", overrides["RTCDServiceURL"])
 }
 
 func TestSetFieldFromEnv(t *testing.T) {
@@ -221,9 +262,26 @@ func TestSetOverridesDeprecatedRTCDURL(t *testing.T) {
 		return p, mockAPI
 	}
 
-	t.Run("deprecated MM_CALLS_RTCD_URL sets override and logs warning", func(t *testing.T) {
+	t.Run("deprecated AM_CALLS_RTCD_URL sets override and logs warning", func(t *testing.T) {
 		p, mockAPI := setup(t)
-		mockAPI.On("LogWarn", "MM_CALLS_RTCD_URL is deprecated and will be removed in a future release, please use MM_CALLS_RTCD_SERVICE_URL instead", "origin", mock.AnythingOfType("string")).Return()
+		mockAPI.On("LogWarn", "AM_CALLS_RTCD_URL (or legacy MM_CALLS_RTCD_URL) is deprecated and will be removed in a future release, please use AM_CALLS_RTCD_SERVICE_URL instead", "origin", mock.AnythingOfType("string")).Return()
+		defer mockAPI.AssertExpectations(t)
+
+		os.Clearenv()
+		os.Setenv("AM_CALLS_RTCD_URL", "http://rtcd.example.com:8045")
+
+		cfg := &configuration{}
+		cfg.SetDefaults()
+
+		p.setOverrides(cfg)
+
+		require.Equal(t, "http://rtcd.example.com:8045", cfg.RTCDServiceURL)
+		require.Equal(t, "http://rtcd.example.com:8045", p.configEnvOverrides["RTCDServiceURL"])
+	})
+
+	t.Run("deprecated legacy MM_CALLS_RTCD_URL sets override and logs warning", func(t *testing.T) {
+		p, mockAPI := setup(t)
+		mockAPI.On("LogWarn", "AM_CALLS_RTCD_URL (or legacy MM_CALLS_RTCD_URL) is deprecated and will be removed in a future release, please use AM_CALLS_RTCD_SERVICE_URL instead", "origin", mock.AnythingOfType("string")).Return()
 		defer mockAPI.AssertExpectations(t)
 
 		os.Clearenv()
@@ -238,13 +296,30 @@ func TestSetOverridesDeprecatedRTCDURL(t *testing.T) {
 		require.Equal(t, "http://rtcd.example.com:8045", p.configEnvOverrides["RTCDServiceURL"])
 	})
 
-	t.Run("canonical MM_CALLS_RTCD_SERVICE_URL wins over deprecated MM_CALLS_RTCD_URL", func(t *testing.T) {
+	t.Run("legacy canonical MM_CALLS_RTCD_SERVICE_URL wins over deprecated AM_CALLS_RTCD_URL", func(t *testing.T) {
 		p, mockAPI := setup(t)
 		defer mockAPI.AssertExpectations(t)
 
 		os.Clearenv()
 		os.Setenv("MM_CALLS_RTCD_SERVICE_URL", "http://canonical.example.com:8045")
-		os.Setenv("MM_CALLS_RTCD_URL", "http://deprecated.example.com:8045")
+		os.Setenv("AM_CALLS_RTCD_URL", "http://deprecated.example.com:8045")
+
+		cfg := &configuration{}
+		cfg.SetDefaults()
+
+		p.setOverrides(cfg)
+
+		require.Equal(t, "http://canonical.example.com:8045", cfg.RTCDServiceURL)
+		require.Equal(t, "http://canonical.example.com:8045", p.configEnvOverrides["RTCDServiceURL"])
+	})
+
+	t.Run("canonical AM_CALLS_RTCD_SERVICE_URL wins over deprecated AM_CALLS_RTCD_URL", func(t *testing.T) {
+		p, mockAPI := setup(t)
+		defer mockAPI.AssertExpectations(t)
+
+		os.Clearenv()
+		os.Setenv("AM_CALLS_RTCD_SERVICE_URL", "http://canonical.example.com:8045")
+		os.Setenv("AM_CALLS_RTCD_URL", "http://deprecated.example.com:8045")
 
 		cfg := &configuration{}
 		cfg.SetDefaults()

@@ -1,18 +1,22 @@
 GO ?= $(shell command -v go 2> /dev/null)
 NPM ?= $(shell command -v npm 2> /dev/null)
 CURL ?= $(shell command -v curl 2> /dev/null)
+# AM_DEBUG enables debug builds; the legacy MM_DEBUG name is still accepted.
 MM_DEBUG ?=
+AM_DEBUG ?= $(MM_DEBUG)
 MANIFEST_FILE ?= plugin.json
 GOPATH ?= $(shell go env GOPATH)
 GO_TEST_FLAGS ?= -race
 GO_BUILD_FLAGS ?=
+# AM_UTILITIES_DIR points at a mattermost-utilities checkout; MM_UTILITIES_DIR is still accepted.
 MM_UTILITIES_DIR ?= ../mattermost-utilities
+AM_UTILITIES_DIR ?= $(MM_UTILITIES_DIR)
 DLV_DEBUG_PORT := 2346
 DEFAULT_GOOS := $(shell go env GOOS)
 DEFAULT_GOARCH := $(shell go env GOARCH)
 BUILD_HASH = $(shell git rev-parse HEAD)
 LDFLAGS += -X "main.buildHash=$(BUILD_HASH)"
-LDFLAGS+= -X "main.isDebug=$(MM_DEBUG)"
+LDFLAGS+= -X "main.isDebug=$(AM_DEBUG)"
 
 COVERAGE_FLAG = -coverprofile=server/cover.out -covermode=atomic
 
@@ -209,7 +213,7 @@ endif
 server: setup-go-work manifest-check
 ifneq ($(HAS_SERVER),)
 	mkdir -p server/dist;
-ifeq ($(MM_DEBUG),)
+ifeq ($(AM_DEBUG),)
 ifneq ($(MM_SERVICESETTINGS_ENABLEDEVELOPER),)
 	cd server && env CGO_ENABLED=0 $(GO) build $(GO_BUILD_FLAGS) -ldflags '$(LDFLAGS)' -trimpath -o dist/plugin-$(DEFAULT_GOOS)-$(DEFAULT_GOARCH);
 else
@@ -219,7 +223,7 @@ else
 	cd server && env CGO_ENABLED=0 GOOS=openbsd GOARCH=amd64 $(GO) build $(GO_BUILD_FLAGS) -ldflags '$(LDFLAGS)' -trimpath -o dist/plugin-openbsd-amd64;
 endif
 else
-	$(info DEBUG mode is on; to disable, unset MM_DEBUG)
+	$(info DEBUG mode is on; to disable, unset AM_DEBUG (and MM_DEBUG))
 ifneq ($(MM_SERVICESETTINGS_ENABLEDEVELOPER),)
 	cd server && env CGO_ENABLED=0 $(GO) build $(GO_BUILD_FLAGS) -ldflags '$(LDFLAGS)' -gcflags "all=-N -l" -trimpath -o dist/plugin-$(DEFAULT_GOOS)-$(DEFAULT_GOARCH);
 else
@@ -269,7 +273,7 @@ endif
 .PHONY: webapp
 webapp: webapp/node_modules
 ifneq ($(HAS_WEBAPP),)
-ifeq ($(MM_DEBUG),)
+ifeq ($(AM_DEBUG),)
 	cd webapp && $(NPM) run build;
 else
 	cd webapp && $(NPM) run debug;
@@ -279,7 +283,7 @@ endif
 ## Builds the standalone apps.
 .PHONY: standalone
 standalone: standalone/node_modules
-ifeq ($(MM_DEBUG),)
+ifeq ($(AM_DEBUG),)
 	cd standalone && $(NPM) run build;
 else
 	cd standalone && $(NPM) run debug;
@@ -363,7 +367,7 @@ deploy: dist
 ## Builds and installs the plugin to a server, updating the webapp automatically when changed.
 .PHONY: watch
 watch: apply server bundle
-ifeq ($(MM_DEBUG),)
+ifeq ($(AM_DEBUG),)
 	cd webapp && $(NPM) run build:watch
 else
 	cd webapp && $(NPM) run debug:watch

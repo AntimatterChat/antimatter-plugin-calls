@@ -7,10 +7,10 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"os"
 	"strings"
 	"time"
 
+	"github.com/antimatterchat/antimatter-plugin-calls/server/amenv"
 	"github.com/antimatterchat/antimatter-plugin-calls/server/cluster"
 	"github.com/mattermost/mattermost/server/public/model"
 
@@ -89,8 +89,8 @@ func (p *Plugin) getJobServiceClientConfig(serviceURL string) (offloader.ClientC
 	var cfg offloader.ClientConfig
 
 	// Give precedence to environment to override everything else.
-	cfg.ClientID = os.Getenv("MM_CALLS_JOB_SERVICE_CLIENT_ID")
-	cfg.AuthKey = os.Getenv("MM_CALLS_JOB_SERVICE_AUTH_KEY")
+	cfg.ClientID = amenv.Get("AM_CALLS_JOB_SERVICE_CLIENT_ID")
+	cfg.AuthKey = amenv.Get("AM_CALLS_JOB_SERVICE_AUTH_KEY")
 	cfg.URL = serviceURL
 
 	// Parsing the URL in case it's already containing credentials.
@@ -285,7 +285,7 @@ func (s *jobService) RunJob(jobType job.Type, callID, postID, jobID, authToken s
 	case job.TypeRecording:
 		baseRecorderCfg := recorderBaseConfigs[cfg.RecordingQuality]
 		baseRecorderCfg.SiteURL = siteURL
-		if siteURLOverride := os.Getenv("MM_CALLS_RECORDER_SITE_URL"); siteURLOverride != "" {
+		if siteURLOverride := amenv.Get("AM_CALLS_RECORDER_SITE_URL"); siteURLOverride != "" {
 			s.ctx.LogInfo("using SiteURL override for recorder job", "siteURL", siteURL, "siteURLOverride", siteURLOverride)
 			baseRecorderCfg.SiteURL = siteURLOverride
 		}
@@ -302,12 +302,12 @@ func (s *jobService) RunJob(jobType job.Type, callID, postID, jobID, authToken s
 		jobCfg.MaxDurationSec = int64(*cfg.MaxRecordingDuration * 60)
 		jobCfg.InputData = baseRecorderCfg.ToMap()
 
-		applyEnvOverrides(jobCfg.InputData, "MM_CALLS_RECORDER_")
+		applyEnvOverrides(jobCfg.InputData, "AM_CALLS_RECORDER_")
 	case job.TypeTranscribing:
 		var transcriberConfig transcriber.CallTranscriberConfig
 		transcriberConfig.SetDefaults()
 		transcriberConfig.SiteURL = siteURL
-		if siteURLOverride := os.Getenv("MM_CALLS_TRANSCRIBER_SITE_URL"); siteURLOverride != "" {
+		if siteURLOverride := amenv.Get("AM_CALLS_TRANSCRIBER_SITE_URL"); siteURLOverride != "" {
 			s.ctx.LogInfo("using SiteURL override for transcriber job", "siteURL", siteURL, "siteURLOverride", siteURLOverride)
 			transcriberConfig.SiteURL = siteURLOverride
 		}
@@ -342,7 +342,7 @@ func (s *jobService) RunJob(jobType job.Type, callID, postID, jobID, authToken s
 		jobCfg.MaxDurationSec = int64(*cfg.MaxRecordingDuration*60) * 2
 		jobCfg.InputData = transcriberConfig.ToMap()
 
-		applyEnvOverrides(jobCfg.InputData, "MM_CALLS_TRANSCRIBER_")
+		applyEnvOverrides(jobCfg.InputData, "AM_CALLS_TRANSCRIBER_")
 	}
 
 	jb, err := s.client.CreateJob(jobCfg)
@@ -353,17 +353,13 @@ func (s *jobService) RunJob(jobType job.Type, callID, postID, jobID, authToken s
 	return jb.ID, nil
 }
 
-// applyEnvOverrides reads environment variables with the given prefix and merges
+// applyEnvOverrides reads environment variables with the given AM_-prefixed prefix
+// (or its legacy MM_-prefixed counterpart, AM_ winning on conflict) and merges
 // them into inputData, stripping the prefix and lowercasing the key.
 // The offloader will uppercase the keys again when setting container env vars.
 func applyEnvOverrides(inputData job.InputData, prefix string) {
-	for _, env := range os.Environ() {
-		if strings.HasPrefix(env, prefix) {
-			if parts := strings.SplitN(env, "=", 2); len(parts) == 2 {
-				key := strings.ToLower(strings.TrimPrefix(parts[0], prefix))
-				inputData[key] = parts[1]
-			}
-		}
+	for name, value := range amenv.WithPrefix(prefix) {
+		inputData[strings.ToLower(name)] = value
 	}
 }
 
@@ -404,7 +400,7 @@ func (p *Plugin) initJobService() error {
 	p.LogDebug("initializing job service")
 
 	registry := job.ImageRegistryDefault
-	if val := os.Getenv("MM_CALLS_JOB_SERVICE_IMAGE_REGISTRY"); val != "" {
+	if val := amenv.Get("AM_CALLS_JOB_SERVICE_IMAGE_REGISTRY"); val != "" {
 		registry = val
 	}
 

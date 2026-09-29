@@ -6,11 +6,11 @@ package main
 import (
 	"context"
 	"fmt"
-	"os"
 	"path/filepath"
 	"runtime"
 	"time"
 
+	"github.com/antimatterchat/antimatter-plugin-calls/server/amenv"
 	"github.com/antimatterchat/antimatter-plugin-calls/server/cluster"
 
 	"github.com/mattermost/rtcd/service/rtc"
@@ -69,7 +69,7 @@ func (p *Plugin) createJobSession() (*model.Session, error) {
 func (p *Plugin) OnActivate() (retErr error) {
 	p.LogDebug("activating")
 
-	if os.Getenv("MM_CALLS_DISABLE") == "true" {
+	if amenv.Get("AM_CALLS_DISABLE") == "true" {
 		p.LogInfo("disable flag is set, exiting")
 		return fmt.Errorf("disabled by environment flag")
 	}
