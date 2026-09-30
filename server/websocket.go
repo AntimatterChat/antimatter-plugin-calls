@@ -810,9 +810,12 @@ func (p *Plugin) handleJoin(userID, connID, authSessionID string, joinData calls
 				)
 			}
 
-			postID, threadID, err := p.createCallStartedPost(state, userID, channelID, joinData.Title, joinData.ThreadID, channel.Type)
-			if err != nil {
-				p.LogError(err.Error())
+			postID, threadID := "", joinData.ThreadID
+			if !callsChannel.BoolProp(public.ChannelPropDisableCallPost) {
+				postID, threadID, err = p.createCallStartedPost(state, userID, channelID, joinData.Title, joinData.ThreadID, channel.Type)
+				if err != nil {
+					p.LogError(err.Error())
+				}
 			}
 
 			state.Call.PostID = postID

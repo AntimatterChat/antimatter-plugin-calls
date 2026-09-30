@@ -78,6 +78,12 @@ func (p *Plugin) startRecordingJob(state *callState, callID, userID string) (rst
 		return nil, http.StatusForbidden, fmt.Errorf("recording already in progress")
 	}
 
+	// Recordings and transcriptions are attached to the call post, which calls in channels
+	// with public.ChannelPropDisableCallPost don't have.
+	if state.Call.PostID == "" {
+		return nil, http.StatusBadRequest, fmt.Errorf("recordings are not available for calls without a call post")
+	}
+
 	recState := new(public.CallJob)
 	recState.ID = model.NewId()
 	recState.CallID = state.Call.ID

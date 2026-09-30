@@ -16,6 +16,10 @@ const (
 	// every member of the channel instead of only to the call participants, so that clients
 	// can show who is talking or sharing to people outside the call.
 	ChannelPropBroadcastSessionState = "broadcast_session_state"
+	// ChannelPropDisableCallPost stops Calls from posting a "call started" message when a call
+	// starts in the channel, e.g. for channels where people drop in and out all day long.
+	// Recordings and transcriptions need that post and are unavailable in such channels.
+	ChannelPropDisableCallPost = "disable_call_post"
 )
 
 type CallsChannel struct {

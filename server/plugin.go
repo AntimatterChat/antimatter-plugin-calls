@@ -365,8 +365,9 @@ func (p *Plugin) createCallStartedPost(state *callState, userID, channelID, titl
 }
 
 func (p *Plugin) updateCallPostEnded(postID string, participants []string, reason callEndReason) (float64, error) {
+	// Calls in channels with public.ChannelPropDisableCallPost have no post.
 	if postID == "" {
-		return 0, fmt.Errorf("postID should not be empty")
+		return 0, nil
 	}
 
 	post, err := p.store.GetPost(postID)
