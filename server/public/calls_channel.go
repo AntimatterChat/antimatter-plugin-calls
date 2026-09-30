@@ -24,3 +24,19 @@ func (c *CallsChannel) IsValid() error {
 
 	return nil
 }
+
+// BoolProp returns whether the given prop is set to true on the channel.
+func (c *CallsChannel) BoolProp(key string) bool {
+	if c == nil || c.Props == nil {
+		return false
+	}
+
+	switch v := c.Props[key].(type) {
+	case bool:
+		return v
+	case string:
+		return v == "true"
+	default:
+		return false
+	}
+}
