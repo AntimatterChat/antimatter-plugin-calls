@@ -77,6 +77,9 @@ type Plugin struct {
 	// Database
 	store *db.Store
 
+	// Cached Calls settings of channels, see getCachedCallsChannel.
+	channelSettings channelSettingsCache
+
 	// Batchers
 	addSessionsBatchers    map[string]*batching.Batcher
 	removeSessionsBatchers map[string]*batching.Batcher

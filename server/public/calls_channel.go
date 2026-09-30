@@ -7,6 +7,17 @@ import (
 	"fmt"
 )
 
+// Channel props understood by Calls. They let an administrator or another plugin adapt how
+// calls behave in a specific channel; a channel without them behaves as usual. Values are
+// booleans (the string "true" is accepted too).
+const (
+	// ChannelPropBroadcastSessionState makes the events about the state of call sessions
+	// (muted/unmuted, voice on/off, screen on/off, video on/off, raised/lowered hand) go to
+	// every member of the channel instead of only to the call participants, so that clients
+	// can show who is talking or sharing to people outside the call.
+	ChannelPropBroadcastSessionState = "broadcast_session_state"
+)
+
 type CallsChannel struct {
 	ChannelID string    `json:"channel_id"`
 	Enabled   bool      `json:"enabled"`

@@ -559,6 +559,8 @@ func (p *Plugin) handlePostCallsChannel(w http.ResponseWriter, r *http.Request) 
 		}
 	}
 
+	p.channelSettings.invalidate(channelID)
+
 	var evType string
 	if storedChannel.Enabled {
 		evType = "channel_enable_voice"
