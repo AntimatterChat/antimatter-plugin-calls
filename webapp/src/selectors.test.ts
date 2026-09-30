@@ -17,6 +17,7 @@ import {
     selfFirstSessionsInCurrentCall,
     sessionsInCurrentCall,
     sortedSessionsInCurrentCall,
+    videoEnabledInChannel,
 } from './selectors';
 
 const channelID = 'dm-channel-id';
@@ -100,6 +101,36 @@ beforeEach(() => connectTo(channelID));
 
 afterEach(() => {
     delete window.callsClient;
+});
+
+describe('videoEnabledInChannel', () => {
+    const videoState = (enableVideo: boolean, props?: Record<string, unknown>) => ({
+        'plugins-com.mattermost.calls': {
+            callsConfig: {EnableVideo: enableVideo},
+            channels: {[channelID]: {id: channelID, enabled: true, props}},
+        },
+    } as unknown as GlobalState);
+
+    test('disabled in the configuration', () => {
+        expect(videoEnabledInChannel(videoState(false, {enable_video: true}), dmChannel)).toBe(false);
+        expect(videoEnabledInChannel(videoState(false, {enable_video: true}), openChannel)).toBe(false);
+    });
+
+    test('DM channels', () => {
+        expect(videoEnabledInChannel(videoState(true), dmChannel)).toBe(true);
+    });
+
+    test('other channels need the enable_video prop', () => {
+        expect(videoEnabledInChannel(videoState(true), openChannel)).toBe(false);
+        expect(videoEnabledInChannel(videoState(true), gmChannel)).toBe(false);
+        expect(videoEnabledInChannel(videoState(true, {enable_video: false}), openChannel)).toBe(false);
+        expect(videoEnabledInChannel(videoState(true, {enable_video: true}), openChannel)).toBe(true);
+        expect(videoEnabledInChannel(videoState(true, {enable_video: 'true'}), openChannel)).toBe(true);
+    });
+
+    test('no channel', () => {
+        expect(videoEnabledInChannel(videoState(true), undefined)).toBe(false);
+    });
 });
 
 describe('callOwnerIDForCurrentCall', () => {

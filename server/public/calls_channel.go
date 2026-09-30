@@ -20,6 +20,10 @@ const (
 	// starts in the channel, e.g. for channels where people drop in and out all day long.
 	// Recordings and transcriptions need that post and are unavailable in such channels.
 	ChannelPropDisableCallPost = "disable_call_post"
+	// ChannelPropEnableVideo lets participants turn on their camera in calls in the channel,
+	// when video is enabled in the plugin configuration. Without it, video is only offered in
+	// direct messages. The call widget keeps its audio-only layout in such channels.
+	ChannelPropEnableVideo = "enable_video"
 )
 
 type CallsChannel struct {

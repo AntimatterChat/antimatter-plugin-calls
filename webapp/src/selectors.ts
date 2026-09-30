@@ -26,6 +26,7 @@ import {
 } from 'mattermost-redux/utils/channel_utils';
 import {displayUsername} from 'mattermost-redux/utils/user_utils';
 import {createSelector} from 'reselect';
+import {CHANNEL_PROP_ENABLE_VIDEO} from 'src/constants';
 import {
     callsJobState,
     callState,
@@ -52,6 +53,7 @@ import {
     getCallsClientSessionID,
     getChannelURL,
     getUserIdFromDM,
+    isDMChannel,
     selfFirstSortSessions,
     stateSortSessions,
 } from 'src/utils';
@@ -566,6 +568,21 @@ export const callsConfigEnvOverrides = (state: GlobalState): Record<string, stri
 //
 export const channelState = (state: GlobalState, channelId: string): ChannelState =>
     pluginState(state).channels[channelId];
+
+// channelPropEnabled returns whether a boolean Calls channel prop is set.
+export const channelPropEnabled = (state: GlobalState, channelId: string, prop: string): boolean => {
+    const value = channelState(state, channelId)?.props?.[prop];
+    return value === true || value === 'true';
+};
+
+// videoEnabledInChannel returns whether participants of calls in the channel may turn on their
+// camera: video must be enabled and the channel be a DM or have the enable_video prop.
+export const videoEnabledInChannel = (state: GlobalState, channel?: Channel): boolean => {
+    if (!callsConfig(state).EnableVideo || !channel) {
+        return false;
+    }
+    return isDMChannel(channel) || channelPropEnabled(state, channel.id, CHANNEL_PROP_ENABLE_VIDEO);
+};
 
 export const callsExplicitlyEnabled = (state: GlobalState, channelId: string): boolean =>
     Boolean(channelState(state, channelId)?.enabled);

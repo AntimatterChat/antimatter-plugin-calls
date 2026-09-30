@@ -2418,6 +2418,10 @@ export default class CallWidget extends React.PureComponent<Props, State> {
 
         const ShowIcon = window.desktop && !this.props.global ? ExpandIcon : PopOutIcon;
 
+        // The video layout is made for 1:1 calls. Channels that allow video keep the regular
+        // layout and only get the camera button.
+        const showVideoLayout = this.props.enableVideo && isDMChannel(this.props.channel);
+
         const HandIcon = this.isHandRaised() ? UnraisedHandIcon : RaisedHandIcon;
 
         const MenuIcon = HorizontalDotsIcon;
@@ -2495,7 +2499,7 @@ export default class CallWidget extends React.PureComponent<Props, State> {
 
                 <div style={this.style.frame}>
 
-                    {!this.props.enableVideo &&
+                    {!showVideoLayout &&
                         <div
                             style={this.style.topBar}
                             // eslint-disable-next-line no-undefined
@@ -2538,11 +2542,11 @@ export default class CallWidget extends React.PureComponent<Props, State> {
                         </div>
                     }
 
-                    {this.props.enableVideo && this.renderTopBar() }
+                    {showVideoLayout && this.renderTopBar() }
 
                     {/* {shouldRenderVideoContainer && this.renderVideoContainer()} */}
 
-                    {this.props.enableVideo && this.renderMiddleBar() }
+                    {showVideoLayout && this.renderMiddleBar() }
 
                     <div
                         className='calls-widget-bottom-bar'

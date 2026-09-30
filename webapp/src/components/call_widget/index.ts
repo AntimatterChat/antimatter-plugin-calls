@@ -19,7 +19,6 @@ import {
 } from 'src/actions';
 import {
     allowScreenSharing,
-    callsConfig,
     clientConnecting,
     expandedView,
     getChannelUrlAndDisplayName,
@@ -40,6 +39,7 @@ import {
     sortedSessionsInCurrentCall,
     threadIDForCallInChannel,
     transcriptionsEnabled,
+    videoEnabledInChannel,
 } from 'src/selectors';
 import {getUserIdFromDM, isDMChannel} from 'src/utils';
 import {modals} from 'src/webapp_globals';
@@ -95,7 +95,7 @@ const mapStateToProps = (state: GlobalState) => {
         clientConnecting: clientConnecting(state),
         callThreadID,
         recordingsEnabled: recordingsEnabled(state),
-        enableVideo: callsConfig(state).EnableVideo && isDMChannel(channel),
+        enableVideo: videoEnabledInChannel(state, channel),
         connectedDMUser,
         otherSessions: sessionsForOtherUsersInCall(state),
         isAdmin: isCurrentUserSystemAdmin(state),

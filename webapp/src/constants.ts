@@ -19,6 +19,9 @@ export const CALL_EVENT_POST_TYPE = 'custom_calls';
 export const CALL_RECORDING_POST_TYPE = 'custom_calls_recording';
 export const CALL_TRANSCRIPTION_POST_TYPE = 'custom_calls_transcription';
 
+// Calls channel props (see server/public/calls_channel.go).
+export const CHANNEL_PROP_ENABLE_VIDEO = 'enable_video';
+
 export const LIVE_CAPTION_TIMEOUT = 5000;
 export const HOST_CONTROL_NOTICE_TIMEOUT = 5000;
 export const DEGRADED_CALL_QUALITY_ALERT_WAIT = 20000;

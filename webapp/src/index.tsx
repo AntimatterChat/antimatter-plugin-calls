@@ -150,6 +150,7 @@ import {
     needsTURNCredentials,
     ringingEnabled,
     sessionsInCurrentCall,
+    videoEnabledInChannel,
 } from './selectors';
 import {JOIN_CALL, keyToAction} from './shortcuts';
 import {convertStatsToPanels} from './stats';
@@ -164,7 +165,6 @@ import {
     getUserIDsForSessions,
     getWSConnectionURL,
     isCallsPopOut,
-    isDMChannel,
     parseChannelProps,
     playSound,
     sendDesktopEvent,
@@ -703,7 +703,7 @@ export default class Plugin {
                     enableAV1: callsConfig(state).EnableAV1,
                     dcSignaling: callsConfig(state).EnableDCSignaling,
                     dcLocking: hasDCSignalingLockSupport(callsVersionInfo(state)),
-                    enableVideo: callsConfig(state).EnableVideo && isDMChannel(channel),
+                    enableVideo: videoEnabledInChannel(state, channel),
                 });
                 window.currentCallData = {...CurrentCallDataDefault};
 
