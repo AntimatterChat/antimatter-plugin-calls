@@ -171,6 +171,7 @@ import {
     setCallsGlobalCSSVars,
     shouldRenderDesktopWidget,
 } from './utils';
+import {WebUI} from './web_ui';
 import {
     handleCallEnd,
     handleCallHostChanged,
@@ -1181,6 +1182,7 @@ declare global {
         registerPlugin(id: string, plugin: Plugin): void,
 
         callsClient?: CallsClient,
+        antimatterWebUI?: WebUI,
         webkitAudioContext: AudioContext,
         basename: string,
 
