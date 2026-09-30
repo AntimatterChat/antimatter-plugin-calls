@@ -356,14 +356,22 @@ export default class Plugin {
             document.getElementById('calls')?.remove();
         });
 
+        // The Fusion web UI draws calls itself: the call widget, its pop-out (expanded view), the
+        // call cards and the active call markers of the channel list and view are left to it.
+        const fusion = isFusionUI();
+
         registry.registerReducer(reducer);
-        const sidebarChannelLinkLabelComponentID = registry.registerSidebarChannelLinkLabelComponent(ChannelLinkLabel);
-        this.unsubscribers.push(() => registry.unregisterComponent(sidebarChannelLinkLabelComponentID));
-        registry.registerChannelToastComponent(injectIntl(ChannelCallToast));
-        registry.registerPostTypeComponent(CALL_EVENT_POST_TYPE, PostTypeEvent);
+        if (!fusion) {
+            const sidebarChannelLinkLabelComponentID = registry.registerSidebarChannelLinkLabelComponent(ChannelLinkLabel);
+            this.unsubscribers.push(() => registry.unregisterComponent(sidebarChannelLinkLabelComponentID));
+            registry.registerChannelToastComponent(injectIntl(ChannelCallToast));
+            registry.registerPostTypeComponent(CALL_EVENT_POST_TYPE, PostTypeEvent);
+        }
         registry.registerPostTypeComponent(CALL_RECORDING_POST_TYPE, PostTypeRecording);
         registry.registerPostTypeComponent(CALL_TRANSCRIPTION_POST_TYPE, PostTypeTranscription);
-        registry.registerNeedsTeamRoute('/expanded', injectIntl(ExpandedView));
+        if (!fusion) {
+            registry.registerNeedsTeamRoute('/expanded', injectIntl(ExpandedView));
+        }
         registry.registerGlobalComponent(injectIntl(SwitchCallModal));
         registry.registerGlobalComponent(injectIntl(ScreenSourceModal));
         registry.registerGlobalComponent(injectIntl(IncomingCallContainer));
@@ -739,12 +747,12 @@ export default class Plugin {
                 };
 
                 // DEPRECATED
-                let rootComponentID: string;
+                let rootComponentID = '';
 
                 // This is only needed to support desktop versions < 5.3 that
                 // didn't implement the global widget and mounted the expanded view
-                // on top of the center channel view.
-                if (window.desktop) {
+                // on top of the center channel view. Fusion shows the call itself.
+                if (window.desktop && !isFusionUI()) {
                     rootComponentID = registry.registerRootComponent(injectIntl(ExpandedView));
                 }
 
@@ -762,7 +770,7 @@ export default class Plugin {
                     store.dispatch(setClientConnecting(false));
 
                     unmountCallWidget();
-                    if (window.desktop) {
+                    if (rootComponentID) {
                         registry.unregisterComponent(rootComponentID);
                     }
                     if (window.callsClient) {
