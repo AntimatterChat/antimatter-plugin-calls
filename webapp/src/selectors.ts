@@ -62,7 +62,7 @@ import {
 import {pluginId} from './manifest';
 
 //@ts-ignore GlobalState is not complete
-const pluginState = (state: GlobalState) => state['plugins-' + pluginId] || {};
+export const pluginState = (state: GlobalState) => state['plugins-' + pluginId] || {};
 
 const clientState = (state: GlobalState) => pluginState(state).clientStateReducer;
 
