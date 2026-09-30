@@ -49,6 +49,39 @@ export const DefaultVideoTrackOptions: MediaTrackConstraints = {
 
 const rtcMonitorInterval = 10000;
 
+// The SFU names the tracks it forwards "<type>_<sender session ID>_<random>" and uses the sender
+// session ID as their stream ID.
+const forwardedTrackIDRegex = /^(?:voice|screen|screen-audio|video)_([a-z0-9]+)_[A-Za-z0-9]+$/;
+
+// getSenderSessionIDFromSDP returns the ID of the session that sent the track of the m-section
+// with the given mid, read from its a=msid line, or an empty string if it can't be found.
+export function getSenderSessionIDFromSDP(sdp: string, mid: string): string {
+    const sections = sdp.split(/\r?\nm=/);
+    for (const section of sections.slice(1)) {
+        const lines = section.split(/\r?\n/);
+        if (!lines.includes(`a=mid:${mid}`)) {
+            continue;
+        }
+
+        for (const line of lines) {
+            if (!line.startsWith('a=msid:')) {
+                continue;
+            }
+
+            const [streamID, trackID] = line.slice('a=msid:'.length).trim().split(' ');
+            const match = trackID?.match(forwardedTrackIDRegex);
+            if (match) {
+                return match[1];
+            }
+            if (streamID && streamID !== '-') {
+                return streamID;
+            }
+        }
+        return '';
+    }
+    return '';
+}
+
 export default class CallsClient extends EventEmitter {
     public channelID: string;
     private readonly config: CallsClientConfig;
@@ -59,6 +92,7 @@ export default class CallsClient extends EventEmitter {
     private remoteScreenTrack: MediaStreamTrack | null = null;
     private remoteVoiceTracks: MediaStreamTrack[];
     private remoteVideoTracks: MediaStreamTrack[];
+    private remoteVideoTracksBySession: {[sessionID: string]: MediaStreamTrack} = {};
     public currentAudioInputDevice: MediaDeviceInfo | null = null;
     public currentAudioOutputDevice: MediaDeviceInfo | null = null;
     public currentVideoInputDevice: MediaDeviceInfo | null = null;
@@ -582,51 +616,7 @@ export default class CallsClient extends EventEmitter {
                 }
             });
 
-            peer.on('stream', (remoteStream: MediaStream, trackInfo: TrackInfo) => {
-                logDebug('new remote stream received', remoteStream.id, 'trackInfo:', trackInfo);
-                for (const track of remoteStream.getTracks()) {
-                    logDebug('remote track', track.kind, track.id, 'label:', track.label);
-                }
-
-                this.streams.push(remoteStream);
-
-                const audioTracks = remoteStream.getAudioTracks();
-                const videoTracks = remoteStream.getVideoTracks();
-
-                logDebug('stream has', audioTracks.length, 'audio tracks and', videoTracks.length, 'video tracks');
-
-                // Handle audio tracks based on type
-                if (audioTracks.length > 0) {
-                    if (trackInfo?.type === 'screen-audio') {
-                        // Screen share audio - emit as voice stream so it gets played
-                        logDebug('received screen-audio track, emitting as remoteVoiceStream');
-                        this.emit('remoteVoiceStream', new MediaStream(audioTracks));
-                        this.remoteVoiceTracks.push(...audioTracks);
-                    } else if (trackInfo?.type === 'voice' || !trackInfo?.type) {
-                        // Regular voice audio
-                        logDebug('received voice track, emitting as remoteVoiceStream');
-                        this.emit('remoteVoiceStream', remoteStream);
-                        this.remoteVoiceTracks.push(...audioTracks);
-                    } else {
-                        logDebug('unexpected audio track type:', trackInfo?.type);
-                    }
-                }
-
-                // Handle video tracks based on type
-                if (videoTracks.length > 0) {
-                    if (trackInfo?.type === 'video') {
-                        logDebug('received video track, emitting as remoteVideoStream');
-                        this.emit('remoteVideoStream', remoteStream);
-                        this.remoteVideoTracks.push(videoTracks[0]);
-                    } else if (trackInfo?.type === 'screen') {
-                        logDebug('received screen track, emitting as remoteScreenStream');
-                        this.emit('remoteScreenStream', remoteStream);
-                        this.remoteScreenTrack = videoTracks[0];
-                    } else {
-                        logDebug('unexpected video track type:', trackInfo?.type);
-                    }
-                }
-            });
+            peer.on('stream', (remoteStream: MediaStream, trackInfo: TrackInfo) => this.handleRemoteStream(remoteStream, trackInfo));
 
             peer.on('connect', () => {
                 logDebug('rtc connected');
@@ -660,6 +650,77 @@ export default class CallsClient extends EventEmitter {
                 logErr('ws.on(message): failed to handle message', err, 'data:', data);
             }
         });
+    }
+
+    // handleRemoteStream handles a track forwarded by the SFU. The remote stream events also
+    // carry the ID of the session that sent the track (empty if unknown) so that UIs can tell
+    // whose track it is.
+    private handleRemoteStream(remoteStream: MediaStream, trackInfo: TrackInfo) {
+        logDebug('new remote stream received', remoteStream.id, 'trackInfo:', trackInfo);
+        for (const track of remoteStream.getTracks()) {
+            logDebug('remote track', track.kind, track.id, 'label:', track.label);
+        }
+
+        this.streams.push(remoteStream);
+
+        const audioTracks = remoteStream.getAudioTracks();
+        const videoTracks = remoteStream.getVideoTracks();
+        const senderID = this.getSenderSessionID(remoteStream.getTracks()[0]);
+
+        logDebug('stream has', audioTracks.length, 'audio tracks and', videoTracks.length, 'video tracks, sender', senderID);
+
+        // Handle audio tracks based on type
+        if (audioTracks.length > 0) {
+            if (trackInfo?.type === 'screen-audio') {
+                // Screen share audio - emit as voice stream so it gets played
+                logDebug('received screen-audio track, emitting as remoteVoiceStream');
+                this.emit('remoteVoiceStream', new MediaStream(audioTracks), senderID);
+                this.remoteVoiceTracks.push(...audioTracks);
+            } else if (trackInfo?.type === 'voice' || !trackInfo?.type) {
+                // Regular voice audio
+                logDebug('received voice track, emitting as remoteVoiceStream');
+                this.emit('remoteVoiceStream', remoteStream, senderID);
+                this.remoteVoiceTracks.push(...audioTracks);
+            } else {
+                logDebug('unexpected audio track type:', trackInfo?.type);
+            }
+        }
+
+        // Handle video tracks based on type
+        if (videoTracks.length > 0) {
+            if (trackInfo?.type === 'video') {
+                logDebug('received video track, emitting as remoteVideoStream');
+                this.remoteVideoTracks.push(videoTracks[0]);
+                if (senderID) {
+                    this.remoteVideoTracksBySession[senderID] = videoTracks[0];
+                }
+                this.emit('remoteVideoStream', remoteStream, senderID);
+            } else if (trackInfo?.type === 'screen') {
+                logDebug('received screen track, emitting as remoteScreenStream');
+                this.remoteScreenTrack = videoTracks[0];
+                this.emit('remoteScreenStream', remoteStream, senderID);
+            } else {
+                logDebug('unexpected video track type:', trackInfo?.type);
+            }
+        }
+    }
+
+    // getSenderSessionID returns the ID of the session that sent a remote track, read from the
+    // SDP of the transceiver that received it, or an empty string if it can't be found.
+    private getSenderSessionID(track?: MediaStreamTrack): string {
+        // The peer connection isn't exposed by RTCPeer.
+        const pc = (this.peer as unknown as {pc?: RTCPeerConnection} | null)?.pc;
+        const sdp = pc?.remoteDescription?.sdp;
+        if (!track || !pc || !sdp) {
+            return '';
+        }
+
+        const transceiver = pc.getTransceivers().find((t) => t.receiver.track === track);
+        if (!transceiver?.mid) {
+            return '';
+        }
+
+        return getSenderSessionIDFromSDP(sdp, transceiver.mid);
     }
 
     public destroy() {
@@ -963,6 +1024,18 @@ export default class CallsClient extends EventEmitter {
             return null;
         }
         return new MediaStream([this.remoteVideoTracks[this.remoteVideoTracks.length - 1]]);
+    }
+
+    // getRemoteVideoStreams returns the video (camera) streams received from other
+    // participants, by session ID.
+    public getRemoteVideoStreams(): {[sessionID: string]: MediaStream} {
+        const streams: {[sessionID: string]: MediaStream} = {};
+        for (const [sessionID, track] of Object.entries(this.remoteVideoTracksBySession)) {
+            if (track.readyState === 'live') {
+                streams[sessionID] = new MediaStream([track]);
+            }
+        }
+        return streams;
     }
 
     public getRemoteVoiceTracks(): MediaStreamTrack[] {
