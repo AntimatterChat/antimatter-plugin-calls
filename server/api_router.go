@@ -27,6 +27,9 @@ func (p *Plugin) newAPIRouter() *mux.Router {
 	}
 	standaloneRoute := router.PathPrefix("/standalone/").HandlerFunc(p.handleServeStandalone).Methods("GET")
 
+	// Routes that other plugins may call (see interPluginCallerID). They are set below.
+	var interPluginRoutes []*mux.Route
+
 	// Authenticated API handlers (user session required)
 
 	// Auth middleware
@@ -50,6 +53,15 @@ func (p *Plugin) newAPIRouter() *mux.Router {
 			if userID := r.Header.Get("Mattermost-User-Id"); userID != "" {
 				next.ServeHTTP(w, r)
 				return
+			}
+
+			if interPluginCallerID(r) != "" {
+				for _, route := range interPluginRoutes {
+					if route.Match(r, &mux.RouteMatch{}) {
+						next.ServeHTTP(w, r)
+						return
+					}
+				}
 			}
 
 			http.Error(w, "Unauthorized", http.StatusUnauthorized)
@@ -95,9 +107,11 @@ func (p *Plugin) newAPIRouter() *mux.Router {
 	}).Methods("GET")
 
 	// CallsChannels
-	router.HandleFunc("/{channel_id:[a-z0-9]{26}}", p.handleGetCallChannelState).Methods("GET") // DEPRECATED as of v1
-	router.HandleFunc("/{channel_id:[a-z0-9]{26}}", p.handlePostCallsChannel).Methods("POST")   // DEPRECATED as of v1
-	router.HandleFunc("/channels", p.handleGetAllCallChannelStates).Methods("GET")              // DEPRECATED as of v1
+	interPluginRoutes = append(interPluginRoutes,
+		router.HandleFunc("/{channel_id:[a-z0-9]{26}}", p.handleGetCallChannelState).Methods("GET"), // DEPRECATED as of v1
+		router.HandleFunc("/{channel_id:[a-z0-9]{26}}", p.handlePostCallsChannel).Methods("POST"),   // DEPRECATED as of v1
+	)
+	router.HandleFunc("/channels", p.handleGetAllCallChannelStates).Methods("GET") // DEPRECATED as of v1
 
 	// router.HandleFunc("/channels/{channel_id:[a-z0-9]{26}}", p.handleGetCallsChannel).Methods("GET")
 	// router.HandleFunc("/channels/{channel_id:[a-z0-9]{26}}", p.handlePostCallsChannel).Methods("POST")
@@ -182,4 +196,17 @@ func (p *Plugin) newAPIRouter() *mux.Router {
 	})
 
 	return router
+}
+
+// interPluginCallerID returns the ID of the plugin that made the request when it comes from
+// another plugin through the plugin API (PluginHTTP), and an empty string otherwise. The server
+// sets the Mattermost-Plugin-ID header on such requests and strips it from all other requests,
+// so it can be trusted. Other plugins may read and change the Calls settings of any channel:
+// they run with full access to the server and are responsible for checking the permissions of
+// the user they act for.
+func interPluginCallerID(r *http.Request) string {
+	if r.Header.Get("Mattermost-User-Id") != "" {
+		return ""
+	}
+	return r.Header.Get("Mattermost-Plugin-ID")
 }

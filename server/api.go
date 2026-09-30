@@ -57,8 +57,8 @@ func (p *Plugin) handleGetCallChannelState(w http.ResponseWriter, r *http.Reques
 	channelID := mux.Vars(r)["channel_id"]
 
 	// We should go through only if the user has permissions to the requested channel
-	// or if the user is the Calls bot.
-	if !(p.isBotSession(r) || p.API.HasPermissionToChannel(userID, channelID, model.PermissionReadChannel)) {
+	// or if the user is the Calls bot or another plugin.
+	if !(interPluginCallerID(r) != "" || p.isBotSession(r) || p.API.HasPermissionToChannel(userID, channelID, model.PermissionReadChannel)) {
 		http.Error(w, "Forbidden", http.StatusForbidden)
 		return
 	}
@@ -498,13 +498,16 @@ func (p *Plugin) handlePostCallsChannel(w http.ResponseWriter, r *http.Request) 
 	userID := r.Header.Get("Mattermost-User-Id")
 	channelID := mux.Vars(r)["channel_id"]
 
-	if permission, appErr := p.permissionToEnableDisableChannel(userID, channelID); appErr != nil || !permission {
-		res.Err = "Forbidden"
-		if appErr != nil {
-			res.Err = appErr.Error()
+	// Other plugins check the permissions of the user they act for themselves.
+	if interPluginCallerID(r) == "" {
+		if permission, appErr := p.permissionToEnableDisableChannel(userID, channelID); appErr != nil || !permission {
+			res.Err = "Forbidden"
+			if appErr != nil {
+				res.Err = appErr.Error()
+			}
+			res.Code = http.StatusForbidden
+			return
 		}
-		res.Code = http.StatusForbidden
-		return
 	}
 
 	var channel public.CallsChannel
