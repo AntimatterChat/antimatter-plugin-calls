@@ -2,7 +2,7 @@
 // See LICENSE.txt for license information.
 
 import type {AnyAction} from 'redux';
-import {ADD_INCOMING_CALL, CALL_END, CALL_STATE, DM_CALLEE_ANSWERED_AT, REMOVE_INCOMING_CALL, UNINIT} from 'src/action_types';
+import {ADD_INCOMING_CALL, CALL_END, CALL_STATE, DM_CALLEE_ANSWERED_AT, LOCAL_CALL_STATE, REMOVE_INCOMING_CALL, UNINIT} from 'src/action_types';
 
 import reducer from './reducers';
 
@@ -106,5 +106,30 @@ describe('incomingCalls', () => {
         );
 
         expect(state.incomingCalls).toHaveLength(0);
+    });
+});
+
+describe('localCall', () => {
+    const connecting = {channelID, sessionID: '', state: 'connecting'};
+    const connected = {channelID, sessionID: 'session-id', state: 'connected'};
+
+    it('should start without a call', () => {
+        expect(apply({type: 'init'}).localCall).toBeNull();
+    });
+
+    it('should follow the call from connecting to closed', () => {
+        expect(apply({type: LOCAL_CALL_STATE, data: connecting}).localCall).toEqual(connecting);
+        expect(apply(
+            {type: LOCAL_CALL_STATE, data: connecting},
+            {type: LOCAL_CALL_STATE, data: connected},
+        ).localCall).toEqual(connected);
+        expect(apply(
+            {type: LOCAL_CALL_STATE, data: connected},
+            {type: LOCAL_CALL_STATE, data: null},
+        ).localCall).toBeNull();
+    });
+
+    it('should be cleared on UNINIT', () => {
+        expect(apply({type: LOCAL_CALL_STATE, data: connected}, {type: UNINIT}).localCall).toBeNull();
     });
 });

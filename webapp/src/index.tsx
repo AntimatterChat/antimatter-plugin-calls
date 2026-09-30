@@ -35,6 +35,7 @@ import {
     openCallsUserSettings,
     selectRHSPost,
     setClientConnecting,
+    setLocalCall,
     showScreenSourceModal,
     showSwitchCallModal,
 } from 'src/actions';
@@ -707,6 +708,7 @@ export default class Plugin {
                     enableVideo: videoEnabledInChannel(state, channel),
                 });
                 window.currentCallData = {...CurrentCallDataDefault};
+                store.dispatch(setLocalCall({channelID, sessionID: '', state: 'connecting'}));
 
                 const locale = getCurrentUserLocale(state) || 'en';
 
@@ -744,7 +746,10 @@ export default class Plugin {
                     rootComponentID = registry.registerRootComponent(injectIntl(ExpandedView));
                 }
 
-                window.callsClient.on('connect', () => store.dispatch(setClientConnecting(false)));
+                window.callsClient.on('connect', () => {
+                    store.dispatch(setClientConnecting(false));
+                    store.dispatch(setLocalCall({channelID, sessionID: window.callsClient?.getSessionID() || '', state: 'connected'}));
+                });
 
                 window.callsClient.on('close', (err?: Error) => {
                     store.dispatch(setClientConnecting(false));
@@ -763,6 +768,7 @@ export default class Plugin {
                         delete window.currentCallData;
                         playSound('leave_self');
                     }
+                    store.dispatch(setLocalCall(null));
                 });
 
                 window.callsClient.on('mute', () => {
@@ -843,11 +849,13 @@ export default class Plugin {
                     unmountCallWidget();
                     store.dispatch(displayCallErrorModal(err, channelID));
                     delete window.callsClient;
+                    store.dispatch(setLocalCall(null));
                 });
 
                 store.dispatch(setClientConnecting(true));
             } catch (err) {
                 delete window.callsClient;
+                store.dispatch(setLocalCall(null));
                 logErr(err);
             }
         };

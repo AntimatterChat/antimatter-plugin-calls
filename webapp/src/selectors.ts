@@ -33,6 +33,7 @@ import {
     hostControlNoticeState,
     hostsState,
     liveCaptionState,
+    localCallState,
     recentlyJoinedUsersState,
     screenSharingIDsState,
     sessionsState,
@@ -65,8 +66,16 @@ const pluginState = (state: GlobalState) => state['plugins-' + pluginId] || {};
 
 const clientState = (state: GlobalState) => pluginState(state).clientStateReducer;
 
+// localCall returns the call run by this window's calls client. Unlike window.callsClient, it's
+// part of the store, so components re-render when it changes.
+export const localCall = (state: GlobalState): localCallState =>
+    pluginState(state).localCall ?? null;
+
 export const channelIDForCurrentCall = (state: GlobalState): string =>
-    getCallsClientChannelID() || clientState(state)?.channelID || '';
+    getCallsClientChannelID() || localCall(state)?.channelID || clientState(state)?.channelID || '';
+
+const sessionIDForCurrentCall = (state: GlobalState): string =>
+    getCallsClientSessionID() || localCall(state)?.sessionID || '';
 
 export const channelForCurrentCall = (state: GlobalState): Channel | undefined =>
     getAllChannels(state)[channelIDForCurrentCall(state)];
@@ -213,7 +222,7 @@ export const sessionForCurrentCall: (state: GlobalState) => UserSessionState =
         'sessionsInCurrentCall',
         sessionsInCalls,
         channelIDForCurrentCall,
-        getCallsClientSessionID,
+        sessionIDForCurrentCall,
         (sessions, channelID, sessionID) => sessions[channelID]?.[sessionID],
     );
 

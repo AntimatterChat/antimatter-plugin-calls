@@ -9,12 +9,14 @@ import type CallsClient from 'src/client';
 
 import {
     callOwnerIDForCurrentCall,
+    channelIDForCurrentCall,
     isCurrentDMCallInCallingState,
     isCurrentUserInSessionForCurrentCall,
     isCurrentUserOwnerOfCurrentCall,
     numUsersInCallInChannel,
     otherUserIDForCurrentDMCall,
     selfFirstSessionsInCurrentCall,
+    sessionForCurrentCall,
     sessionsInCurrentCall,
     sortedSessionsInCurrentCall,
     videoEnabledInChannel,
@@ -62,6 +64,7 @@ type StateOpts = {
     call?: {ID?: string; ownerID?: string} | null;
     sessions?: UserSessionState[] | null;
     clientStateChannelID?: string;
+    localCall?: {channelID: string; sessionID: string; state: 'connecting' | 'connected'} | null;
     dmCalleeAnsweredAt?: number;
     profiles?: UserProfile[];
     screenSharingSessionID?: string;
@@ -72,6 +75,7 @@ const stubState = ({
     call = {ID: callID, ownerID: currentUserID},
     sessions = [ownSession],
     clientStateChannelID,
+    localCall = null,
     dmCalleeAnsweredAt = 0,
     profiles = [],
     screenSharingSessionID,
@@ -80,6 +84,7 @@ const stubState = ({
         calls: call ? {[channelID]: {channelID, startAt: 0, threadID: '', ...call}} : {},
         sessions: sessions ? {[channelID]: Object.fromEntries(sessions.map((s) => [s.session_id, s]))} : {},
         clientStateReducer: clientStateChannelID ? {channelID: clientStateChannelID, sessionID: 'widget-session'} : null,
+        localCall,
         dmCalleeAnsweredAt: dmCalleeAnsweredAt ? {[callID]: dmCalleeAnsweredAt} : {},
         screenSharingIDs: screenSharingSessionID ? {[channelID]: screenSharingSessionID} : {},
     },
@@ -367,5 +372,28 @@ describe('selfFirstSessionsInCurrentCall', () => {
         selfFirstSessionsInCurrentCall(state);
 
         expect(sessionIDs(sessionsInCurrentCall(state))).toEqual(['other-session', 'own-session']);
+    });
+});
+
+describe('channelIDForCurrentCall', () => {
+    test('should prefer the calls client', () => {
+        connectTo('client-channel-id');
+        expect(channelIDForCurrentCall(stubState({localCall: {channelID, sessionID: '', state: 'connecting'}}))).toBe('client-channel-id');
+    });
+
+    test('should fall back to the local call, then to the desktop widget call', () => {
+        delete window.callsClient;
+        expect(channelIDForCurrentCall(stubState({localCall: {channelID, sessionID: '', state: 'connecting'}, clientStateChannelID: 'widget-channel-id'}))).toBe(channelID);
+        expect(channelIDForCurrentCall(stubState({clientStateChannelID: 'widget-channel-id'}))).toBe('widget-channel-id');
+        expect(channelIDForCurrentCall(stubState())).toBe('');
+    });
+});
+
+describe('sessionForCurrentCall', () => {
+    test('should fall back to the session of the local call', () => {
+        delete window.callsClient;
+        const state = stubState({sessions: [otherSession, ownSession], localCall: {channelID, sessionID: ownSession.session_id, state: 'connected'}});
+
+        expect(sessionForCurrentCall(state)).toBe(ownSession);
     });
 });

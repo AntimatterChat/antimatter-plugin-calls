@@ -22,6 +22,7 @@ import {GenericErrorModal, IDGenericErrorModal} from 'src/components/generic_err
 import {CallsInTestModeModal, IDTestModeUser} from 'src/components/modals';
 import {RING_LENGTH} from 'src/constants';
 import {logErr} from 'src/log';
+import {localCallState} from 'src/reducers';
 import RestClient from 'src/rest_client';
 import {
     callDismissedNotification,
@@ -59,6 +60,7 @@ import {
     HIDE_SCREEN_SOURCE_MODAL,
     HIDE_SWITCH_CALL_MODAL,
     LIVE_CAPTIONS_ENABLED,
+    LOCAL_CALL_STATE,
     LOCAL_SESSION_CLOSE,
     RECEIVED_CALLS_CONFIG,
     RECEIVED_CALLS_CONFIG_ENV_OVERRIDES,
@@ -625,6 +627,13 @@ export const openCallsUserSettings = (): ActionFuncAsync => {
         return {};
     };
 };
+
+// setLocalCall records the state of the call run by this window's calls client, or null when
+// there's none.
+export const setLocalCall = (data: localCallState) => ({
+    type: LOCAL_CALL_STATE,
+    data,
+});
 
 export const localSessionClose = (channelID: string) => (dispatch: Dispatch) => {
     dispatch({
