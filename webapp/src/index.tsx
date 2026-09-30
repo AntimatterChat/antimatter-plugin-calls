@@ -99,7 +99,7 @@ import {CALL_EVENT_POST_TYPE, CALL_RECORDING_POST_TYPE, CALL_TRANSCRIPTION_POST_
 import {desktopNotificationHandler} from 'src/desktop_notifications';
 import RestClient from 'src/rest_client';
 import slashCommandsHandler from 'src/slash_commands';
-import {CallActions, CurrentCallData, CurrentCallDataDefault} from 'src/types/types';
+import {CallActions, ChannelProps, CurrentCallData, CurrentCallDataDefault} from 'src/types/types';
 import {modals} from 'src/webapp_globals';
 
 import {
@@ -165,6 +165,7 @@ import {
     getWSConnectionURL,
     isCallsPopOut,
     isDMChannel,
+    parseChannelProps,
     playSound,
     sendDesktopEvent,
     setCallsGlobalCSSVars,
@@ -216,14 +217,14 @@ export default class Plugin {
         registry.registerWebSocketEventHandler(`custom_${pluginId}_channel_enable_voice`, (ev) => {
             store.dispatch({
                 type: RECEIVED_CHANNEL_STATE,
-                data: {id: ev.broadcast.channel_id, enabled: true},
+                data: {id: ev.broadcast.channel_id, enabled: true, props: parseChannelProps(ev.data?.props)},
             });
         });
 
         registry.registerWebSocketEventHandler(`custom_${pluginId}_channel_disable_voice`, (ev) => {
             store.dispatch({
                 type: RECEIVED_CHANNEL_STATE,
-                data: {id: ev.broadcast.channel_id, enabled: false},
+                data: {id: ev.broadcast.channel_id, enabled: false, props: parseChannelProps(ev.data?.props)},
             });
         });
 
@@ -889,14 +890,14 @@ export default class Plugin {
                 ChannelHeaderMenuButton,
                 async () => {
                     try {
-                        const data = await RestClient.fetch<{ enabled: boolean }>(`${getPluginPath()}/${currChannelId}`, {
+                        const data = await RestClient.fetch<{ enabled: boolean, props?: ChannelProps }>(`${getPluginPath()}/${currChannelId}`, {
                             method: 'post',
                             body: JSON.stringify({enabled: callsExplicitlyDisabled(store.getState(), currChannelId)}),
                         });
 
                         store.dispatch({
                             type: RECEIVED_CHANNEL_STATE,
-                            data: {id: currChannelId, enabled: data.enabled},
+                            data: {id: currChannelId, enabled: data.enabled, props: data.props},
                         });
                     } catch (err) {
                         logErr(err);
@@ -908,7 +909,7 @@ export default class Plugin {
         const fetchChannels = async (skipChannelID?: string): Promise<AnyAction[]> => {
             const actions = [];
             try {
-                const data = await RestClient.fetch<CallChannelState[]>(`${getPluginPath()}/channels`, {method: 'get'});
+                const data = await RestClient.fetch<(CallChannelState & {props?: ChannelProps})[]>(`${getPluginPath()}/channels`, {method: 'get'});
 
                 for (let i = 0; i < data.length; i++) {
                     // Skipping the channel for the current call here is important
@@ -924,6 +925,7 @@ export default class Plugin {
                         data: {
                             id: data[i].channel_id,
                             enabled: data[i].enabled,
+                            props: data[i].props,
                         },
                     });
 

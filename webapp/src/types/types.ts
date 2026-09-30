@@ -26,9 +26,12 @@ export const CallsConfigDefault: CallsConfig = {
     EnableVideo: false,
 };
 
+export type ChannelProps = Record<string, unknown>;
+
 export type ChannelState = {
     id: string;
     enabled?: boolean;
+    props?: ChannelProps;
 }
 
 export type CallsClientConfig = {

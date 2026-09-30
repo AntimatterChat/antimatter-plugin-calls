@@ -106,6 +106,7 @@ func (p *Plugin) handleGetCallChannelState(w http.ResponseWriter, r *http.Reques
 	data := map[string]any{}
 	data["channel_id"] = channel.ChannelID
 	data["enabled"] = channel.Enabled
+	data["props"] = channel.Props
 	data["call"] = cs.getClientState(p.getBotID(), userID)
 
 	w.Header().Set("Content-Type", "application/json")
@@ -211,6 +212,9 @@ func (p *Plugin) handleGetAllCallChannelStates(w http.ResponseWriter, r *http.Re
 		channelData := map[string]any{
 			"channel_id": ch.ChannelID,
 			"enabled":    ch.Enabled,
+		}
+		if len(ch.Props) > 0 {
+			channelData["props"] = ch.Props
 		}
 		if call := callsMap[ch.ChannelID]; call != nil {
 			cs, err := p.getCallStateFromCall(call, false)
@@ -559,7 +563,18 @@ func (p *Plugin) handlePostCallsChannel(w http.ResponseWriter, r *http.Request) 
 		evType = "channel_disable_voice"
 	}
 
-	p.publishWebSocketEvent(evType, nil, &WebSocketBroadcast{ChannelID: channelID, ReliableClusterSend: true})
+	// Props are sent JSON encoded as the event data has to be gob encodable.
+	var propsJSON []byte
+	if len(storedChannel.Props) > 0 {
+		propsJSON, err = json.Marshal(storedChannel.Props)
+		if err != nil {
+			p.LogError("failed to marshal channel props", "err", err.Error())
+		}
+	}
+
+	p.publishWebSocketEvent(evType, map[string]any{
+		"props": string(propsJSON),
+	}, &WebSocketBroadcast{ChannelID: channelID, ReliableClusterSend: true})
 }
 
 func (p *Plugin) handleGetTURNCredentials(w http.ResponseWriter, r *http.Request) {
