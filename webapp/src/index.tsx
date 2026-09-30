@@ -126,6 +126,7 @@ import ChannelLinkLabel from './components/channel_link_label';
 import {PostTypeEvent} from './components/custom_post_types/post_type_event';
 import {PostTypeTranscription} from './components/custom_post_types/post_type_transcription';
 import ExpandedView from './components/expanded_view';
+import HeadlessCall from './components/headless_call';
 import CompassIcon from './components/icons/compassIcon';
 import ScreenSourceModal from './components/screen_source_modal';
 import SwitchCallModal from './components/switch_call_modal';
@@ -166,13 +167,14 @@ import {
     getUserIDsForSessions,
     getWSConnectionURL,
     isCallsPopOut,
+    isDmGmChannel,
     parseChannelProps,
     playSound,
     sendDesktopEvent,
     setCallsGlobalCSSVars,
     shouldRenderDesktopWidget,
 } from './utils';
-import {WebUI} from './web_ui';
+import {isFusionUI, WebUI} from './web_ui';
 import {
     handleCallEnd,
     handleCallHostChanged,
@@ -724,7 +726,7 @@ export default class Plugin {
                                 defaultLocale='en'
                                 messages={getTranslations(locale)}
                             >
-                                <CallWidget/>
+                                {isFusionUI() ? <HeadlessCall/> : <CallWidget/>}
                             </IntlProvider>
                         </Provider>,
                     );
@@ -749,6 +751,11 @@ export default class Plugin {
                 window.callsClient.on('connect', () => {
                     store.dispatch(setClientConnecting(false));
                     store.dispatch(setLocalCall({channelID, sessionID: window.callsClient?.getSessionID() || '', state: 'connected'}));
+
+                    // Calls in DMs and GMs start unmuted.
+                    if (isDmGmChannel(channel)) {
+                        window.callsClient?.unmute();
+                    }
                 });
 
                 window.callsClient.on('close', (err?: Error) => {

@@ -594,7 +594,8 @@ export default class CallWidget extends React.PureComponent<Props, State> {
                 }
             }
 
-            if (isDMChannel(this.props.channel) || isGMChannel(this.props.channel)) {
+            // Calls in DMs and GMs start unmuted. The webapp does it for the calls it runs itself.
+            if (this.props.global && (isDMChannel(this.props.channel) || isGMChannel(this.props.channel))) {
                 callsClient?.unmute();
             }
 
