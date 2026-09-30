@@ -540,7 +540,11 @@ func (p *Plugin) handlePostCallsChannel(w http.ResponseWriter, r *http.Request) 
 	} else {
 		storedChannel.ChannelID = channelID
 		storedChannel.Enabled = channel.Enabled
-		storedChannel.Props = channel.Props
+		// Clients that only toggle calls (e.g. the channel header menu) don't send props:
+		// keep the stored ones instead of wiping them.
+		if channel.Props != nil {
+			storedChannel.Props = channel.Props
+		}
 		if err := p.store.UpdateCallsChannel(storedChannel); err != nil {
 			res.Err = fmt.Errorf("failed to update calls channel: %w", err).Error()
 			res.Code = http.StatusInternalServerError
