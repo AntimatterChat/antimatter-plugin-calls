@@ -28,7 +28,10 @@ export const IncomingCallContainer = () => {
     const firstCall = calls.splice(-1)[0];
 
     return (
-        <Container $wider={wider}>
+        <Container
+            $wider={wider}
+            $fusion={isFusionUI()}
+        >
             {calls.map((c) => (
                 <CallIncomingCondensed
                     key={c.callID}
@@ -40,13 +43,20 @@ export const IncomingCallContainer = () => {
     );
 };
 
-const Container = styled.div<{ $wider: boolean }>`
+// Classic: bottom left, over the team sidebar. Fusion: top right, below the header and clear of the app rail, so it
+// covers neither the server rail and sidebar nor the message box.
+const Container = styled.div<{ $wider: boolean, $fusion: boolean }>`
     position: absolute;
     display: flex;
     flex-direction: column;
     gap: 5px;
     z-index: 102;
     width: ${(props) => (props.$wider ? '306px' : '248px')};
-    bottom: 10px;
-    left: 12px;
+    ${(props) => (props.$fusion ? `
+        top: 64px;
+        right: 64px;
+    ` : `
+        bottom: 10px;
+        left: 12px;
+    `)}
 `;
