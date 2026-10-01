@@ -270,7 +270,8 @@ func (m *Metrics) RTCMetrics() rtc.Metrics {
 }
 
 func (m *Metrics) Handler() http.Handler {
-	return promhttp.HandlerFor(m.registry, promhttp.HandlerOpts{})
+	// Every mattermost_* family is served under its antimatter_* name too.
+	return promhttp.HandlerFor(antimatterNamesGatherer{Gatherer: m.registry}, promhttp.HandlerOpts{})
 }
 
 func (m *Metrics) IncWebSocketEvent(direction, evType string) {
