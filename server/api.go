@@ -57,8 +57,8 @@ func (p *Plugin) handleGetCallChannelState(w http.ResponseWriter, r *http.Reques
 	channelID := mux.Vars(r)["channel_id"]
 
 	// We should go through only if the user has permissions to the requested channel
-	// or if the user is the Calls bot.
-	if !(p.isBotSession(r) || p.API.HasPermissionToChannel(userID, channelID, model.PermissionReadChannel)) {
+	// or if the user is the Calls bot or another plugin.
+	if !(interPluginCallerID(r) != "" || p.isBotSession(r) || p.API.HasPermissionToChannel(userID, channelID, model.PermissionReadChannel)) {
 		http.Error(w, "Forbidden", http.StatusForbidden)
 		return
 	}
@@ -106,6 +106,7 @@ func (p *Plugin) handleGetCallChannelState(w http.ResponseWriter, r *http.Reques
 	data := map[string]any{}
 	data["channel_id"] = channel.ChannelID
 	data["enabled"] = channel.Enabled
+	data["props"] = channel.Props
 	data["call"] = cs.getClientState(p.getBotID(), userID)
 
 	w.Header().Set("Content-Type", "application/json")
@@ -211,6 +212,9 @@ func (p *Plugin) handleGetAllCallChannelStates(w http.ResponseWriter, r *http.Re
 		channelData := map[string]any{
 			"channel_id": ch.ChannelID,
 			"enabled":    ch.Enabled,
+		}
+		if len(ch.Props) > 0 {
+			channelData["props"] = ch.Props
 		}
 		if call := callsMap[ch.ChannelID]; call != nil {
 			cs, err := p.getCallStateFromCall(call, false)
@@ -494,13 +498,16 @@ func (p *Plugin) handlePostCallsChannel(w http.ResponseWriter, r *http.Request) 
 	userID := r.Header.Get("Mattermost-User-Id")
 	channelID := mux.Vars(r)["channel_id"]
 
-	if permission, appErr := p.permissionToEnableDisableChannel(userID, channelID); appErr != nil || !permission {
-		res.Err = "Forbidden"
-		if appErr != nil {
-			res.Err = appErr.Error()
+	// Other plugins check the permissions of the user they act for themselves.
+	if interPluginCallerID(r) == "" {
+		if permission, appErr := p.permissionToEnableDisableChannel(userID, channelID); appErr != nil || !permission {
+			res.Err = "Forbidden"
+			if appErr != nil {
+				res.Err = appErr.Error()
+			}
+			res.Code = http.StatusForbidden
+			return
 		}
-		res.Code = http.StatusForbidden
-		return
 	}
 
 	var channel public.CallsChannel
@@ -540,13 +547,19 @@ func (p *Plugin) handlePostCallsChannel(w http.ResponseWriter, r *http.Request) 
 	} else {
 		storedChannel.ChannelID = channelID
 		storedChannel.Enabled = channel.Enabled
-		storedChannel.Props = channel.Props
+		// Clients that only toggle calls (e.g. the channel header menu) don't send props:
+		// keep the stored ones instead of wiping them.
+		if channel.Props != nil {
+			storedChannel.Props = channel.Props
+		}
 		if err := p.store.UpdateCallsChannel(storedChannel); err != nil {
 			res.Err = fmt.Errorf("failed to update calls channel: %w", err).Error()
 			res.Code = http.StatusInternalServerError
 			return
 		}
 	}
+
+	p.channelSettings.invalidate(channelID)
 
 	var evType string
 	if storedChannel.Enabled {
@@ -555,7 +568,18 @@ func (p *Plugin) handlePostCallsChannel(w http.ResponseWriter, r *http.Request) 
 		evType = "channel_disable_voice"
 	}
 
-	p.publishWebSocketEvent(evType, nil, &WebSocketBroadcast{ChannelID: channelID, ReliableClusterSend: true})
+	// Props are sent JSON encoded as the event data has to be gob encodable.
+	var propsJSON []byte
+	if len(storedChannel.Props) > 0 {
+		propsJSON, err = json.Marshal(storedChannel.Props)
+		if err != nil {
+			p.LogError("failed to marshal channel props", "err", err.Error())
+		}
+	}
+
+	p.publishWebSocketEvent(evType, map[string]any{
+		"props": string(propsJSON),
+	}, &WebSocketBroadcast{ChannelID: channelID, ReliableClusterSend: true})
 }
 
 func (p *Plugin) handleGetTURNCredentials(w http.ResponseWriter, r *http.Request) {

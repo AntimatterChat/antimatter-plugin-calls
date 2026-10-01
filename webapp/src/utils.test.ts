@@ -18,6 +18,7 @@ import {
     getWebappUtils,
     getWSConnectionURL,
     maxAttemptsReachedErr,
+    parseChannelProps,
     runWithRetry,
     selfFirstSortSessions,
     shouldRenderCallsIncoming,
@@ -27,6 +28,21 @@ import {
 } from './utils';
 
 describe('utils', () => {
+    describe('parseChannelProps', () => {
+        test('valid props', () => {
+            expect(parseChannelProps('{"enable_video":true}')).toEqual({enable_video: true});
+        });
+
+        test('missing or invalid props', () => {
+            expect(parseChannelProps(undefined)).toBeUndefined();
+            expect(parseChannelProps('')).toBeUndefined();
+            expect(parseChannelProps('[]')).toBeUndefined();
+            expect(parseChannelProps('null')).toBeUndefined();
+            expect(parseChannelProps('{')).toBeUndefined();
+            expect(parseChannelProps({enable_video: true})).toBeUndefined();
+        });
+    });
+
     describe('getWSConnectionURL', () => {
         const testCases = [
             {

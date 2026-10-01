@@ -86,3 +86,11 @@ func TestMessageWillBeUpdated(t *testing.T) {
 		assert.Empty(t, reason)
 	})
 }
+
+func TestUpdateCallPostEndedWithoutPost(t *testing.T) {
+	// Calls in channels with the disable_call_post prop have no post to update.
+	p := &Plugin{}
+	dur, err := p.updateCallPostEnded("", []string{model.NewId()}, callEndReasonNormal)
+	assert.NoError(t, err)
+	assert.Zero(t, dur)
+}

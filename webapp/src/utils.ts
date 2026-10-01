@@ -23,7 +23,7 @@ import {parseSemVer} from 'semver-parser';
 import CallsClient from 'src/client';
 import {STORAGE_CALLS_SHARE_AUDIO_WITH_SCREEN} from 'src/constants';
 import RestClient from 'src/rest_client';
-import {CallPostStatus, CallsPostProps} from 'src/types/types';
+import {CallPostStatus, CallsPostProps, ChannelProps} from 'src/types/types';
 import {notificationSounds} from 'src/webapp_globals';
 
 import {logDebug, logErr, logWarn} from './log';
@@ -308,6 +308,24 @@ export async function getScreenStream(sourceID?: string, withAudio?: boolean): P
     }
 
     return screenStream;
+}
+
+// parseChannelProps reads the Calls channel props sent JSON encoded in websocket events.
+export function parseChannelProps(raw: unknown): ChannelProps | undefined {
+    if (typeof raw !== 'string' || !raw) {
+        return undefined;
+    }
+
+    try {
+        const props = JSON.parse(raw);
+        if (props && typeof props === 'object' && !Array.isArray(props)) {
+            return props;
+        }
+    } catch (err) {
+        logErr('failed to parse channel props', err);
+    }
+
+    return undefined;
 }
 
 export function isDMChannel(channel?: Channel) {

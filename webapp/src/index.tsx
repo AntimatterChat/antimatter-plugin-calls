@@ -23,6 +23,7 @@ import {Provider} from 'react-redux';
 import {AnyAction} from 'redux';
 import {batchActions} from 'redux-batched-actions';
 import {
+    dismissIncomingCallNotification,
     displayCallErrorModal,
     displayCallsTestModeUser,
     getCallsConfig,
@@ -35,6 +36,7 @@ import {
     openCallsUserSettings,
     selectRHSPost,
     setClientConnecting,
+    setLocalCall,
     showScreenSourceModal,
     showSwitchCallModal,
 } from 'src/actions';
@@ -97,9 +99,11 @@ import ScreenSharingSettingsSection from 'src/components/user_settings/screen_sh
 import VideoDevicesSettingsSection from 'src/components/user_settings/video_devices_settings_section';
 import {CALL_EVENT_POST_TYPE, CALL_RECORDING_POST_TYPE, CALL_TRANSCRIPTION_POST_TYPE, DisabledCallsErr} from 'src/constants';
 import {desktopNotificationHandler} from 'src/desktop_notifications';
+import {createCallsAPI} from 'src/public_api';
 import RestClient from 'src/rest_client';
 import slashCommandsHandler from 'src/slash_commands';
-import {CallActions, CurrentCallData, CurrentCallDataDefault} from 'src/types/types';
+import type {CallsJoinOptions} from 'src/types/public_api';
+import {CallActions, ChannelProps, CurrentCallData, CurrentCallDataDefault} from 'src/types/types';
 import {modals} from 'src/webapp_globals';
 
 import {
@@ -125,6 +129,7 @@ import ChannelLinkLabel from './components/channel_link_label';
 import {PostTypeEvent} from './components/custom_post_types/post_type_event';
 import {PostTypeTranscription} from './components/custom_post_types/post_type_transcription';
 import ExpandedView from './components/expanded_view';
+import HeadlessCall from './components/headless_call';
 import CompassIcon from './components/icons/compassIcon';
 import ScreenSourceModal from './components/screen_source_modal';
 import SwitchCallModal from './components/switch_call_modal';
@@ -146,10 +151,12 @@ import {
     defaultEnabled,
     hasPermissionsToEnableCalls,
     iceServers,
+    incomingCalls,
     isLimitRestricted,
     needsTURNCredentials,
     ringingEnabled,
     sessionsInCurrentCall,
+    videoEnabledInChannel,
 } from './selectors';
 import {JOIN_CALL, keyToAction} from './shortcuts';
 import {convertStatsToPanels} from './stats';
@@ -164,12 +171,14 @@ import {
     getUserIDsForSessions,
     getWSConnectionURL,
     isCallsPopOut,
-    isDMChannel,
+    isDmGmChannel,
+    parseChannelProps,
     playSound,
     sendDesktopEvent,
     setCallsGlobalCSSVars,
     shouldRenderDesktopWidget,
 } from './utils';
+import {isFusionUI, WebUI} from './web_ui';
 import {
     handleCallEnd,
     handleCallHostChanged,
@@ -216,14 +225,14 @@ export default class Plugin {
         registry.registerWebSocketEventHandler(`custom_${pluginId}_channel_enable_voice`, (ev) => {
             store.dispatch({
                 type: RECEIVED_CHANNEL_STATE,
-                data: {id: ev.broadcast.channel_id, enabled: true},
+                data: {id: ev.broadcast.channel_id, enabled: true, props: parseChannelProps(ev.data?.props)},
             });
         });
 
         registry.registerWebSocketEventHandler(`custom_${pluginId}_channel_disable_voice`, (ev) => {
             store.dispatch({
                 type: RECEIVED_CHANNEL_STATE,
-                data: {id: ev.broadcast.channel_id, enabled: false},
+                data: {id: ev.broadcast.channel_id, enabled: false, props: parseChannelProps(ev.data?.props)},
             });
         });
 
@@ -351,14 +360,22 @@ export default class Plugin {
             document.getElementById('calls')?.remove();
         });
 
+        // The Fusion web UI draws calls itself: the call widget, its pop-out (expanded view), the
+        // call cards and the active call markers of the channel list and view are left to it.
+        const fusion = isFusionUI();
+
         registry.registerReducer(reducer);
-        const sidebarChannelLinkLabelComponentID = registry.registerSidebarChannelLinkLabelComponent(ChannelLinkLabel);
-        this.unsubscribers.push(() => registry.unregisterComponent(sidebarChannelLinkLabelComponentID));
-        registry.registerChannelToastComponent(injectIntl(ChannelCallToast));
-        registry.registerPostTypeComponent(CALL_EVENT_POST_TYPE, PostTypeEvent);
+        if (!fusion) {
+            const sidebarChannelLinkLabelComponentID = registry.registerSidebarChannelLinkLabelComponent(ChannelLinkLabel);
+            this.unsubscribers.push(() => registry.unregisterComponent(sidebarChannelLinkLabelComponentID));
+            registry.registerChannelToastComponent(injectIntl(ChannelCallToast));
+            registry.registerPostTypeComponent(CALL_EVENT_POST_TYPE, PostTypeEvent);
+        }
         registry.registerPostTypeComponent(CALL_RECORDING_POST_TYPE, PostTypeRecording);
         registry.registerPostTypeComponent(CALL_TRANSCRIPTION_POST_TYPE, PostTypeTranscription);
-        registry.registerNeedsTeamRoute('/expanded', injectIntl(ExpandedView));
+        if (!fusion) {
+            registry.registerNeedsTeamRoute('/expanded', injectIntl(ExpandedView));
+        }
         registry.registerGlobalComponent(injectIntl(SwitchCallModal));
         registry.registerGlobalComponent(injectIntl(ScreenSourceModal));
         registry.registerGlobalComponent(injectIntl(IncomingCallContainer));
@@ -395,7 +412,7 @@ export default class Plugin {
             return desktopNotificationHandler(store, post, msgProps, channel, args);
         });
 
-        const connectToCall = async (channelId: string, teamId?: string, title?: string, rootId?: string) => {
+        const connectToCall = async (channelId: string, teamId?: string, title?: string, rootId?: string, opts?: CallsJoinOptions) => {
             if (clientConnecting(store.getState())) {
                 return;
             }
@@ -413,10 +430,22 @@ export default class Plugin {
                 // connectCall so the re-entrancy guard above is effective even
                 // on rapid subsequent clicks.
                 store.dispatch(setClientConnecting(true));
-                connectCall(channelId, title, rootId);
+                connectCall(channelId, title, rootId, opts);
 
                 // following the thread only on join. On call start
                 // this is done in the call_start ws event handler.
+                if (channelHasCall(store.getState(), channelId)) {
+                    followThread(store, channelId, teamId);
+                }
+            } else if (effectiveCurrentChannel !== channelId && opts?.switchCall) {
+                // In a different call, and asked to switch: do what the switch modal does.
+                const incomingCall = incomingCalls(store.getState()).find((call) => call.channelID === channelId);
+                if (incomingCall) {
+                    store.dispatch(dismissIncomingCallNotification(channelId, incomingCall.callID));
+                }
+                window.callsClient?.disconnect();
+                store.dispatch(setClientConnecting(true));
+                connectCall(channelId, title, rootId, opts);
                 if (channelHasCall(store.getState(), channelId)) {
                     followThread(store, channelId, teamId);
                 }
@@ -428,7 +457,7 @@ export default class Plugin {
             // If already in this call, do nothing
         };
 
-        const joinCall = async (channelId: string, teamId?: string, title?: string, rootId?: string) => {
+        const joinCall = async (channelId: string, teamId?: string, title?: string, rootId?: string, opts?: CallsJoinOptions) => {
             // Anyone can join a call already in progress.
             // If explicitly enabled, everyone can start calls.
             // In LiveMode (DefaultEnabled=true):
@@ -448,7 +477,7 @@ export default class Plugin {
                     return;
                 }
 
-                await connectToCall(channelId, teamId, title, rootId);
+                await connectToCall(channelId, teamId, title, rootId, opts);
                 return;
             }
 
@@ -460,7 +489,7 @@ export default class Plugin {
             // We are in TestMode (DefaultEnabled=false)
             if (isCurrentUserSystemAdmin(store.getState())) {
                 // Rely on server side to send ephemeral message.
-                await connectToCall(channelId, teamId, title, rootId);
+                await connectToCall(channelId, teamId, title, rootId, opts);
             } else {
                 store.dispatch(displayCallsTestModeUser());
             }
@@ -642,7 +671,8 @@ export default class Plugin {
             }));
         }
 
-        const connectCall = async (channelID: string, title?: string, rootId?: string) => {
+        // opts only apply to calls run by this window.
+        const connectCall = async (channelID: string, title?: string, rootId?: string, opts?: CallsJoinOptions) => {
             const channel = getChannel(store.getState(), channelID);
 
             // Flush any pending logs from previous call
@@ -702,9 +732,11 @@ export default class Plugin {
                     enableAV1: callsConfig(state).EnableAV1,
                     dcSignaling: callsConfig(state).EnableDCSignaling,
                     dcLocking: hasDCSignalingLockSupport(callsVersionInfo(state)),
-                    enableVideo: callsConfig(state).EnableVideo && isDMChannel(channel),
+                    enableVideo: videoEnabledInChannel(state, channel),
                 });
                 window.currentCallData = {...CurrentCallDataDefault};
+                store.dispatch(setLocalCall({channelID, sessionID: '', state: 'connecting'}));
+                callsAPI.clientCreated(window.callsClient);
 
                 const locale = getCurrentUserLocale(state) || 'en';
 
@@ -720,7 +752,7 @@ export default class Plugin {
                                 defaultLocale='en'
                                 messages={getTranslations(locale)}
                             >
-                                <CallWidget/>
+                                {isFusionUI() ? <HeadlessCall/> : <CallWidget/>}
                             </IntlProvider>
                         </Provider>,
                     );
@@ -733,22 +765,33 @@ export default class Plugin {
                 };
 
                 // DEPRECATED
-                let rootComponentID: string;
+                let rootComponentID = '';
 
                 // This is only needed to support desktop versions < 5.3 that
                 // didn't implement the global widget and mounted the expanded view
-                // on top of the center channel view.
-                if (window.desktop) {
+                // on top of the center channel view. Fusion shows the call itself.
+                if (window.desktop && !isFusionUI()) {
                     rootComponentID = registry.registerRootComponent(injectIntl(ExpandedView));
                 }
 
-                window.callsClient.on('connect', () => store.dispatch(setClientConnecting(false)));
+                window.callsClient.on('connect', () => {
+                    store.dispatch(setClientConnecting(false));
+                    store.dispatch(setLocalCall({channelID, sessionID: window.callsClient?.getSessionID() || '', state: 'connected'}));
+
+                    // Calls in DMs and GMs start unmuted.
+                    if (opts?.unmuted ?? isDmGmChannel(channel)) {
+                        window.callsClient?.unmute();
+                    }
+                    if (opts?.video) {
+                        window.callsClient?.startVideo().catch((err) => logErr(err));
+                    }
+                });
 
                 window.callsClient.on('close', (err?: Error) => {
                     store.dispatch(setClientConnecting(false));
 
                     unmountCallWidget();
-                    if (window.desktop) {
+                    if (rootComponentID) {
                         registry.unregisterComponent(rootComponentID);
                     }
                     if (window.callsClient) {
@@ -761,6 +804,8 @@ export default class Plugin {
                         delete window.currentCallData;
                         playSound('leave_self');
                     }
+                    store.dispatch(setLocalCall(null));
+                    callsAPI.clientClosed(err);
                 });
 
                 window.callsClient.on('mute', () => {
@@ -841,14 +886,32 @@ export default class Plugin {
                     unmountCallWidget();
                     store.dispatch(displayCallErrorModal(err, channelID));
                     delete window.callsClient;
+                    store.dispatch(setLocalCall(null));
+                    callsAPI.clientClosed(err);
                 });
 
                 store.dispatch(setClientConnecting(true));
             } catch (err) {
                 delete window.callsClient;
+                store.dispatch(setLocalCall(null));
+                callsAPI.clientClosed();
                 logErr(err);
             }
         };
+
+        // Let other UIs (the Fusion web UI, other plugins) show and drive calls.
+        const callsAPI = createCallsAPI(store, (channelId, opts) => {
+            const teamId = getChannel(store.getState(), channelId)?.team_id || getCurrentTeamId(store.getState());
+            return joinCall(channelId, teamId, opts.title, undefined, opts);
+        });
+        window.antimatterCalls = callsAPI.api;
+        this.unsubscribers.push(() => {
+            if (window.antimatterCalls === callsAPI.api) {
+                delete window.antimatterCalls;
+            }
+        });
+        window.dispatchEvent(new Event('antimatter-calls:ready'));
+
         const windowEventHandler = (ev: MessageEvent) => {
             if (ev.origin !== window.origin) {
                 return;
@@ -889,14 +952,14 @@ export default class Plugin {
                 ChannelHeaderMenuButton,
                 async () => {
                     try {
-                        const data = await RestClient.fetch<{ enabled: boolean }>(`${getPluginPath()}/${currChannelId}`, {
+                        const data = await RestClient.fetch<{ enabled: boolean, props?: ChannelProps }>(`${getPluginPath()}/${currChannelId}`, {
                             method: 'post',
                             body: JSON.stringify({enabled: callsExplicitlyDisabled(store.getState(), currChannelId)}),
                         });
 
                         store.dispatch({
                             type: RECEIVED_CHANNEL_STATE,
-                            data: {id: currChannelId, enabled: data.enabled},
+                            data: {id: currChannelId, enabled: data.enabled, props: data.props},
                         });
                     } catch (err) {
                         logErr(err);
@@ -908,7 +971,7 @@ export default class Plugin {
         const fetchChannels = async (skipChannelID?: string): Promise<AnyAction[]> => {
             const actions = [];
             try {
-                const data = await RestClient.fetch<CallChannelState[]>(`${getPluginPath()}/channels`, {method: 'get'});
+                const data = await RestClient.fetch<(CallChannelState & {props?: ChannelProps})[]>(`${getPluginPath()}/channels`, {method: 'get'});
 
                 for (let i = 0; i < data.length; i++) {
                     // Skipping the channel for the current call here is important
@@ -924,6 +987,7 @@ export default class Plugin {
                         data: {
                             id: data[i].channel_id,
                             enabled: data[i].enabled,
+                            props: data[i].props,
                         },
                     });
 
@@ -1179,6 +1243,7 @@ declare global {
         registerPlugin(id: string, plugin: Plugin): void,
 
         callsClient?: CallsClient,
+        antimatterWebUI?: WebUI,
         webkitAudioContext: AudioContext,
         basename: string,
 

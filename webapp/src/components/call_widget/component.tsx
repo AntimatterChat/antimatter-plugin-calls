@@ -17,6 +17,7 @@ import {FormattedMessage, IntlShape} from 'react-intl';
 import {compareSemVer} from 'semver-parser';
 import {hostRemove} from 'src/actions';
 import {navigateToURL} from 'src/browser_routing';
+import {CallAudio} from 'src/call_audio';
 import {AudioInputPermissionsError, VideoInputPermissionsError} from 'src/client';
 import Avatar from 'src/components/avatar/avatar';
 import {Badge} from 'src/components/badge';
@@ -176,7 +177,6 @@ interface State {
     showAudioOutputDevicesMenu?: boolean,
     showVideoInputDevicesMenu?: boolean,
     dragging: DraggingState,
-    audioEls: HTMLAudioElement[],
     alerts: CallAlertStates,
     removeConfirmation: RemoveConfirmationData | null,
     leaveMenuOpen: boolean,
@@ -322,7 +322,6 @@ export default class CallWidget extends React.PureComponent<Props, State> {
                 offX: 0,
                 offY: 0,
             },
-            audioEls: [],
             alerts: CallAlertStatesDefault,
             screenStream: null,
             removeConfirmation: null,
@@ -411,37 +410,6 @@ export default class CallWidget extends React.PureComponent<Props, State> {
         }
     };
 
-    private attachVoiceTracks(tracks: MediaStreamTrack[]) {
-        const audioEls = [];
-        for (const track of tracks) {
-            const audioEl = document.createElement('audio');
-            audioEl.srcObject = new MediaStream([track]);
-            audioEl.controls = false;
-            audioEl.autoplay = true;
-            audioEl.style.display = 'none';
-            audioEl.onerror = (err) => logErr(err);
-            audioEl.setAttribute('data-testid', track.id);
-
-            const deviceID = window.callsClient?.currentAudioOutputDevice?.deviceId;
-            if (deviceID) {
-                // @ts-ignore - setSinkId is an experimental feature
-                audioEl.setSinkId(deviceID);
-            }
-
-            document.body.appendChild(audioEl);
-            track.onended = () => {
-                audioEl.srcObject = null;
-                audioEl.remove();
-            };
-
-            audioEls.push(audioEl);
-        }
-
-        this.setState({
-            audioEls: [...this.state.audioEls, ...audioEls],
-        });
-    }
-
     public componentDidMount() {
         if (!window.callsClient) {
             logErr('callsClient should be defined');
@@ -510,10 +478,8 @@ export default class CallWidget extends React.PureComponent<Props, State> {
             setMissingScreenPermissions: this.setMissingScreenPermissions,
         };
 
-        this.attachVoiceTracks(window.callsClient.getRemoteVoiceTracks());
-        window.callsClient.on('remoteVoiceStream', (stream: MediaStream) => {
-            this.attachVoiceTracks(stream.getAudioTracks());
-        });
+        const callAudio = new CallAudio(window.callsClient);
+        this.unsubscribers.push(() => callAudio.destroy());
 
         // eslint-disable-next-line react/no-did-mount-set-state
         this.setState({
@@ -628,7 +594,8 @@ export default class CallWidget extends React.PureComponent<Props, State> {
                 }
             }
 
-            if (isDMChannel(this.props.channel) || isGMChannel(this.props.channel)) {
+            // Calls in DMs and GMs start unmuted. The webapp does it for the calls it runs itself.
+            if (this.props.global && (isDMChannel(this.props.channel) || isGMChannel(this.props.channel))) {
                 callsClient?.unmute();
             }
 
@@ -1027,17 +994,9 @@ export default class CallWidget extends React.PureComponent<Props, State> {
     onAudioOutputDeviceClick = (device: MediaDeviceInfo) => {
         if (device.deviceId !== this.state.currentAudioOutputDevice?.deviceId) {
             logDebug('CallWidget.onAudioOutputDeviceClick: changing audio output device', device.label, device.deviceId);
+
+            // CallAudio moves the call's audio to the new device.
             window.callsClient?.setAudioOutputDevice(device);
-            const ps = [];
-            for (const audioEl of this.state.audioEls) {
-                // @ts-ignore - setSinkId is an experimental feature
-                ps.push(audioEl.setSinkId(device.deviceId));
-            }
-            Promise.all(ps).then(() => {
-                logDebug('audio output has changed');
-            }).catch((err) => {
-                logErr(err);
-            });
         }
         this.setState({showAudioOutputDevicesMenu: false, currentAudioOutputDevice: device});
     };
@@ -2418,6 +2377,10 @@ export default class CallWidget extends React.PureComponent<Props, State> {
 
         const ShowIcon = window.desktop && !this.props.global ? ExpandIcon : PopOutIcon;
 
+        // The video layout is made for 1:1 calls. Channels that allow video keep the regular
+        // layout and only get the camera button.
+        const showVideoLayout = this.props.enableVideo && isDMChannel(this.props.channel);
+
         const HandIcon = this.isHandRaised() ? UnraisedHandIcon : RaisedHandIcon;
 
         const MenuIcon = HorizontalDotsIcon;
@@ -2495,7 +2458,7 @@ export default class CallWidget extends React.PureComponent<Props, State> {
 
                 <div style={this.style.frame}>
 
-                    {!this.props.enableVideo &&
+                    {!showVideoLayout &&
                         <div
                             style={this.style.topBar}
                             // eslint-disable-next-line no-undefined
@@ -2538,11 +2501,11 @@ export default class CallWidget extends React.PureComponent<Props, State> {
                         </div>
                     }
 
-                    {this.props.enableVideo && this.renderTopBar() }
+                    {showVideoLayout && this.renderTopBar() }
 
                     {/* {shouldRenderVideoContainer && this.renderVideoContainer()} */}
 
-                    {this.props.enableVideo && this.renderMiddleBar() }
+                    {showVideoLayout && this.renderMiddleBar() }
 
                     <div
                         className='calls-widget-bottom-bar'

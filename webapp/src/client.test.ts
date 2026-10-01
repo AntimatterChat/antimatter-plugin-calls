@@ -1,7 +1,7 @@
 // Copyright (c) 2020-present Mattermost, Inc. All Rights Reserved.
 // See LICENSE.txt for license information.
 
-import CallsClient from './client';
+import CallsClient, {getSenderSessionIDFromSDP} from './client';
 
 describe('CallsClient', () => {
     let client: CallsClient;
@@ -563,5 +563,134 @@ describe('CallsClient', () => {
             expect(peer.replaceTrack).toHaveBeenLastCalledWith('cam-2', null);
             expect(newTrack.stop).toHaveBeenCalledTimes(1);
         });
+    });
+    describe('remote streams', () => {
+        const sessionA = 'aaaaaaaaaaaaaaaaaaaaaaaaaa';
+        const sessionB = 'bbbbbbbbbbbbbbbbbbbbbbbbbb';
+        const originalMediaStream = global.MediaStream;
+
+        beforeEach(() => {
+            // @ts-ignore - jsdom has no MediaStream
+            global.MediaStream = jest.fn((tracks: MediaStreamTrack[]) => ({
+                getTracks: () => tracks,
+                getAudioTracks: () => tracks.filter((t) => t.kind === 'audio'),
+                getVideoTracks: () => tracks.filter((t) => t.kind === 'video'),
+            }));
+        });
+
+        afterEach(() => {
+            global.MediaStream = originalMediaStream;
+        });
+
+        const makeTrack = (kind: string, readyState = 'live') => ({kind, id: `${kind}-track`, label: '', readyState} as unknown as MediaStreamTrack);
+
+        const receive = (track: MediaStreamTrack, type: string) => {
+            const stream = new MediaStream([track]);
+
+            // @ts-ignore - calling a private method for testing
+            client.handleRemoteStream(stream, {type, sender_id: ''});
+            return stream;
+        };
+
+        const setupPeer = (receivers: Array<{mid: string, track: MediaStreamTrack}>) => {
+            const sdp = receivers.map(({mid, track}, i) => [
+                `m=${track.kind} 9 UDP/TLS/RTP/SAVPF 96`,
+                `a=mid:${mid}`,
+                `a=msid:${i % 2 ? sessionB : sessionA} ${track.kind === 'audio' ? 'voice' : 'video'}_${i % 2 ? sessionB : sessionA}_abcd1234`,
+            ].join('\r\n')).join('\r\n');
+
+            // @ts-ignore - accessing private property for testing
+            client.peer = {
+                pc: {
+                    remoteDescription: {sdp: 'v=0\r\n' + sdp},
+                    getTransceivers: () => receivers.map(({mid, track}) => ({mid, receiver: {track}})),
+                },
+            };
+        };
+
+        it('emits the sender session with remote streams', () => {
+            const voice = makeTrack('audio');
+            const video = makeTrack('video');
+            setupPeer([{mid: '0', track: voice}, {mid: '1', track: video}]);
+
+            const voiceStream = receive(voice, 'voice');
+            const videoStream = receive(video, 'video');
+
+            expect(client.emit).toHaveBeenCalledWith('remoteVoiceStream', voiceStream, sessionA);
+            expect(client.emit).toHaveBeenCalledWith('remoteVideoStream', videoStream, sessionB);
+        });
+
+        it('keeps the live video stream of every sender', () => {
+            const videoA = makeTrack('video');
+            const videoB = makeTrack('video');
+            setupPeer([{mid: '0', track: videoA}, {mid: '1', track: videoB}]);
+
+            receive(videoA, 'video');
+            receive(videoB, 'video');
+
+            let streams = client.getRemoteVideoStreams();
+            expect(Object.keys(streams).sort()).toEqual([sessionA, sessionB]);
+            expect(streams[sessionA].getTracks()).toEqual([videoA]);
+            expect(streams[sessionB].getTracks()).toEqual([videoB]);
+
+            // @ts-ignore - simulating an ended track
+            videoA.readyState = 'ended';
+            streams = client.getRemoteVideoStreams();
+            expect(Object.keys(streams)).toEqual([sessionB]);
+        });
+
+        it('handles an unknown sender', () => {
+            const video = makeTrack('video');
+
+            // @ts-ignore - accessing private property for testing
+            client.peer = null;
+            const stream = receive(video, 'video');
+
+            expect(client.emit).toHaveBeenCalledWith('remoteVideoStream', stream, '');
+            expect(client.getRemoteVideoStreams()).toEqual({});
+            expect(client.getRemoteVideoStream()?.getTracks()).toEqual([video]);
+        });
+    });
+});
+
+describe('getSenderSessionIDFromSDP', () => {
+    const sessionA = 'aaaaaaaaaaaaaaaaaaaaaaaaaa';
+    const sessionB = 'bbbbbbbbbbbbbbbbbbbbbbbbbb';
+    const sdp = [
+        'v=0',
+        'o=- 123 2 IN IP4 0.0.0.0',
+        's=-',
+        't=0 0',
+        'm=audio 9 UDP/TLS/RTP/SAVPF 111',
+        'a=mid:0',
+        `a=msid:${sessionA} voice_${sessionA}_abcd1234`,
+        'm=video 9 UDP/TLS/RTP/SAVPF 96',
+        'a=mid:1',
+        `a=msid:${sessionB} video_${sessionB}_efgh5678`,
+        'm=video 9 UDP/TLS/RTP/SAVPF 96',
+        'a=mid:2',
+        'a=msid:streamid othertrack',
+        'm=video 9 UDP/TLS/RTP/SAVPF 96',
+        'a=mid:3',
+        'a=msid:- othertrack',
+        'm=application 9 UDP/DTLS/SCTP webrtc-datachannel',
+        'a=mid:4',
+        '',
+    ].join('\r\n');
+
+    it('reads the sender from the forwarded track ID', () => {
+        expect(getSenderSessionIDFromSDP(sdp, '0')).toBe(sessionA);
+        expect(getSenderSessionIDFromSDP(sdp, '1')).toBe(sessionB);
+    });
+
+    it('falls back to the stream ID', () => {
+        expect(getSenderSessionIDFromSDP(sdp, '2')).toBe('streamid');
+    });
+
+    it('returns an empty string when unknown', () => {
+        expect(getSenderSessionIDFromSDP(sdp, '3')).toBe('');
+        expect(getSenderSessionIDFromSDP(sdp, '4')).toBe('');
+        expect(getSenderSessionIDFromSDP(sdp, '5')).toBe('');
+        expect(getSenderSessionIDFromSDP('', '0')).toBe('');
     });
 });

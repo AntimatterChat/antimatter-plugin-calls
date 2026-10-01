@@ -9,6 +9,7 @@ import {CallIncomingCondensed} from 'src/components/incoming_calls/call_incoming
 import {useOnACallWithoutGlobalWidget} from 'src/components/incoming_calls/hooks';
 import {ringingEnabled, sortedIncomingCalls} from 'src/selectors';
 import {shouldRenderCallsIncoming} from 'src/utils';
+import {isFusionUI} from 'src/web_ui';
 import styled from 'styled-components';
 
 export const IncomingCallContainer = () => {
@@ -17,9 +18,9 @@ export const IncomingCallContainer = () => {
     const myTeams = useSelector(getMyTeams);
     const onACallWithoutGlobalWidget = useOnACallWithoutGlobalWidget();
 
-    if (!enabled || !shouldRenderCallsIncoming() || calls.length === 0 || onACallWithoutGlobalWidget) {
+    if (!enabled || !shouldRenderCallsIncoming() || calls.length === 0 || (onACallWithoutGlobalWidget && !isFusionUI())) {
         // don't show incoming calls if we're on a call without the global widget because
-        // we'll see the notification above the widget
+        // we'll see the notification above the widget (there's no widget under Fusion)
         return null;
     }
 

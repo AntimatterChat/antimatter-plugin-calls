@@ -237,10 +237,12 @@ func (p *Plugin) handleClientMessageTypeScreen(us *session, msg clientMessage, h
 		}
 	}
 
+	bc, _ := p.sessionStateBroadcast(us.channelID, sessionsGetter(state.sessions))
+	bc.ReliableClusterSend = true
 	p.publishWebSocketEvent(wsMsgType, map[string]interface{}{
 		"userID":     us.userID,
 		"session_id": us.originalConnID,
-	}, &WebSocketBroadcast{ChannelID: us.channelID, ReliableClusterSend: true, UserIDs: getUserIDsFromSessions(state.sessions)})
+	}, bc)
 
 	return nil
 }
@@ -367,14 +369,12 @@ func (p *Plugin) handleClientMsg(us *session, msg clientMessage, handlerID strin
 		if msg.Type == clientMessageTypeMute {
 			evType = wsEventUserMuted
 		}
+		bc, _ := p.sessionStateBroadcast(us.channelID, sessionsGetter(state.sessions))
+		bc.ReliableClusterSend = true
 		p.publishWebSocketEvent(evType, map[string]interface{}{
 			"userID":     us.userID,
 			"session_id": us.originalConnID,
-		}, &WebSocketBroadcast{
-			ChannelID:           us.channelID,
-			ReliableClusterSend: true,
-			UserIDs:             getUserIDsFromSessions(state.sessions),
-		})
+		}, bc)
 	case clientMessageTypeScreenOn, clientMessageTypeScreenOff:
 		if err := p.handleClientMessageTypeScreen(us, msg, handlerID); err != nil {
 			return err
@@ -460,14 +460,12 @@ func (p *Plugin) handleClientMsg(us *session, msg clientMessage, handlerID strin
 		if msg.Type == clientMessageTypeVideoOff {
 			evType = wsEventUserVideoOff
 		}
+		bc, _ := p.sessionStateBroadcast(us.channelID, sessionsGetter(state.sessions))
+		bc.ReliableClusterSend = true
 		p.publishWebSocketEvent(evType, map[string]interface{}{
 			"userID":     us.userID,
 			"session_id": us.originalConnID,
-		}, &WebSocketBroadcast{
-			ChannelID:           us.channelID,
-			ReliableClusterSend: true,
-			UserIDs:             getUserIDsFromSessions(state.sessions),
-		})
+		}, bc)
 	case clientMessageTypeRaiseHand, clientMessageTypeUnraiseHand:
 		evType := wsEventUserUnraiseHand
 		if msg.Type == clientMessageTypeRaiseHand {
@@ -498,15 +496,13 @@ func (p *Plugin) handleClientMsg(us *session, msg clientMessage, handlerID strin
 			return fmt.Errorf("failed to update call session: %w", err)
 		}
 
+		bc, _ := p.sessionStateBroadcast(us.channelID, sessionsGetter(state.sessions))
+		bc.ReliableClusterSend = true
 		p.publishWebSocketEvent(evType, map[string]interface{}{
 			"userID":      us.userID,
 			"session_id":  us.originalConnID,
 			"raised_hand": session.RaisedHand,
-		}, &WebSocketBroadcast{
-			ChannelID:           us.channelID,
-			ReliableClusterSend: true,
-			UserIDs:             getUserIDsFromSessions(state.sessions),
-		})
+		}, bc)
 	case clientMessageTypeReact:
 		evType := wsEventUserReacted
 
@@ -671,7 +667,9 @@ func (p *Plugin) wsWriter() {
 					evType = wsEventUserVoiceOn
 				}
 
-				sessions, err := p.store.GetCallSessions(us.callID, db.GetCallSessionOpts{})
+				bc, err := p.sessionStateBroadcast(us.channelID, func() (map[string]*public.CallSession, error) {
+					return p.store.GetCallSessions(us.callID, db.GetCallSessionOpts{})
+				})
 				if err != nil {
 					p.LogError("failed to get call sessions", "err", err.Error())
 					continue
@@ -680,7 +678,7 @@ func (p *Plugin) wsWriter() {
 				p.publishWebSocketEvent(evType, map[string]interface{}{
 					"userID":     us.userID,
 					"session_id": us.originalConnID,
-				}, &WebSocketBroadcast{ChannelID: us.channelID, UserIDs: getUserIDsFromSessions(sessions)})
+				}, bc)
 
 				continue
 			}
@@ -812,9 +810,12 @@ func (p *Plugin) handleJoin(userID, connID, authSessionID string, joinData calls
 				)
 			}
 
-			postID, threadID, err := p.createCallStartedPost(state, userID, channelID, joinData.Title, joinData.ThreadID, channel.Type)
-			if err != nil {
-				p.LogError(err.Error())
+			postID, threadID := "", joinData.ThreadID
+			if !callsChannel.BoolProp(public.ChannelPropDisableCallPost) {
+				postID, threadID, err = p.createCallStartedPost(state, userID, channelID, joinData.Title, joinData.ThreadID, channel.Type)
+				if err != nil {
+					p.LogError(err.Error())
+				}
 			}
 
 			state.Call.PostID = postID

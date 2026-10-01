@@ -39,6 +39,7 @@ import {
     LIVE_CAPTION,
     LIVE_CAPTION_TIMEOUT_EVENT,
     LIVE_CAPTIONS_ENABLED,
+    LOCAL_CALL_STATE,
     LOCAL_SESSION_CLOSE,
     RECEIVED_CALLS_CONFIG,
     RECEIVED_CALLS_CONFIG_ENV_OVERRIDES,
@@ -143,6 +144,27 @@ const clientStateReducer = (state: clientState = null, action: clientStateAction
         }
         return state;
     }
+    default:
+        return state;
+    }
+};
+
+export type localCallState = {
+    channelID: string;
+
+    // Empty until the call is connected.
+    sessionID: string;
+    state: 'connecting' | 'connected';
+} | null;
+
+// localCall holds the call run by this window's calls client (window.callsClient), so that the UI
+// can react to it: the client itself isn't part of the store.
+const localCall = (state: localCallState = null, action: {type: string, data: localCallState}) => {
+    switch (action.type) {
+    case UNINIT:
+        return null;
+    case LOCAL_CALL_STATE:
+        return action.data;
     default:
         return state;
     }
@@ -1111,6 +1133,7 @@ const hostControlNotices = (state: hostControlNoticeState = {},
 export default combineReducers({
     channels,
     clientStateReducer,
+    localCall,
     reactions,
     sessions,
     calls,

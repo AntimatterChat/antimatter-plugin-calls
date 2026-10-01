@@ -646,7 +646,9 @@ func (m *rtcdClientManager) handleClientMsg(msg rtcd.ClientMessage) error {
 
 		// TODO: consider if it's worth fetching the unique userIDs list instead of
 		// the whole sessions objects.
-		sessions, err := m.ctx.store.GetCallSessions(rtcMsg.CallID, db.GetCallSessionOpts{})
+		bc, err := m.ctx.sessionStateBroadcast(call.ChannelID, func() (map[string]*public.CallSession, error) {
+			return m.ctx.store.GetCallSessions(rtcMsg.CallID, db.GetCallSessionOpts{})
+		})
 		if err != nil {
 			return fmt.Errorf("failed to get call sessions: %w", err)
 		}
@@ -654,7 +656,7 @@ func (m *rtcdClientManager) handleClientMsg(msg rtcd.ClientMessage) error {
 		m.ctx.publishWebSocketEvent(evType, map[string]interface{}{
 			"userID":     rtcMsg.UserID,
 			"session_id": rtcMsg.SessionID,
-		}, &WebSocketBroadcast{ChannelID: call.ChannelID, UserIDs: getUserIDsFromSessions(sessions)})
+		}, bc)
 
 		return nil
 	}

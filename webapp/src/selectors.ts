@@ -26,12 +26,14 @@ import {
 } from 'mattermost-redux/utils/channel_utils';
 import {displayUsername} from 'mattermost-redux/utils/user_utils';
 import {createSelector} from 'reselect';
+import {CHANNEL_PROP_ENABLE_VIDEO} from 'src/constants';
 import {
     callsJobState,
     callState,
     hostControlNoticeState,
     hostsState,
     liveCaptionState,
+    localCallState,
     recentlyJoinedUsersState,
     screenSharingIDsState,
     sessionsState,
@@ -52,6 +54,7 @@ import {
     getCallsClientSessionID,
     getChannelURL,
     getUserIdFromDM,
+    isDMChannel,
     selfFirstSortSessions,
     stateSortSessions,
 } from 'src/utils';
@@ -59,12 +62,20 @@ import {
 import {pluginId} from './manifest';
 
 //@ts-ignore GlobalState is not complete
-const pluginState = (state: GlobalState) => state['plugins-' + pluginId] || {};
+export const pluginState = (state: GlobalState) => state['plugins-' + pluginId] || {};
 
 const clientState = (state: GlobalState) => pluginState(state).clientStateReducer;
 
+// localCall returns the call run by this window's calls client. Unlike window.callsClient, it's
+// part of the store, so components re-render when it changes.
+export const localCall = (state: GlobalState): localCallState =>
+    pluginState(state).localCall ?? null;
+
 export const channelIDForCurrentCall = (state: GlobalState): string =>
-    getCallsClientChannelID() || clientState(state)?.channelID || '';
+    getCallsClientChannelID() || localCall(state)?.channelID || clientState(state)?.channelID || '';
+
+const sessionIDForCurrentCall = (state: GlobalState): string =>
+    getCallsClientSessionID() || localCall(state)?.sessionID || '';
 
 export const channelForCurrentCall = (state: GlobalState): Channel | undefined =>
     getAllChannels(state)[channelIDForCurrentCall(state)];
@@ -211,7 +222,7 @@ export const sessionForCurrentCall: (state: GlobalState) => UserSessionState =
         'sessionsInCurrentCall',
         sessionsInCalls,
         channelIDForCurrentCall,
-        getCallsClientSessionID,
+        sessionIDForCurrentCall,
         (sessions, channelID, sessionID) => sessions[channelID]?.[sessionID],
     );
 
@@ -566,6 +577,21 @@ export const callsConfigEnvOverrides = (state: GlobalState): Record<string, stri
 //
 export const channelState = (state: GlobalState, channelId: string): ChannelState =>
     pluginState(state).channels[channelId];
+
+// channelPropEnabled returns whether a boolean Calls channel prop is set.
+export const channelPropEnabled = (state: GlobalState, channelId: string, prop: string): boolean => {
+    const value = channelState(state, channelId)?.props?.[prop];
+    return value === true || value === 'true';
+};
+
+// videoEnabledInChannel returns whether participants of calls in the channel may turn on their
+// camera: video must be enabled and the channel be a DM or have the enable_video prop.
+export const videoEnabledInChannel = (state: GlobalState, channel?: Channel): boolean => {
+    if (!callsConfig(state).EnableVideo || !channel) {
+        return false;
+    }
+    return isDMChannel(channel) || channelPropEnabled(state, channel.id, CHANNEL_PROP_ENABLE_VIDEO);
+};
 
 export const callsExplicitlyEnabled = (state: GlobalState, channelId: string): boolean =>
     Boolean(channelState(state, channelId)?.enabled);
