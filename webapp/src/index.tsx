@@ -39,6 +39,7 @@ import {
     setLocalCall,
     showScreenSourceModal,
     showSwitchCallModal,
+    userLeft,
 } from 'src/actions';
 import {navigateToURL} from 'src/browser_routing';
 import AllowScreenSharing from 'src/components/admin_console_settings/allow_screen_sharing';
@@ -107,6 +108,7 @@ import {CallActions, ChannelProps, CurrentCallData, CurrentCallDataDefault} from
 import {modals} from 'src/webapp_globals';
 
 import {
+    CALL_END,
     CALL_STATE,
     DISMISS_CALL,
     RECEIVED_CHANNEL_STATE,
@@ -140,6 +142,7 @@ import {flushLogsToAccumulated, logDebug, logErr, logInfo} from './log';
 import {pluginId} from './manifest';
 import reducer from './reducers';
 import {
+    calls,
     callsConfig,
     callsExplicitlyDisabled,
     callsExplicitlyEnabled,
@@ -795,14 +798,23 @@ export default class Plugin {
                         registry.unregisterComponent(rootComponentID);
                     }
                     if (window.callsClient) {
+                        const closedChannelID = window.callsClient.channelID;
+                        const closedSessionID = window.callsClient.getSessionID();
                         if (err) {
-                            store.dispatch(displayCallErrorModal(err, window.callsClient.channelID));
+                            store.dispatch(displayCallErrorModal(err, closedChannelID));
                         }
-                        store.dispatch(localSessionClose(window.callsClient.channelID));
+                        store.dispatch(localSessionClose(closedChannelID));
                         window.callsClient.destroy();
                         delete window.callsClient;
                         delete window.currentCallData;
                         playSound('leave_self');
+
+                        // Antimatter: our session is gone from the call, even if the server's user_left event
+                        // was missed while our websocket was down (it then stayed in the participants, and
+                        // joining again showed us twice).
+                        if (closedSessionID) {
+                            store.dispatch(userLeft(closedChannelID, getCurrentUserId(store.getState()), closedSessionID));
+                        }
                     }
                     store.dispatch(setLocalCall(null));
                     callsAPI.clientClosed(err);
@@ -992,14 +1004,34 @@ export default class Plugin {
                     });
 
                     const call = data[i].call;
+                    const known = calls(store.getState())[data[i].channel_id];
 
                     if (!call || !call.sessions?.length) {
+                        // Antimatter: a call that ended while our websocket was down.
+                        if (known) {
+                            actions.push({
+                                type: CALL_END,
+                                data: {channelID: data[i].channel_id, callID: known.ID},
+                            });
+                        }
                         continue;
                     }
 
                     store.dispatch(loadProfilesByIdsIfMissing(getUserIDsForSessions(call.sessions)));
 
-                    if (!callStartAtForCallInChannel(store.getState(), data[i].channel_id)) {
+                    // Antimatter: the people in a call we already know about may have changed while our
+                    // websocket was down, e.g. someone left: their session would otherwise stay listed.
+                    if (known && known.ID === call.id) {
+                        actions.push({
+                            type: USERS_STATES,
+                            data: {
+                                states: getSessionsMapFromSessions(call.sessions),
+                                channelID: data[i].channel_id,
+                            },
+                        });
+                    }
+
+                    if (!known || known.ID !== call.id || !callStartAtForCallInChannel(store.getState(), data[i].channel_id)) {
                         actions.push({
                             type: CALL_STATE,
                             data: {
