@@ -182,6 +182,14 @@ export function handleCallStart(store: Store, ev: WebSocketMessage<CallStartData
 export function handleUserLeft(store: Store, ev: WebSocketMessage<UserLeftData>) {
     const channelID = ev.data.channelID || ev.broadcast.channel_id;
 
+    // Antimatter: someone else leaving the call we're in sounds like the mirror of them joining.
+    if (window.callsClient?.channelID === channelID &&
+        ev.data.session_id !== getCallsClientSessionID() &&
+        ev.data.user_id !== getCurrentUserId(store.getState()) &&
+        shouldPlayJoinUserSound(store.getState())) {
+        playSound('leave_user');
+    }
+
     store.dispatch(userLeft(channelID, ev.data.user_id, ev.data.session_id));
 }
 

@@ -32,6 +32,7 @@ import {threadIDForCallInChannel} from './selectors';
 import JoinSelfSound from './sounds/join_self.mp3';
 import JoinUserSound from './sounds/join_user.mp3';
 import LeaveSelfSound from './sounds/leave_self.mp3';
+import LeaveUserSound from './sounds/leave_user.mp3';
 import {Store} from './types/antimatter-webapp';
 
 export function getPluginStaticPath() {
@@ -423,6 +424,9 @@ export function playSound(name: string) {
         break;
     case 'join_user':
         src = JoinUserSound;
+        break;
+    case 'leave_user':
+        src = LeaveUserSound;
         break;
     default:
         logErr(`sound ${name} not found`);

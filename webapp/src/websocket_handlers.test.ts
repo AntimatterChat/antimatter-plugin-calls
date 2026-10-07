@@ -1,10 +1,10 @@
 // Copyright (c) 2020-present Mattermost, Inc. All Rights Reserved.
 // See LICENSE.txt for license information.
 
-import {CallHostChangedData, UserJoinedData} from '@mattermost/calls-common/lib/types';
+import {CallHostChangedData, UserJoinedData, UserLeftData} from '@mattermost/calls-common/lib/types';
 import {WebSocketMessage} from '@mattermost/client/websocket';
 import {getCurrentUserId, getUser} from 'mattermost-redux/selectors/entities/users';
-import {loadProfilesByIdsIfMissing, removeIncomingCallNotification, setDMCalleeAnsweredAt} from 'src/actions';
+import {loadProfilesByIdsIfMissing, removeIncomingCallNotification, setDMCalleeAnsweredAt, userLeft} from 'src/actions';
 import {Store} from 'src/types/antimatter-webapp';
 
 import {CALL_HOST, HOST_CONTROL_NOTICE, USER_JOINED} from './action_types';
@@ -24,7 +24,7 @@ import {
     notificationsStopRinging,
     playSound,
 } from './utils';
-import {handleCallHostChanged, handleUserJoined} from './websocket_handlers';
+import {handleCallHostChanged, handleUserJoined, handleUserLeft} from './websocket_handlers';
 
 jest.mock('mattermost-redux/selectors/entities/channels', () => ({
     getChannel: jest.fn(() => ({id: 'channel-id', type: 'D'})),
@@ -301,5 +301,52 @@ describe('handleCallHostChanged', () => {
         handleCallHostChanged(store, hostChangedEvent(currentUserID));
 
         expect(dispatched(store, CALL_HOST)).toHaveLength(1);
+    });
+});
+
+describe('handleUserLeft', () => {
+    const userLeftEvent = (userID: string, sessionID = 'session-id') => ({
+        data: {user_id: userID, channelID, session_id: sessionID},
+        broadcast: {channel_id: channelID},
+    } as unknown as WebSocketMessage<UserLeftData>);
+
+    beforeEach(() => {
+        mock(playSound).mockClear();
+        window.callsClient = {channelID} as unknown as typeof window.callsClient;
+    });
+
+    afterEach(() => {
+        window.callsClient = undefined;
+    });
+
+    test('plays the leave sound when someone else leaves our call', () => {
+        const {store} = setup();
+        mock(shouldPlayJoinUserSound).mockReturnValue(true);
+
+        handleUserLeft(store, userLeftEvent(otherUserID));
+
+        expect(playSound).toHaveBeenCalledWith('leave_user');
+        expect(userLeft).toHaveBeenCalledWith(channelID, otherUserID, 'session-id');
+    });
+
+    test('stays quiet in large calls, as for joins', () => {
+        const {store} = setup();
+        mock(shouldPlayJoinUserSound).mockReturnValue(false);
+
+        handleUserLeft(store, userLeftEvent(otherUserID));
+
+        expect(playSound).not.toHaveBeenCalled();
+    });
+
+    test('stays quiet for our own sessions and for other calls', () => {
+        const {store} = setup();
+        mock(shouldPlayJoinUserSound).mockReturnValue(true);
+
+        handleUserLeft(store, userLeftEvent(currentUserID, 'other-device'));
+        handleUserLeft(store, userLeftEvent(otherUserID, 'my-session-id'));
+        window.callsClient = {channelID: 'another-channel'} as unknown as typeof window.callsClient;
+        handleUserLeft(store, userLeftEvent(otherUserID));
+
+        expect(playSound).not.toHaveBeenCalled();
     });
 });
