@@ -12,7 +12,7 @@ import {zlibSync, strToU8} from 'fflate';
 import {MediaDevices, CallsClientConfig, CallsClientStats, TrackMetadata} from 'src/types/types';
 
 import {logDebug, logErr, logInfo, logWarn, persistClientLogs, flushLogsToAccumulated} from './log';
-import {getScreenStream, getPersistentStorage} from './utils';
+import {getScreenStream, getPersistentStorage, screenBitrate, type ScreenQuality} from './utils';
 import {WebSocketClient, WebSocketError, WebSocketErrorType} from './websocket';
 import {
     STORAGE_CALLS_CLIENT_STATS_KEY,
@@ -20,7 +20,7 @@ import {
     STORAGE_CALLS_DEFAULT_AUDIO_OUTPUT_KEY,
     STORAGE_CALLS_DEFAULT_VIDEO_INPUT_KEY,
 } from 'src/constants';
-import {type BgBlurData, getBgBlurData} from 'src/local_storage';
+import {type BgBlurData, getBgBlurData, setBgBlurData} from 'src/local_storage';
 import Segmenter from 'src/segmenter';
 
 export const AudioInputPermissionsError = new Error('missing audio input permissions');
@@ -197,7 +197,7 @@ export default class CallsClient extends EventEmitter {
     private async handleAudioDeviceFallback(deviceType: string) {
         const currentDevice = deviceType === 'input' ? this.currentAudioInputDevice : this.currentAudioOutputDevice;
         const devices = deviceType === 'input' ? this.audioDevices.inputs : this.audioDevices.outputs;
-        const missingCurrentDevice = !devices.some(device => currentDevice?.deviceId === device.deviceId);
+        const missingCurrentDevice = !devices.some((device) => currentDevice?.deviceId === device.deviceId);
 
         // Fallback to the system default device if the current one is not available.
         if (missingCurrentDevice && devices.length > 0) {
@@ -1113,19 +1113,70 @@ export default class CallsClient extends EventEmitter {
         }
     }
 
-    public async shareScreen(sourceID?: string, withAudio?: boolean) {
+    public async shareScreen(sourceID?: string, withAudio?: boolean, quality?: ScreenQuality) {
         if (!this.ws || !this.peer) {
             return null;
         }
 
-        const screenStream = await getScreenStream(sourceID, withAudio);
+        const screenStream = await getScreenStream(sourceID, withAudio, quality);
         if (screenStream === null) {
             return null;
         }
 
         await this.setScreenStream(screenStream);
+        if (quality) {
+            await this.setScreenQuality(screenStream, quality);
+        }
 
         return screenStream;
+    }
+
+    // setScreenQuality raises the bitrate and frame rate the shared screen is sent at, for the higher presets: smooth
+    // motion at a high frame rate, sharp text otherwise.
+    private async setScreenQuality(screenStream: MediaStream, quality: ScreenQuality) {
+        const track = screenStream.getVideoTracks()[0];
+        const pc = (this.peer as unknown as {pc?: RTCPeerConnection} | null)?.pc;
+        if (!track || !pc) {
+            return;
+        }
+        track.contentHint = quality.frameRate > 30 ? 'motion' : 'detail';
+        for (const sender of pc.getSenders()) {
+            if (sender.track !== track) {
+                continue;
+            }
+            try {
+                const params = sender.getParameters();
+                if (!params.encodings?.length) {
+                    params.encodings = [{}];
+                }
+                for (const encoding of params.encodings) {
+                    encoding.maxBitrate = screenBitrate(quality);
+                    encoding.maxFramerate = quality.frameRate;
+                }
+                // eslint-disable-next-line no-await-in-loop
+                await sender.setParameters(params);
+            } catch (err) {
+                logErr('failed to set the screen sharing quality', err);
+            }
+        }
+    }
+
+    // getSessionIDForTrack tells which session sent a remote track ('' when unknown).
+    public getSessionIDForTrack(track: MediaStreamTrack): string {
+        return this.getSenderSessionID(track);
+    }
+
+    // setBackgroundBlur turns the camera's background blur on or off, and sets how strong it is, now and for the
+    // next calls (Calls' video settings).
+    public async setBackgroundBlur(on: boolean, intensity: number) {
+        setBgBlurData({blurBackground: on, blurIntensity: intensity});
+        if (on && this.segmenter) {
+            this.segmenter.setBlurIntensity(intensity);
+            return;
+        }
+        if (this.localVideoStream && this.currentVideoInputDevice) {
+            await this.setVideoInputDevice(this.currentVideoInputDevice);
+        }
     }
 
     public unshareScreen() {

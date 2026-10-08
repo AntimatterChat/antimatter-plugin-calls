@@ -2,7 +2,7 @@
 // See LICENSE.txt for license information.
 
 import {mosThreshold} from '@mattermost/calls-common';
-import {UserSessionState} from '@mattermost/calls-common/lib/types';
+import {Reaction, UserSessionState} from '@mattermost/calls-common/lib/types';
 import {GlobalState} from '@mattermost/types/store';
 import {getChannel} from 'mattermost-redux/selectors/entities/channels';
 import {isCurrentUserSystemAdmin} from 'mattermost-redux/selectors/entities/users';
@@ -16,12 +16,14 @@ import {
     openCallsUserSettings,
     showScreenSourceModal,
 } from 'src/actions';
+import {getSessionVolume, setSessionVolume} from 'src/call_audio';
 import CallsClient, {
     AudioInputMissingError,
     AudioInputPermissionsError,
     VideoInputMissingError,
     VideoInputPermissionsError,
 } from 'src/client';
+import {getBgBlurData, setBgBlurData} from 'src/local_storage';
 import {logErr} from 'src/log';
 import {
     allowScreenSharing,
@@ -41,6 +43,7 @@ import type {
     CallsIncomingCall,
     CallsJoinOptions,
     CallsParticipant,
+    CallsReaction,
     LocalCall,
 } from 'src/types/public_api';
 import {CallJobReduxState, ChannelType, IncomingCallNotification} from 'src/types/types';
@@ -141,6 +144,7 @@ function getParticipants(state: GlobalState, channelId: string): CallsParticipan
             screenSharing: session.session_id === screenSharingId,
             speaking: Boolean(session.voice) && session.unmuted,
             raisedHand: session.raised_hand > 0,
+            raisedHandAt: session.raised_hand || 0,
             isHost: Boolean(hostId) && session.user_id === hostId,
             isMe: Boolean(mySessionId) && session.session_id === mySessionId,
         }));
@@ -208,6 +212,24 @@ function getMyMuted(state: GlobalState): boolean {
     return !pluginState(state).sessions?.[me.channelID]?.[me.sessionID]?.unmuted;
 }
 
+let reactionsCache: {reactions: unknown; result: CallsReaction[]} = {reactions: null, result: []};
+
+function getReactions(state: GlobalState, channelId: string): CallsReaction[] {
+    const reactions: Reaction[] = pluginState(state).reactions?.[channelId]?.reactions || [];
+    if (reactionsCache.reactions === reactions) {
+        return reactionsCache.result;
+    }
+    const result = reactions.map((r) => ({
+        sessionId: r.session_id,
+        userId: r.user_id,
+        emojiName: r.emoji?.name || '',
+        unified: r.emoji?.unified || '',
+        timestamp: r.timestamp,
+    }));
+    reactionsCache = {reactions, result};
+    return result;
+}
+
 export const selectors = {
     isCallsEnabled,
     getCall,
@@ -218,6 +240,7 @@ export const selectors = {
     isVideoAllowed,
     isScreenSharingAllowed,
     getMyMuted,
+    getReactions,
 } as AntimatterCallsAPI['selectors'];
 
 //
@@ -418,7 +441,7 @@ export function createCallsAPI(store: Store, joinCall: JoinCall): CallsAPIHandle
             }
         },
 
-        startScreenShare: () => {
+        startScreenShare: (quality) => {
             const state = store.getState();
             if (!client || !allowScreenSharing(state) || getScreenSharingSessionId(state, client.channelID)) {
                 return;
@@ -432,7 +455,7 @@ export function createCallsAPI(store: Store, joinCall: JoinCall): CallsAPIHandle
 
             // This must run synchronously from the click: the browser only lets a page ask to
             // capture the screen right after a user action.
-            client.shareScreen('', shareAudioWithScreen()).then((stream) => {
+            client.shareScreen('', shareAudioWithScreen(), quality).then((stream) => {
                 if (!stream) {
                     emit('error', {kind: 'screen-share-failed'});
                     return;
@@ -460,6 +483,26 @@ export function createCallsAPI(store: Store, joinCall: JoinCall): CallsAPIHandle
             } else {
                 client.unraiseHand();
             }
+        },
+
+        sendReaction: (emojiName, unified) => {
+            client?.sendUserReaction({name: emojiName, unified});
+        },
+
+        setParticipantVolume: (sessionId, volume) => setSessionVolume(sessionId, volume),
+        getParticipantVolume: (sessionId) => getSessionVolume(sessionId),
+
+        getBackgroundBlur: () => {
+            const data = getBgBlurData();
+            return {on: data.blurBackground, intensity: data.blurIntensity || 50};
+        },
+        setBackgroundBlur: async ({on, intensity}) => {
+            if (client) {
+                await client.setBackgroundBlur(on, intensity);
+            } else {
+                setBgBlurData({blurBackground: on, blurIntensity: intensity});
+            }
+            emit('change');
         },
 
         getLocalVideoStream: () => client?.localVideoStream || null,

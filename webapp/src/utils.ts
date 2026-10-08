@@ -270,7 +270,22 @@ export function stateSortSessions(presenterID: string, considerReaction = false)
     };
 }
 
-export async function getScreenStream(sourceID?: string, withAudio?: boolean): Promise<MediaStream | null> {
+// ScreenQuality is a screen sharing preset: the largest height sent (0 for the source's own size) and the frame rate.
+export type ScreenQuality = {height: number; frameRate: number};
+
+// The bitrate to send a shared screen at, for its size and frame rate: about what streaming services use.
+export function screenBitrate(quality: ScreenQuality): number {
+    const height = quality.height || 1080;
+    let base = 2_500_000;
+    if (height >= 1440) {
+        base = 8_000_000;
+    } else if (height >= 1080) {
+        base = 4_500_000;
+    }
+    return quality.frameRate > 30 ? Math.round(base * 1.6) : base;
+}
+
+export async function getScreenStream(sourceID?: string, withAudio?: boolean, quality?: ScreenQuality): Promise<MediaStream | null> {
     logDebug(`getScreenStream called with sourceID: ${sourceID}, withAudio: ${withAudio}`);
     let screenStream: MediaStream | null = null;
 
@@ -284,9 +299,17 @@ export async function getScreenStream(sourceID?: string, withAudio?: boolean): P
             if (sourceID) {
                 options.chromeMediaSourceId = sourceID;
             }
+            const videoOptions = {...options} as Record<string, unknown>;
+            if (quality?.height) {
+                videoOptions.maxHeight = quality.height;
+                videoOptions.maxWidth = Math.round((quality.height * 16) / 9);
+            }
+            if (quality?.frameRate) {
+                videoOptions.maxFrameRate = quality.frameRate;
+            }
             screenStream = await navigator.mediaDevices.getUserMedia({
                 video: {
-                    mandatory: options,
+                    mandatory: videoOptions,
                 } as Record<string, unknown>,
                 audio: withAudio ? {mandatory: options} as Record<string, unknown> : false,
             });
@@ -299,7 +322,10 @@ export async function getScreenStream(sourceID?: string, withAudio?: boolean): P
         logDebug(`getScreenStream: using browser getDisplayMedia with audio: ${Boolean(withAudio)}`);
         try {
             screenStream = await navigator.mediaDevices.getDisplayMedia({
-                video: true,
+                video: quality ? {
+                    ...(quality.height ? {height: {ideal: quality.height}, width: {ideal: Math.round((quality.height * 16) / 9)}} : {}),
+                    frameRate: {ideal: quality.frameRate, max: quality.frameRate},
+                } : true,
                 audio: Boolean(withAudio),
             });
             logDebug(`getScreenStream: received stream with ${screenStream?.getVideoTracks().length} video tracks and ${screenStream?.getAudioTracks().length} audio tracks`);

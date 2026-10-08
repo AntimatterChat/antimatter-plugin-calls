@@ -3,7 +3,7 @@
 
 import {EventEmitter} from 'events';
 
-import {CallAudio} from './call_audio';
+import {CallAudio, getSessionVolume, setSessionVolume} from './call_audio';
 import type CallsClient from './client';
 
 class FakeTrack extends EventTarget {
@@ -62,6 +62,23 @@ describe('CallAudio', () => {
         client.emit('remoteVoiceStream', {getAudioTracks: () => [t2]}, 'session');
 
         expect(audioEls().map((el) => el.getAttribute('data-testid'))).toEqual(['t1', 't2']);
+        audio.destroy();
+    });
+
+    test('plays each participant at the volume chosen for them', () => {
+        const {client, audio} = setup();
+        setSessionVolume('s1', 0.4);
+        const t1 = new FakeTrack('t1');
+        const t2 = new FakeTrack('t2');
+        client.emit('remoteVoiceStream', {getAudioTracks: () => [t1]}, 's1');
+        client.emit('remoteVoiceStream', {getAudioTracks: () => [t2]}, 's2');
+        expect(audioEls().map((el) => el.volume)).toEqual([0.4, 1]);
+
+        setSessionVolume('s2', 0.25);
+        setSessionVolume('s1', 3);
+        expect(audioEls().map((el) => el.volume)).toEqual([1, 0.25]);
+        expect(getSessionVolume('s1')).toBe(1);
+        setSessionVolume('s2', 1);
         audio.destroy();
     });
 

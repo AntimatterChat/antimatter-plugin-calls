@@ -65,8 +65,8 @@ describe('selectors', () => {
 
         const participants = selectors.getParticipants(state, channelID);
         expect(participants).toEqual([
-            {sessionId: 's1', userId: 'owner', muted: false, video: false, screenSharing: true, speaking: true, raisedHand: false, isHost: true, isMe: false},
-            {sessionId: 's2', userId: currentUserID, muted: true, video: true, screenSharing: false, speaking: false, raisedHand: true, isHost: false, isMe: true},
+            {sessionId: 's1', userId: 'owner', muted: false, video: false, screenSharing: true, speaking: true, raisedHand: false, raisedHandAt: 0, isHost: true, isMe: false},
+            {sessionId: 's2', userId: currentUserID, muted: true, video: true, screenSharing: false, speaking: false, raisedHand: true, raisedHandAt: 5, isHost: false, isMe: true},
         ]);
 
         // Another state with the same call slices gives the same array
@@ -115,6 +115,16 @@ describe('selectors', () => {
             {channelId: 'ch1', callId: 'c1', callerId: 'u1', startAt: 1, type: 'dm'},
         ]);
         expect(selectors.getIncomingCalls(makeState({incomingCalls}))).toBe(calls);
+    });
+
+    test('getReactions maps the call\'s reactions and keeps the result while unchanged', () => {
+        expect(selectors.getReactions(makeState(), channelID)).toEqual([]);
+        const reactions = [{user_id: 'u1', session_id: 's1', emoji: {name: '+1', unified: '1f44d'}, timestamp: 42, displayName: 'U'}];
+        const state = makeState();
+        (state as any)['plugins-com.mattermost.calls'].reactions = {[channelID]: {reactions}};
+        const result = selectors.getReactions(state, channelID);
+        expect(result).toEqual([{sessionId: 's1', userId: 'u1', emojiName: '+1', unified: '1f44d', timestamp: 42}]);
+        expect(selectors.getReactions(state, channelID)).toBe(result);
     });
 
     test('getMyMuted', () => {
@@ -173,12 +183,13 @@ describe('createCallsAPI', () => {
         const {api} = createCallsAPI(store, join);
         expect(api.version).toBe(1);
         expect(Object.keys(api).sort()).toEqual([
-            'dismissIncomingCall', 'getLocalScreenStream', 'getLocalVideoStream', 'getRemoteScreenStream',
-            'getRemoteVideoStreams', 'host', 'join', 'leave', 'on', 'openSettings', 'selectors', 'setHandRaised',
-            'setMuted', 'setVideo', 'startScreenShare', 'stopScreenShare', 'version',
+            'dismissIncomingCall', 'getBackgroundBlur', 'getLocalScreenStream', 'getLocalVideoStream', 'getParticipantVolume',
+            'getRemoteScreenStream', 'getRemoteVideoStreams', 'host', 'join', 'leave', 'on', 'openSettings', 'selectors',
+            'sendReaction', 'setBackgroundBlur', 'setHandRaised', 'setMuted', 'setParticipantVolume', 'setVideo',
+            'startScreenShare', 'stopScreenShare', 'version',
         ]);
         expect(Object.keys(api.selectors).sort()).toEqual([
-            'getCall', 'getIncomingCalls', 'getLocalCall', 'getMyMuted', 'getParticipants', 'getScreenSharingSessionId',
+            'getCall', 'getIncomingCalls', 'getLocalCall', 'getMyMuted', 'getParticipants', 'getReactions', 'getScreenSharingSessionId',
             'isCallsEnabled', 'isScreenSharingAllowed', 'isVideoAllowed',
         ]);
         expect(Object.keys(api.host).sort()).toEqual(['lowerHand', 'mute', 'remove', 'stopScreen']);
