@@ -45,6 +45,7 @@ import {
     HOST_CONTROL_NOTICE_TIMEOUT,
     JOB_TYPE_CAPTIONING,
     JOB_TYPE_RECORDING,
+    JOB_TYPE_TRANSCRIBING,
     JOINED_USER_NOTIFICATION_TIMEOUT,
     LIVE_CAPTION_TIMEOUT,
     REACTION_TIMEOUT_IN_REACTION_STREAM,
@@ -59,6 +60,7 @@ import {
     CALL_LIVE_CAPTIONS_STATE,
     CALL_RECORDING_STATE,
     CALL_STATE,
+    CALL_TRANSCRIPTION_STATE,
     DISMISS_CALL,
     HOST_CONTROL_NOTICE,
     HOST_CONTROL_NOTICE_TIMEOUT_EVENT,
@@ -140,6 +142,13 @@ export function handleCallStart(store: Store, ev: WebSocketMessage<CallStartData
     });
     store.dispatch({
         type: CALL_LIVE_CAPTIONS_STATE,
+        data: {
+            callID: channelID,
+            jobState: null,
+        },
+    });
+    store.dispatch({
+        type: CALL_TRANSCRIPTION_STATE,
         data: {
             callID: channelID,
             jobState: null,
@@ -487,6 +496,12 @@ export function handleCallJobState(store: Store, ev: WebSocketMessage<CallJobSta
     case JOB_TYPE_CAPTIONING:
         type = CALL_LIVE_CAPTIONS_STATE;
         break;
+    case JOB_TYPE_TRANSCRIBING:
+        type = CALL_TRANSCRIPTION_STATE;
+        break;
+    }
+    if (!type) {
+        return;
     }
 
     store.dispatch({

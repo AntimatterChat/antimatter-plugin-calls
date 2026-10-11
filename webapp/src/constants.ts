@@ -1,6 +1,7 @@
 // Copyright (c) 2020-present Mattermost, Inc. All Rights Reserved.
 // See LICENSE.txt for license information.
 
+import type {TranscribeAPI} from '@mattermost/calls-common/lib/types';
 import {defineMessage, MessageDescriptor} from 'react-intl';
 import {CallAlertConfig, CallAlertType} from 'src/types/types';
 
@@ -18,6 +19,9 @@ export const DEFAULT_RING_SOUND = 'Calm';
 export const CALL_EVENT_POST_TYPE = 'custom_calls';
 export const CALL_RECORDING_POST_TYPE = 'custom_calls_recording';
 export const CALL_TRANSCRIPTION_POST_TYPE = 'custom_calls_transcription';
+
+// The TranscribeAPI of transcriptions by an OpenAI-compatible speech-to-text API, from the clients' audio.
+export const TRANSCRIBE_API_OPENAI = 'openai' as TranscribeAPI;
 
 // Calls channel props (see server/public/calls_channel.go).
 export const CHANNEL_PROP_ENABLE_VIDEO = 'enable_video';

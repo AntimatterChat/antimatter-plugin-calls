@@ -270,7 +270,7 @@
       {
         "key": "CallTranscriptions",
         "title": "Call transcriptions",
-        "subtitle": "Allows calls to be transcribed to text files. Recordings must be enabled",
+        "subtitle": "Allows calls to be transcribed to text files, by the job service (recordings must be enabled) or by a speech-to-text API",
         "custom": true,
         "fallback": true,
         "settings": [
@@ -295,6 +295,10 @@
               {
                 "display_name": "Azure AI",
                 "value": "azure"
+              },
+              {
+                "display_name": "OpenAI-compatible API (no job service)",
+                "value": "openai"
               }
             ],
             "hosting": "on-prem"
@@ -343,13 +347,42 @@
             "help_text": "The API region for Azure Speech Services",
             "default": "",
             "hosting": "on-prem"
+          },
+          {
+            "key": "TranscribeAPIOpenAIURL",
+            "display_name": "Speech-to-text API URL",
+            "type": "text",
+            "help_text": "The base URL of an OpenAI-compatible speech-to-text API, up to and including /v1. Each participant's app sends its own audio while a call is transcribed: no job service or recording is needed.",
+            "default": ""
+          },
+          {
+            "key": "TranscribeAPIOpenAIModel",
+            "display_name": "Speech-to-text model",
+            "type": "text",
+            "help_text": "The model as the API names it, e.g. whisper-1.",
+            "default": ""
+          },
+          {
+            "key": "TranscribeAPIOpenAIKey",
+            "display_name": "Speech-to-text API key",
+            "type": "text",
+            "help_text": "Sent as a bearer token. Leave it blank if the API needs none.",
+            "default": "",
+            "secret": true
+          },
+          {
+            "key": "SummarizeTranscriptions",
+            "display_name": "Summarize transcriptions",
+            "type": "bool",
+            "help_text": "When set to true, the default agent of the Agents plugin posts a summary of each transcription in the call's thread.",
+            "default": false
           }
         ]
       },
       {
         "key": "CallLiveCaptions",
         "title": "Live captions",
-        "subtitle": "Displays spoken words as text captions during a call. Recordings and transcriptions must be enabled",
+        "subtitle": "Displays spoken words as text captions during a call. Transcriptions must be enabled",
         "custom": true,
         "fallback": true,
         "settings": [

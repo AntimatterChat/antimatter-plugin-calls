@@ -25,6 +25,7 @@ import {
     CALL_REC_PROMPT_DISMISSED,
     CALL_RECORDING_STATE,
     CALL_STATE,
+    CALL_TRANSCRIPTION_STATE,
     CLIENT_CONNECTING,
     DESKTOP_WIDGET_CONNECTED,
     DID_NOTIFY_FOR_CALL,
@@ -679,6 +680,24 @@ const recordings = (state: callsJobState = {}, action: jobStateAction | localSes
     }
 };
 
+// The transcription of the calls, as its job runs (the job service's, or the speech-to-text API's from the clients'
+// audio).
+const callTranscriptionState = (state: callsJobState = {}, action: jobStateAction) => {
+    switch (action.type) {
+    case CALL_TRANSCRIPTION_STATE: {
+        return {
+            ...state,
+            [action.data.callID]: {
+                ...state[action.data.callID],
+                ...action.data.jobState,
+            },
+        };
+    }
+    default:
+        return state;
+    }
+};
+
 const callLiveCaptionsState = (state: callsJobState = {}, action: jobStateAction) => {
     switch (action.type) {
     case CALL_LIVE_CAPTIONS_STATE: {
@@ -1150,6 +1169,7 @@ export default combineReducers({
     callsUserPreferences,
     recordings,
     callLiveCaptionsState,
+    callTranscriptionState,
     recentlyJoinedUsers,
     incomingCalls,
     ringingForCalls,

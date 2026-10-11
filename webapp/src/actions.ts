@@ -2,7 +2,7 @@
 // See LICENSE.txt for license information.
 
 /* eslint-disable max-lines */
-import {CallsConfig, CallState, CallsVersionInfo} from '@mattermost/calls-common/lib/types';
+import {CallJobState, CallsConfig, CallState, CallsVersionInfo} from '@mattermost/calls-common/lib/types';
 import {Channel} from '@mattermost/types/channels';
 import {UserTypes} from 'mattermost-redux/action_types';
 import {getChannel as loadChannel} from 'mattermost-redux/actions/channels';
@@ -52,6 +52,7 @@ import {
     CALL_REC_PROMPT_DISMISSED,
     CALL_RECORDING_STATE,
     CALL_STATE,
+    CALL_TRANSCRIPTION_STATE,
     CLIENT_CONNECTING,
     DID_RING_FOR_CALL,
     DISMISS_CALL,
@@ -484,6 +485,14 @@ export const loadCallState = (channelID: string, call: CallState) => (dispatch: 
         data: {
             callID: channelID,
             jobState: call.live_captions,
+        },
+    });
+
+    actions.push({
+        type: CALL_TRANSCRIPTION_STATE,
+        data: {
+            callID: channelID,
+            jobState: (call as CallState & {transcription?: CallJobState}).transcription,
         },
     });
 

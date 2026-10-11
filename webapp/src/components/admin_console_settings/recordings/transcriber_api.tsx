@@ -7,14 +7,13 @@ import {useDispatch, useSelector} from 'react-redux';
 import {setTranscribeAPI} from 'src/actions';
 import {LabelRow, leftCol, rightCol} from 'src/components/admin_console_settings/common';
 import manifest from 'src/manifest';
-import {callsConfig, callsConfigEnvOverrides, recordingsEnabled, transcriptionsEnabled} from 'src/selectors';
+import {callsConfig, callsConfigEnvOverrides, transcriptionsEnabled} from 'src/selectors';
 import {CustomComponentProps} from 'src/types/antimatter-webapp';
 
 const TranscribeAPI = (props: CustomComponentProps) => {
     const {formatMessage} = useIntl();
     const dispatch = useDispatch();
     const hasTranscriptions = useSelector(transcriptionsEnabled);
-    const recordingEnabled = useSelector(recordingsEnabled);
     const config = useSelector(callsConfig);
     const overrides = useSelector(callsConfigEnvOverrides);
     const overridden = 'TranscribeAPI' in overrides;
@@ -28,7 +27,7 @@ const TranscribeAPI = (props: CustomComponentProps) => {
         }
     }, [dispatch, api]);
 
-    if (!hasTranscriptions || !recordingEnabled) {
+    if (!hasTranscriptions) {
         return null;
     }
 

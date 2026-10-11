@@ -401,6 +401,13 @@ func (p *Plugin) cleanCallState(call *public.Call) error {
 					"jobState": getClientStateFromCallJob(job).toMap(),
 				}, &WebSocketBroadcast{ChannelID: call.ChannelID, ReliableClusterSend: true})
 			}
+
+			// A transcription from the clients' audio ends with the call: its transcript is posted.
+			if job.Type == public.JobTypeTranscribing && isSTTJob(job) {
+				callCopy := *call
+				markSTTJobEnded(call.ChannelID, job.ID)
+				go p.postSTTTranscript(&callCopy, job)
+			}
 		}
 	}
 

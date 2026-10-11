@@ -68,6 +68,12 @@ import RecordingQuality from 'src/components/admin_console_settings/recordings/r
 import TranscribeAPI from 'src/components/admin_console_settings/recordings/transcriber_api';
 import TranscribeAPIAzureSpeechKey from 'src/components/admin_console_settings/recordings/transcriber_api_azure_speech_key';
 import TranscribeAPIAzureSpeechRegion from 'src/components/admin_console_settings/recordings/transcriber_api_azure_speech_region';
+import {
+    SummarizeTranscriptions,
+    TranscribeAPIOpenAIKey,
+    TranscribeAPIOpenAIModel,
+    TranscribeAPIOpenAIURL,
+} from 'src/components/admin_console_settings/recordings/transcriber_api_openai';
 import TranscriberModelSize from 'src/components/admin_console_settings/recordings/transcriber_model_size';
 import TranscriberNumThreads from 'src/components/admin_console_settings/recordings/transcriber_num_threads';
 import RTCDServiceURL from 'src/components/admin_console_settings/rtcd_service_url';
@@ -594,6 +600,10 @@ export default class Plugin {
         registry.registerAdminConsoleCustomSetting('TranscriberNumThreads', TranscriberNumThreads);
         registry.registerAdminConsoleCustomSetting('TranscribeAPIAzureSpeechKey', TranscribeAPIAzureSpeechKey);
         registry.registerAdminConsoleCustomSetting('TranscribeAPIAzureSpeechRegion', TranscribeAPIAzureSpeechRegion);
+        registry.registerAdminConsoleCustomSetting('TranscribeAPIOpenAIURL', TranscribeAPIOpenAIURL);
+        registry.registerAdminConsoleCustomSetting('TranscribeAPIOpenAIModel', TranscribeAPIOpenAIModel);
+        registry.registerAdminConsoleCustomSetting('TranscribeAPIOpenAIKey', TranscribeAPIOpenAIKey);
+        registry.registerAdminConsoleCustomSetting('SummarizeTranscriptions', SummarizeTranscriptions);
 
         // Live Captions
         if (registry.registerAdminConsoleCustomSection) {

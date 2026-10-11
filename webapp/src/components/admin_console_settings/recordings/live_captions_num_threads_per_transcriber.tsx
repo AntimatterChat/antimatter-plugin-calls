@@ -5,12 +5,14 @@ import React, {ChangeEvent} from 'react';
 import {useIntl} from 'react-intl';
 import {useSelector} from 'react-redux';
 import {LabelRow, leftCol, rightCol} from 'src/components/admin_console_settings/common';
+import {TRANSCRIBE_API_OPENAI} from 'src/constants';
 import manifest from 'src/manifest';
 import {
     callsConfig,
     callsConfigEnvOverrides,
     liveCaptionsEnabled,
     recordingsEnabled,
+    transcribeAPI,
     transcriptionsEnabled,
 } from 'src/selectors';
 import {CustomComponentProps} from 'src/types/antimatter-webapp';
@@ -20,11 +22,13 @@ const LiveCaptionsNumThreadsPerTranscriber = (props: CustomComponentProps) => {
     const recordingEnabled = useSelector(recordingsEnabled);
     const transcriptionEnabled = useSelector(transcriptionsEnabled);
     const liveCaptionEnabled = useSelector(liveCaptionsEnabled);
+    const api = useSelector(transcribeAPI);
     const config = useSelector(callsConfig);
     const overrides = useSelector(callsConfigEnvOverrides);
     const overridden = 'LiveCaptionsNumThreadsPerTranscriber' in overrides;
 
-    if (!recordingEnabled || !transcriptionEnabled || !liveCaptionEnabled) {
+    // The job service's live captions only: a speech-to-text API needs none of these.
+    if (!recordingEnabled || !transcriptionEnabled || !liveCaptionEnabled || api === TRANSCRIBE_API_OPENAI) {
         return null;
     }
 

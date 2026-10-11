@@ -6,13 +6,12 @@ import {useIntl} from 'react-intl';
 import {useDispatch, useSelector} from 'react-redux';
 import {setTranscriptionsEnabled} from 'src/actions';
 import {leftCol, RadioInput, RadioInputLabel, rightCol} from 'src/components/admin_console_settings/common';
-import {callsConfig, callsConfigEnvOverrides, recordingsEnabled} from 'src/selectors';
+import {callsConfig, callsConfigEnvOverrides} from 'src/selectors';
 import {CustomComponentProps} from 'src/types/antimatter-webapp';
 
 export const EnableTranscriptions = (props: CustomComponentProps) => {
     const dispatch = useDispatch();
     const {formatMessage} = useIntl();
-    const recordingEnabled = useSelector(recordingsEnabled);
     const config = useSelector(callsConfig);
     const overrides = useSelector(callsConfigEnvOverrides);
     const overridden = 'EnableTranscriptions' in overrides;
@@ -40,10 +39,6 @@ export const EnableTranscriptions = (props: CustomComponentProps) => {
     }
 
     const disabled = props.disabled || overridden;
-
-    if (!recordingEnabled) {
-        return null;
-    }
 
     return (
         <div
@@ -84,7 +79,7 @@ export const EnableTranscriptions = (props: CustomComponentProps) => {
                     data-testid={props.id + 'help-text'}
                     className='help-text'
                 >
-                    {formatMessage({defaultMessage: '(Optional) When set to true, post-call transcriptions are enabled.'})}
+                    {formatMessage({defaultMessage: '(Optional) When set to true, post-call transcriptions are enabled. The job service\'s transcriber also needs recordings; a speech-to-text API doesn\'t.'})}
                 </div>
 
                 {overridden &&

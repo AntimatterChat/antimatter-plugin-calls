@@ -10,6 +10,7 @@ import (
 	"maps"
 	"net"
 	"net/http"
+	"net/url"
 	"reflect"
 	"strconv"
 	"strings"
@@ -77,6 +78,14 @@ type configuration struct {
 	TranscribeAPIAzureSpeechKey string
 	// Azure Speech Services API region
 	TranscribeAPIAzureSpeechRegion string
+	// With the OpenAI-compatible API, the base URL of the API (e.g. https://stt.example.com/v1), the model, and the
+	// key if the API needs one. Calls are then transcribed without the job service: each participant's client sends
+	// its own audio.
+	TranscribeAPIOpenAIURL   string
+	TranscribeAPIOpenAIModel string
+	TranscribeAPIOpenAIKey   string
+	// When set to true, the Agents plugin is asked to summarize each transcription in the call's thread.
+	SummarizeTranscriptions *bool
 	// The number of threads to use to transcriber calls.
 	TranscriberNumThreads *int
 	// When set to true live captions will be enabled when starting transcription jobs.
@@ -121,6 +130,9 @@ type ClientConfig struct {
 	EnableTranscriptions *bool
 	// When set to true it enables the live captions functionality
 	EnableLiveCaptions *bool
+	// When set to true, calls are transcribed by a speech-to-text API from the participants' audio, which their
+	// clients send while a transcription runs, rather than by the job service.
+	TranscribeFromClients bool
 	// The maximum duration (in minutes) for call recordings.
 	MaxRecordingDuration *int
 	// When set to true it enables simulcast for screen sharing. This can help to improve screen sharing quality.
@@ -309,7 +321,14 @@ func (c *configuration) IsValid() error {
 		return fmt.Errorf("RecordingQuality is not valid")
 	}
 
-	if c.transcriptionsEnabled() {
+	if c.transcriptionsEnabled() && c.transcribeWithAPI() {
+		if u, err := url.Parse(c.TranscribeAPIOpenAIURL); err != nil || (u.Scheme != "http" && u.Scheme != "https") || u.Host == "" {
+			return fmt.Errorf("TranscribeAPIOpenAIURL is not valid: should be the http(s) URL of the API")
+		}
+		if strings.TrimSpace(c.TranscribeAPIOpenAIModel) == "" {
+			return fmt.Errorf("TranscribeAPIOpenAIModel is not valid: should be the model's name")
+		}
+	} else if c.transcriptionsEnabled() {
 		if ok := c.TranscriberModelSize.IsValid(); !ok {
 			return fmt.Errorf("TranscriberModelSize is not valid")
 		}
@@ -327,7 +346,11 @@ func (c *configuration) IsValid() error {
 		return fmt.Errorf("ICEHostPortOverride is not valid: %d is not in allowed range [%d, %d]", *c.ICEHostPortOverride, minAllowedPort, maxAllowedPort)
 	}
 
-	if c.liveCaptionsEnabled() {
+	if c.liveCaptionsEnabled() && c.transcribeWithAPI() {
+		if c.LiveCaptionsLanguage != "" && len(c.LiveCaptionsLanguage) != 2 {
+			return fmt.Errorf("LiveCaptionsLanguage is not valid: should be a 2-letter ISO 639 set 1 language code, or blank for default")
+		}
+	} else if c.liveCaptionsEnabled() {
 		if ok := c.LiveCaptionsModelSize.IsValid(); !ok {
 			return fmt.Errorf("LiveCaptionsModelSize is not valid")
 		}
@@ -362,6 +385,12 @@ func (c *configuration) Clone() *configuration {
 	cfg.TranscribeAPI = c.TranscribeAPI
 	cfg.TranscribeAPIAzureSpeechKey = c.TranscribeAPIAzureSpeechKey
 	cfg.TranscribeAPIAzureSpeechRegion = c.TranscribeAPIAzureSpeechRegion
+	cfg.TranscribeAPIOpenAIURL = c.TranscribeAPIOpenAIURL
+	cfg.TranscribeAPIOpenAIModel = c.TranscribeAPIOpenAIModel
+	cfg.TranscribeAPIOpenAIKey = c.TranscribeAPIOpenAIKey
+	if c.SummarizeTranscriptions != nil {
+		cfg.SummarizeTranscriptions = model.NewPointer(*c.SummarizeTranscriptions)
+	}
 	cfg.LiveCaptionsModelSize = c.LiveCaptionsModelSize
 	cfg.LiveCaptionsLanguage = c.LiveCaptionsLanguage
 
@@ -492,41 +521,51 @@ func (c *configuration) recordingsEnabled() bool {
 	return false
 }
 
+// transcribeWithAPI returns whether calls are transcribed by an OpenAI-compatible speech-to-text API from the audio
+// of the participants' clients, which needs neither the job service nor recordings.
+func (c *configuration) transcribeWithAPI() bool {
+	return c.TranscribeAPI == transcribeAPIOpenAI
+}
+
 func (c *configuration) transcriptionsEnabled() bool {
-	if c.recordingsEnabled() && c.EnableTranscriptions != nil && *c.EnableTranscriptions {
+	if (c.recordingsEnabled() || c.transcribeWithAPI()) && c.EnableTranscriptions != nil && *c.EnableTranscriptions {
 		return true
 	}
 	return false
 }
 
 func (c *configuration) liveCaptionsEnabled() bool {
-	if c.recordingsEnabled() && c.transcriptionsEnabled() &&
-		c.EnableLiveCaptions != nil && *c.EnableLiveCaptions {
+	if c.transcriptionsEnabled() && c.EnableLiveCaptions != nil && *c.EnableLiveCaptions {
 		return true
 	}
 	return false
 }
 
+func (c *configuration) summarizeTranscriptions() bool {
+	return c.SummarizeTranscriptions != nil && *c.SummarizeTranscriptions
+}
+
 func (p *Plugin) getClientConfig(c *configuration) ClientConfig {
 	return ClientConfig{
-		AllowEnableCalls:     model.NewPointer(true), // always true
-		DefaultEnabled:       c.DefaultEnabled,
-		ICEServers:           c.ICEServers,
-		ICEServersConfigs:    c.getICEServers(true),
-		MaxCallParticipants:  c.MaxCallParticipants,
-		NeedsTURNCredentials: model.NewPointer(c.TURNStaticAuthSecret != "" && len(c.ICEServersConfigs.getTURNConfigsForCredentials()) > 0),
-		AllowScreenSharing:   c.AllowScreenSharing,
-		EnableRecordings:     c.EnableRecordings,
-		EnableTranscriptions: c.EnableTranscriptions,
-		EnableLiveCaptions:   c.EnableLiveCaptions,
-		MaxRecordingDuration: c.MaxRecordingDuration,
-		EnableSimulcast:      c.EnableSimulcast,
-		EnableRinging:        c.EnableRinging,
-		HostControlsAllowed:  true,
-		EnableAV1:            c.EnableAV1,
-		GroupCallsAllowed:    true,
-		EnableDCSignaling:    c.EnableDCSignaling,
-		EnableVideo:          c.EnableVideo,
+		AllowEnableCalls:      model.NewPointer(true), // always true
+		DefaultEnabled:        c.DefaultEnabled,
+		ICEServers:            c.ICEServers,
+		ICEServersConfigs:     c.getICEServers(true),
+		MaxCallParticipants:   c.MaxCallParticipants,
+		NeedsTURNCredentials:  model.NewPointer(c.TURNStaticAuthSecret != "" && len(c.ICEServersConfigs.getTURNConfigsForCredentials()) > 0),
+		AllowScreenSharing:    c.AllowScreenSharing,
+		EnableRecordings:      c.EnableRecordings,
+		EnableTranscriptions:  model.NewPointer(c.transcriptionsEnabled()),
+		EnableLiveCaptions:    model.NewPointer(c.liveCaptionsEnabled()),
+		TranscribeFromClients: c.transcriptionsEnabled() && c.transcribeWithAPI(),
+		MaxRecordingDuration:  c.MaxRecordingDuration,
+		EnableSimulcast:       c.EnableSimulcast,
+		EnableRinging:         c.EnableRinging,
+		HostControlsAllowed:   true,
+		EnableAV1:             c.EnableAV1,
+		GroupCallsAllowed:     true,
+		EnableDCSignaling:     c.EnableDCSignaling,
+		EnableVideo:           c.EnableVideo,
 	}
 }
 

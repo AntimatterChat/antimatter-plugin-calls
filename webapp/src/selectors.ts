@@ -452,6 +452,28 @@ export const areLiveCaptionsAvailableInCurrentCall: (state: GlobalState) => bool
         },
     );
 
+const transcriptionStateForCalls = (state: GlobalState): callsJobState => {
+    return pluginState(state).callTranscriptionState;
+};
+
+// The state of the transcription of the call in a channel.
+export const transcriptionStateInChannel = (state: GlobalState, channelID: string): CallJobReduxState | undefined =>
+    transcriptionStateForCalls(state)[channelID];
+
+export const transcriptionStateForCurrentCall: (state: GlobalState) => CallJobReduxState =
+    createSelector(
+        'transcriptionStateForCurrentCall',
+        transcriptionStateForCalls,
+        channelIDForCurrentCall,
+        (transcriptions, channelID) => transcriptions[channelID] || {},
+    );
+
+export const isJobRunning = (job?: CallJobReduxState) => Boolean(job?.start_at && job.start_at > job.end_at);
+
+// Whether calls are transcribed by a speech-to-text API, from the participants' audio sent by their clients.
+export const transcribeFromClients = (state: GlobalState): boolean =>
+    Boolean((callsConfig(state) as CallsConfig & {TranscribeFromClients?: boolean}).TranscribeFromClients);
+
 const recentlyJoinedUsersInCalls = (state: GlobalState): recentlyJoinedUsersState => {
     return pluginState(state).recentlyJoinedUsers;
 };

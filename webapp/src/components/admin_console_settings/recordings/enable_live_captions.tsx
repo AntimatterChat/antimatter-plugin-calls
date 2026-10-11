@@ -6,7 +6,14 @@ import {useIntl} from 'react-intl';
 import {useDispatch, useSelector} from 'react-redux';
 import {setLiveCaptionsEnabled} from 'src/actions';
 import {leftCol, RadioInput, RadioInputLabel, rightCol} from 'src/components/admin_console_settings/common';
-import {callsConfig, callsConfigEnvOverrides, recordingsEnabled, transcriptionsEnabled} from 'src/selectors';
+import {TRANSCRIBE_API_OPENAI} from 'src/constants';
+import {
+    callsConfig,
+    callsConfigEnvOverrides,
+    recordingsEnabled,
+    transcribeAPI,
+    transcriptionsEnabled,
+} from 'src/selectors';
 import {CustomComponentProps} from 'src/types/antimatter-webapp';
 
 export const EnableLiveCaptions = (props: CustomComponentProps) => {
@@ -14,6 +21,7 @@ export const EnableLiveCaptions = (props: CustomComponentProps) => {
     const {formatMessage} = useIntl();
     const recordingEnabled = useSelector(recordingsEnabled);
     const transcriptionEnabled = useSelector(transcriptionsEnabled);
+    const api = useSelector(transcribeAPI);
     const config = useSelector(callsConfig);
     const overrides = useSelector(callsConfigEnvOverrides);
     const overridden = 'EnableLiveCaptions' in overrides;
@@ -42,7 +50,7 @@ export const EnableLiveCaptions = (props: CustomComponentProps) => {
 
     const disabled = props.disabled || overridden;
 
-    if (!recordingEnabled || !transcriptionEnabled) {
+    if (!transcriptionEnabled || (!recordingEnabled && api !== TRANSCRIBE_API_OPENAI)) {
         return null;
     }
 

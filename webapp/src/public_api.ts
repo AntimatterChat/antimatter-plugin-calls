@@ -25,6 +25,7 @@ import CallsClient, {
 } from 'src/client';
 import {getBgBlurData, setBgBlurData} from 'src/local_storage';
 import {logErr} from 'src/log';
+import RestClient from 'src/rest_client';
 import {
     allowScreenSharing,
     callsExplicitlyDisabled,
@@ -32,22 +33,28 @@ import {
     channelHasCall,
     channelIDForCurrentCall,
     defaultEnabled,
+    isJobRunning,
     pluginState,
+    transcribeFromClients,
+    transcriptionStateInChannel,
     videoEnabledInChannel,
 } from 'src/selectors';
 import type {
     AntimatterCallsAPI,
     CallsCall,
+    CallsCaption,
     CallsErrorEvent,
     CallsEvent,
     CallsIncomingCall,
     CallsJoinOptions,
     CallsParticipant,
     CallsReaction,
+    CallsTranscription,
     LocalCall,
 } from 'src/types/public_api';
-import {CallJobReduxState, ChannelType, IncomingCallNotification} from 'src/types/types';
-import {sendDesktopEvent, shareAudioWithScreen, shouldRenderDesktopWidget} from 'src/utils';
+import {CallJobReduxState, ChannelType, IncomingCallNotification, LiveCaptions} from 'src/types/types';
+import {getPluginPath, sendDesktopEvent, shareAudioWithScreen, shouldRenderDesktopWidget} from 'src/utils';
+import UtteranceTranscriber from 'src/utterance_transcriber';
 
 import {Store} from './types/antimatter-webapp';
 
@@ -230,6 +237,44 @@ function getReactions(state: GlobalState, channelId: string): CallsReaction[] {
     return result;
 }
 
+function isTranscriptionAvailable(state: GlobalState): boolean {
+    return transcribeFromClients(state);
+}
+
+const noTranscription: CallsTranscription = {running: false, startAt: 0, liveCaptions: false};
+let transcriptionCache: {job: unknown; captions: unknown; result: CallsTranscription} = {job: null, captions: null, result: noTranscription};
+
+function getTranscription(state: GlobalState, channelId: string): CallsTranscription {
+    const job = transcriptionStateInChannel(state, channelId);
+    if (!isJobRunning(job)) {
+        return noTranscription;
+    }
+    const captions = pluginState(state).callLiveCaptionsState?.[channelId];
+    if (transcriptionCache.job === job && transcriptionCache.captions === captions) {
+        return transcriptionCache.result;
+    }
+    const result = {running: true, startAt: job!.start_at, liveCaptions: isJobRunning(captions)};
+    transcriptionCache = {job, captions, result};
+    return result;
+}
+
+let captionsCache: {captions: unknown; result: CallsCaption[]} = {captions: null, result: []};
+
+function getLiveCaptions(state: GlobalState, channelId: string): CallsCaption[] {
+    const captions = pluginState(state).liveCaptions?.[channelId];
+    if (captionsCache.captions === captions) {
+        return captionsCache.result;
+    }
+    const result = Object.values((captions || {}) as LiveCaptions).map((c) => ({
+        sessionId: c.session_id,
+        userId: c.user_id,
+        text: c.text,
+        captionId: c.caption_id,
+    }));
+    captionsCache = {captions, result};
+    return result;
+}
+
 export const selectors = {
     isCallsEnabled,
     getCall,
@@ -241,6 +286,9 @@ export const selectors = {
     isScreenSharingAllowed,
     getMyMuted,
     getReactions,
+    isTranscriptionAvailable,
+    getTranscription,
+    getLiveCaptions,
 } as AntimatterCallsAPI['selectors'];
 
 //
@@ -316,6 +364,42 @@ export function createCallsAPI(store: Store, joinCall: JoinCall): CallsAPIHandle
     let client: CallsClient | null = null;
     let degradedQuality = false;
 
+    // While the call of this window is transcribed from the participants' audio, the transcriber sends ours.
+    let transcriber: UtteranceTranscriber | null = null;
+    const syncTranscriber = () => {
+        const state = store.getState();
+        const channelID = channelIDForCurrentCall(state);
+        const running = Boolean(client && channelID && client.getSessionID() && transcribeFromClients(state) &&
+            isJobRunning(transcriptionStateInChannel(state, channelID)));
+        if (!running) {
+            transcriber?.stop();
+            transcriber = null;
+            return;
+        }
+        if (!transcriber) {
+            transcriber = new UtteranceTranscriber(async (audio, startAt, sentAt) => {
+                const sessionID = client?.getSessionID();
+                if (!sessionID) {
+                    return;
+                }
+                const form = new FormData();
+                form.append('audio', audio, 'utterance.wav');
+                form.append('session_id', sessionID);
+                form.append('start_at', String(startAt));
+                form.append('sent_at', String(sentAt));
+                const options = RestClient.getOptions({method: 'post', body: form});
+                const res = await fetch(`${getPluginPath()}/calls/${channelID}/transcription/audio`, options);
+                if (!res.ok && res.status !== 409) {
+                    logErr('failed to send audio to transcribe', res.status);
+                }
+            });
+        }
+        transcriber.attach(client!.audioTrack);
+    };
+
+    // As long as the store (the webapp's): without a client, it only stops the transcriber.
+    store.subscribe(syncTranscriber);
+
     // The client builds new streams on every call: keep one per track so that <video> elements
     // don't restart.
     let streamsByTrack = new Map<string, MediaStream>();
@@ -358,7 +442,12 @@ export function createCallsAPI(store: Store, joinCall: JoinCall): CallsAPIHandle
             client.off('initvideo', onInitVideo);
             client.off('devicefallback', onDeviceFallback);
             client.off('mos', onMOS);
+            client.off('initaudio', syncTranscriber);
+            client.off('devicechange', syncTranscriber);
+            client.off('connect', syncTranscriber);
         }
+        transcriber?.stop();
+        transcriber = null;
         client = null;
         degradedQuality = false;
         streamsByTrack = new Map();
@@ -376,6 +465,9 @@ export function createCallsAPI(store: Store, joinCall: JoinCall): CallsAPIHandle
         client.on('initvideo', onInitVideo);
         client.on('devicefallback', onDeviceFallback);
         client.on('mos', onMOS);
+        client.on('initaudio', syncTranscriber);
+        client.on('devicechange', syncTranscriber);
+        client.on('connect', syncTranscriber);
         emit('change');
     };
 
@@ -391,6 +483,13 @@ export function createCallsAPI(store: Store, joinCall: JoinCall): CallsAPIHandle
         const channelID = channelIDForCurrentCall(store.getState());
         if (channelID) {
             action(channelID, sessionId).catch((err) => logErr(err));
+        }
+    };
+
+    const transcriptionAction = async (action: 'start' | 'stop') => {
+        const channelID = channelIDForCurrentCall(store.getState());
+        if (channelID) {
+            await RestClient.fetch(`${getPluginPath()}/calls/${channelID}/transcription/${action}`, {method: 'post'});
         }
     };
 
@@ -542,6 +641,9 @@ export function createCallsAPI(store: Store, joinCall: JoinCall): CallsAPIHandle
             lowerHand: hostAction(hostLowerHand),
             stopScreen: hostAction(hostScreenOff),
         },
+
+        startTranscription: () => transcriptionAction('start'),
+        stopTranscription: () => transcriptionAction('stop'),
 
         dismissIncomingCall: (channelId, callId) => {
             store.dispatch(dismissIncomingCallNotification(channelId, callId));
