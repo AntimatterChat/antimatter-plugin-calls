@@ -441,7 +441,7 @@ export function createCallsAPI(store: Store, joinCall: JoinCall): CallsAPIHandle
             }
         },
 
-        startScreenShare: (quality) => {
+        startScreenShare: (quality, surface) => {
             const state = store.getState();
             if (!client || !allowScreenSharing(state) || getScreenSharingSessionId(state, client.channelID)) {
                 return;
@@ -455,7 +455,7 @@ export function createCallsAPI(store: Store, joinCall: JoinCall): CallsAPIHandle
 
             // This must run synchronously from the click: the browser only lets a page ask to
             // capture the screen right after a user action.
-            client.shareScreen('', shareAudioWithScreen(), quality).then((stream) => {
+            client.shareScreen('', shareAudioWithScreen(), quality, surface).then((stream) => {
                 if (!stream) {
                     emit('error', {kind: 'screen-share-failed'});
                     return;

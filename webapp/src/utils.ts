@@ -272,6 +272,7 @@ export function stateSortSessions(presenterID: string, considerReaction = false)
 
 // ScreenQuality is a screen sharing preset: the largest height sent (0 for the source's own size) and the frame rate.
 export type ScreenQuality = {height: number; frameRate: number};
+export type ScreenSurface = 'monitor' | 'window' | 'browser';
 
 // The bitrate to send a shared screen at, for its size and frame rate: about what streaming services use.
 export function screenBitrate(quality: ScreenQuality): number {
@@ -285,7 +286,7 @@ export function screenBitrate(quality: ScreenQuality): number {
     return quality.frameRate > 30 ? Math.round(base * 1.6) : base;
 }
 
-export async function getScreenStream(sourceID?: string, withAudio?: boolean, quality?: ScreenQuality): Promise<MediaStream | null> {
+export async function getScreenStream(sourceID?: string, withAudio?: boolean, quality?: ScreenQuality, surface?: ScreenSurface): Promise<MediaStream | null> {
     logDebug(`getScreenStream called with sourceID: ${sourceID}, withAudio: ${withAudio}`);
     let screenStream: MediaStream | null = null;
 
@@ -321,13 +322,17 @@ export async function getScreenStream(sourceID?: string, withAudio?: boolean, qu
         // browser
         logDebug(`getScreenStream: using browser getDisplayMedia with audio: ${Boolean(withAudio)}`);
         try {
+            // A surface opens the picker on that kind of source; a window or a tab leaves whole screens out.
+            const video = {
+                ...(quality?.height ? {height: {ideal: quality.height}, width: {ideal: Math.round((quality.height * 16) / 9)}} : {}),
+                ...(quality ? {frameRate: {ideal: quality.frameRate, max: quality.frameRate}} : {}),
+                ...(surface ? {displaySurface: surface} : {}),
+            };
             screenStream = await navigator.mediaDevices.getDisplayMedia({
-                video: quality ? {
-                    ...(quality.height ? {height: {ideal: quality.height}, width: {ideal: Math.round((quality.height * 16) / 9)}} : {}),
-                    frameRate: {ideal: quality.frameRate, max: quality.frameRate},
-                } : true,
+                video: Object.keys(video).length ? video : true,
                 audio: Boolean(withAudio),
-            });
+                ...(surface ? {monitorTypeSurfaces: surface === 'monitor' ? 'include' : 'exclude', selfBrowserSurface: 'exclude', surfaceSwitching: 'include'} : {}),
+            } as DisplayMediaStreamOptions);
             logDebug(`getScreenStream: received stream with ${screenStream?.getVideoTracks().length} video tracks and ${screenStream?.getAudioTracks().length} audio tracks`);
         } catch (err) {
             logErr('getScreenStream error:', err);

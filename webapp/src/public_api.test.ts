@@ -288,6 +288,15 @@ describe('createCallsAPI', () => {
         expect(client.shareScreen).toHaveBeenCalledTimes(1);
     });
 
+    test('startScreenShare asks for the kind of source chosen', () => {
+        const {api, clientCreated} = createCallsAPI(store, join);
+        const client = new FakeClient();
+        clientCreated(client as unknown as CallsClient);
+
+        api.startScreenShare({height: 1080, frameRate: 30}, 'window');
+        expect(client.shareScreen).toHaveBeenCalledWith('', expect.anything(), {height: 1080, frameRate: 30}, 'window');
+    });
+
     test('startScreenShare does nothing while someone else shares', () => {
         state = makeState({localCall: {channelID, sessionID: 's1', state: 'connected'}, screenSharingIDs: {[channelID]: 's2'}});
         const {api, clientCreated} = createCallsAPI(store, join);

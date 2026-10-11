@@ -116,6 +116,10 @@ export type CallsScreenQuality = {
     frameRate: number;
 };
 
+// What to share: a whole screen, a window or a browser tab. The browser's picker opens on that kind of source (and
+// leaves out whole screens for a window or a tab).
+export type CallsScreenSurface = 'monitor' | 'window' | 'browser';
+
 export type CallsBackgroundBlur = {
     on: boolean;
 
@@ -167,8 +171,8 @@ export type AntimatterCallsAPI = {
     setVideo(on: boolean): Promise<void>;
 
     // In the desktop app, opens Calls' screen source picker. A quality preset asks for that size and frame rate,
-    // and sends the screen at a matching bitrate.
-    startScreenShare(quality?: CallsScreenQuality): void;
+    // and sends the screen at a matching bitrate; a surface opens the browser's picker on that kind of source.
+    startScreenShare(quality?: CallsScreenQuality, surface?: CallsScreenSurface): void;
     stopScreenShare(): void;
     setHandRaised(raised: boolean): void;
 

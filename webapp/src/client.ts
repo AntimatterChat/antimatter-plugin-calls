@@ -12,7 +12,7 @@ import {zlibSync, strToU8} from 'fflate';
 import {MediaDevices, CallsClientConfig, CallsClientStats, TrackMetadata} from 'src/types/types';
 
 import {logDebug, logErr, logInfo, logWarn, persistClientLogs, flushLogsToAccumulated} from './log';
-import {getScreenStream, getPersistentStorage, screenBitrate, type ScreenQuality} from './utils';
+import {getScreenStream, getPersistentStorage, screenBitrate, type ScreenQuality, type ScreenSurface} from './utils';
 import {WebSocketClient, WebSocketError, WebSocketErrorType} from './websocket';
 import {
     STORAGE_CALLS_CLIENT_STATS_KEY,
@@ -1113,12 +1113,12 @@ export default class CallsClient extends EventEmitter {
         }
     }
 
-    public async shareScreen(sourceID?: string, withAudio?: boolean, quality?: ScreenQuality) {
+    public async shareScreen(sourceID?: string, withAudio?: boolean, quality?: ScreenQuality, surface?: ScreenSurface) {
         if (!this.ws || !this.peer) {
             return null;
         }
 
-        const screenStream = await getScreenStream(sourceID, withAudio, quality);
+        const screenStream = await getScreenStream(sourceID, withAudio, quality, surface);
         if (screenStream === null) {
             return null;
         }
