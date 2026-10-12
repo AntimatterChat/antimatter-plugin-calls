@@ -149,7 +149,12 @@ func findManifest() (*model.Manifest, error) {
 		}
 	}
 	if version == "" {
-		version = BuildTagLatest + "+" + BuildHashShort
+		// The latest tag, or 0.0.0 in a checkout without tags (the image build tags its checkouts itself).
+		if BuildTagLatest != "" {
+			version = BuildTagLatest + "+" + BuildHashShort
+		} else {
+			version = "v0.0.0+" + BuildHashShort
+		}
 	}
 	if strings.HasPrefix(version, "v") {
 		version = version[1:]

@@ -19,6 +19,8 @@ env:
 
 jobs:
   build-antimatter-plugin-calls:
+    # Runs against Mattermost's server with their Docker Hub account and test licence: their repository only.
+    if: github.repository_owner == 'mattermost'
     runs-on: ubuntu-22.04
     steps:
       - name: e2e/checkout-antimatter-plugin-calls-repo
@@ -53,6 +55,8 @@ jobs:
           retention-days: 1
 
   build-rtcd-image:
+    # Runs against Mattermost's server with their Docker Hub account and test licence: their repository only.
+    if: github.repository_owner == 'mattermost'
     runs-on: ubuntu-22.04
     env:
       BRANCH_NAME: ${{ github.head_ref || github.ref_name }}
@@ -100,6 +104,8 @@ jobs:
           retention-days: 1
 
   generate-matrix:
+    # Runs against Mattermost's server with their Docker Hub account and test licence: their repository only.
+    if: github.repository_owner == 'mattermost'
     runs-on: ubuntu-22.04
     outputs:
       parallelism-matrix: ${{ steps.calculation.outputs.PARALLELISM }}
