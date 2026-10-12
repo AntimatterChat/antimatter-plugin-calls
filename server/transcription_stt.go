@@ -39,8 +39,9 @@ const (
 	sttMaxAudioBytes    = 8 * 1024 * 1024
 	sttRequestTimeout   = 2 * time.Minute
 
-	// The longest gap between the clocks of a client and the server that is corrected.
-	sttMaxClockSkew = 10 * time.Minute
+	// An utterance is placed on the server's clock by how long before it was sent it started, by the client's
+	// clock, capped at this (a client's clock can jump).
+	sttMaxUtteranceAge = 10 * time.Minute
 )
 
 // sttGracePeriod is how long after a transcription stops the clients' last utterances are still taken (each
@@ -235,7 +236,7 @@ func (p *Plugin) stopSTTTranscription(state *callState, callID string) (*public.
 
 // handleTranscriptionAudio transcribes an utterance of a participant of a call being transcribed.
 //
-// The body is multipart: the audio file ("audio", as recorded by the browser: WebM or Ogg Opus, MP4...), the
+// The body is multipart: the audio file ("audio", 16 kHz WAV from our clients, or any format the API takes), the
 // participant's call session ("session_id"), and when the utterance started and when it was sent, by the client's
 // clock in milliseconds ("start_at", "sent_at"), from which the server places it on its own clock.
 func (p *Plugin) handleTranscriptionAudio(w http.ResponseWriter, r *http.Request) {
@@ -316,8 +317,8 @@ func (p *Plugin) handleTranscriptionAudio(w http.ResponseWriter, r *http.Request
 
 	if text != "" {
 		duration := time.Duration((sentAt - startAt) * float64(time.Millisecond))
-		if duration > sttMaxClockSkew {
-			duration = sttMaxClockSkew
+		if duration > sttMaxUtteranceAge {
+			duration = sttMaxUtteranceAge
 		}
 		segment := sttSegment{
 			UserID:    userID,
