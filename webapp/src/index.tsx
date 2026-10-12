@@ -171,6 +171,7 @@ import {JOIN_CALL, keyToAction} from './shortcuts';
 import {convertStatsToPanels} from './stats';
 import {DesktopNotificationArgs, PluginRegistry, Store, WebAppUtils} from './types/antimatter-webapp';
 import {
+    desktopRunsCalls,
     followThread,
     getCallsClient,
     getChannelURL,
@@ -185,7 +186,6 @@ import {
     playSound,
     sendDesktopEvent,
     setCallsGlobalCSSVars,
-    shouldRenderDesktopWidget,
 } from './utils';
 import {isFusionUI, WebUI} from './web_ui';
 import {
@@ -706,18 +706,19 @@ export default class Plugin {
                 rootID: rootId || '',
                 startingCall: !channelHasCall(store.getState(), channelID),
             };
-            if (window.desktopAPI?.joinCall) {
-                logDebug('desktopAPI.joinCall');
-                store.dispatch(setClientConnecting(true));
-                handleDesktopJoinedCall(store, await window.desktopAPI.joinCall(payload));
-                store.dispatch(setClientConnecting(false));
-                return;
-            } else if (shouldRenderDesktopWidget()) {
-                logDebug('sending join call message to desktop app');
 
-                // DEPRECATED: legacy Desktop API logic (<= 5.6.0)
+            // The desktop app runs the classic web UI's calls in its call window; Fusion runs them here.
+            if (desktopRunsCalls()) {
                 store.dispatch(setClientConnecting(true));
-                sendDesktopEvent('calls-join-call', payload);
+                if (window.desktopAPI?.joinCall) {
+                    logDebug('desktopAPI.joinCall');
+                    handleDesktopJoinedCall(store, await window.desktopAPI.joinCall(payload));
+                    store.dispatch(setClientConnecting(false));
+                } else {
+                    // DEPRECATED: legacy Desktop API logic (<= 5.6.0)
+                    logDebug('sending join call message to desktop app');
+                    sendDesktopEvent('calls-join-call', payload);
+                }
                 return;
             }
 

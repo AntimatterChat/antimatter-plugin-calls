@@ -10,6 +10,7 @@ import CallsClient from './client';
 import {pluginId} from './manifest';
 import {
     callStartedTimestampFn,
+    desktopRunsCalls,
     getCallPropsFromPost,
     getCallRecordingPropsFromPost,
     getCallsClient,
@@ -113,6 +114,34 @@ describe('utils', () => {
             expect(shouldRenderDesktopWidget()).toEqual(testCase.expected);
             delete window.desktop;
         }));
+    });
+
+    describe('desktopRunsCalls', () => {
+        afterEach(() => {
+            delete window.desktop;
+            delete window.desktopAPI;
+            delete window.antimatterWebUI;
+        });
+
+        it('is false in a browser', () => {
+            expect(desktopRunsCalls()).toBe(false);
+        });
+
+        it('is true in the desktop app under the classic web UI', () => {
+            window.desktop = {version: '5.3.0'};
+            expect(desktopRunsCalls()).toBe(true);
+
+            delete window.desktop;
+            window.desktopAPI = {joinCall: jest.fn()} as unknown as typeof window.desktopAPI;
+            expect(desktopRunsCalls()).toBe(true);
+        });
+
+        it('is false in the desktop app under Fusion, which runs the calls in the window', () => {
+            window.antimatterWebUI = 'fusion';
+            window.desktop = {version: '6.0.0'};
+            window.desktopAPI = {joinCall: jest.fn()} as unknown as typeof window.desktopAPI;
+            expect(desktopRunsCalls()).toBe(false);
+        });
     });
 
     describe('toHuman from luxon duration', () => {

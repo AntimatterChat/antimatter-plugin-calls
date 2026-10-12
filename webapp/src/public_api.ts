@@ -53,7 +53,7 @@ import type {
     LocalCall,
 } from 'src/types/public_api';
 import {CallJobReduxState, ChannelType, IncomingCallNotification, LiveCaptions} from 'src/types/types';
-import {getPluginPath, sendDesktopEvent, shareAudioWithScreen, shouldRenderDesktopWidget} from 'src/utils';
+import {getPlatformInfo, getPluginPath, sendDesktopEvent, shareAudioWithScreen, shouldRenderDesktopWidget} from 'src/utils';
 import UtteranceTranscriber from 'src/utterance_transcriber';
 
 import {Store} from './types/antimatter-webapp';
@@ -540,21 +540,26 @@ export function createCallsAPI(store: Store, joinCall: JoinCall): CallsAPIHandle
             }
         },
 
-        startScreenShare: (quality, surface) => {
+        startScreenShare: (quality, surface, source) => {
             const state = store.getState();
             if (!client || !allowScreenSharing(state) || getScreenSharingSessionId(state, client.channelID)) {
                 return;
             }
 
-            // The desktop app needs the user to pick a screen or window first.
-            if (window.desktop && compareSemVer(window.desktop.version, '5.1.0') >= 0) {
+            // The desktop app needs the user to pick a screen or window first: the caller's picker, or Calls' own.
+            let sourceID = '';
+            let withAudio = shareAudioWithScreen();
+            if (window.desktop && source?.desktopSourceId) {
+                sourceID = source.desktopSourceId;
+                withAudio = withAudio && Boolean(source.withAudio);
+            } else if (window.desktop && compareSemVer(window.desktop.version, '5.1.0') >= 0) {
                 store.dispatch(showScreenSourceModal());
                 return;
             }
 
             // This must run synchronously from the click: the browser only lets a page ask to
             // capture the screen right after a user action.
-            client.shareScreen('', shareAudioWithScreen(), quality, surface).then((stream) => {
+            client.shareScreen(sourceID, withAudio, quality, surface).then((stream) => {
                 if (!stream) {
                     emit('error', {kind: 'screen-share-failed'});
                     return;
@@ -563,6 +568,11 @@ export function createCallsAPI(store: Store, joinCall: JoinCall): CallsAPIHandle
                 // Sharing can be stopped from the browser's own controls.
                 stream.getVideoTracks()[0]?.addEventListener('ended', onChange, {once: true});
             }).catch((err) => logErr(err));
+        },
+
+        canShareSystemAudio: () => {
+            const platform = getPlatformInfo();
+            return Boolean(window.desktop) && shareAudioWithScreen() && (platform === 'Linux' || platform === 'Windows');
         },
 
         stopScreenShare: () => {

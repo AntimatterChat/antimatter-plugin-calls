@@ -39,6 +39,7 @@ import RingbackSound from 'src/sounds/ringback.mp3';
 import {ChannelType, IncomingCallNotification, UserStatuses} from 'src/types/types';
 import {
     desktopGTE,
+    desktopRunsCalls,
     getCallsClient,
     getChannelURL,
     isDesktopApp,
@@ -54,7 +55,9 @@ export const useDismissJoin = (channelID: string, callID: string) => {
     const store = useStore<GlobalState>();
     const dispatch = useDispatch();
     const connectedID = useSelector(channelIDForCurrentCall) || '';
-    const global = Boolean(isDesktopApp() && getCallsClient());
+
+    // In the desktop app's call window (Fusion runs its calls in the main window).
+    const global = Boolean(isDesktopApp() && getCallsClient() && desktopRunsCalls());
 
     const onDismiss = (ev: React.MouseEvent<HTMLElement>) => {
         ev.stopPropagation();
@@ -110,7 +113,7 @@ export const useDismissJoin = (channelID: string, callID: string) => {
 
 export const useOnACallWithoutGlobalWidget = () => {
     const connectedChannel = useSelector(channelIDForCurrentCall);
-    return Boolean(connectedChannel && !shouldRenderDesktopWidget());
+    return Boolean(connectedChannel && !desktopRunsCalls());
 };
 
 const getNotificationSoundFromChannelMemberAndUser = (member: ChannelMembership | null | undefined, user: UserProfile) => {
@@ -270,7 +273,7 @@ export const useGetCallerNameAndOthers = (call: IncomingCallNotification, splitA
 };
 
 export const useOnChannelLinkClick = (call: IncomingCallNotification) => {
-    const global = Boolean(isDesktopApp() && getCallsClient());
+    const global = Boolean(isDesktopApp() && getCallsClient() && desktopRunsCalls());
     const defaultTeam = useSelector(teamForCurrentCall);
     const channel = useSelector((state: GlobalState) => getChannel(state, call.channelID));
     let channelURL = useSelector((state: GlobalState) => getChannelURL(state, channel, channel?.team_id));

@@ -34,6 +34,7 @@ import JoinUserSound from './sounds/join_user.mp3';
 import LeaveSelfSound from './sounds/leave_self.mp3';
 import LeaveUserSound from './sounds/leave_user.mp3';
 import {Store} from './types/antimatter-webapp';
+import {isFusionUI} from './web_ui';
 
 export function getPluginStaticPath() {
     return `${window.basename || ''}/static/plugins/${pluginId}`;
@@ -487,6 +488,16 @@ export async function followThread(store: Store, channelID: string, teamID?: str
 
 export function shouldRenderDesktopWidget() {
     return desktopGTE(5, 3);
+}
+
+// desktopRunsCalls returns whether the desktop app runs this window's calls in its own call window (its calls
+// widget). The Fusion web UI draws its calls itself: they run in the page, as in a browser, with the desktop app's
+// screen sources. The classic web UI keeps the widget.
+export function desktopRunsCalls(): boolean {
+    if (isFusionUI()) {
+        return false;
+    }
+    return Boolean(window.desktopAPI?.joinCall) || shouldRenderDesktopWidget();
 }
 
 export function desktopGTE(major: number, minor: number) {

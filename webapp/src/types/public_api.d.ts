@@ -120,6 +120,15 @@ export type CallsScreenQuality = {
 // leaves out whole screens for a window or a tab).
 export type CallsScreenSurface = 'monitor' | 'window' | 'browser';
 
+// In the desktop app, the screen or window to share, picked by the caller from the desktop app's sources
+// (window.desktopAPI.getDesktopSources).
+export type CallsScreenSource = {
+    desktopSourceId: string;
+
+    // Also share the system's audio (see canShareSystemAudio).
+    withAudio?: boolean;
+};
+
 export type CallsBackgroundBlur = {
     on: boolean;
 
@@ -196,9 +205,14 @@ export type AntimatterCallsAPI = {
     setMuted(muted: boolean): void;
     setVideo(on: boolean): Promise<void>;
 
-    // In the desktop app, opens Calls' screen source picker. A quality preset asks for that size and frame rate,
-    // and sends the screen at a matching bitrate; a surface opens the browser's picker on that kind of source.
-    startScreenShare(quality?: CallsScreenQuality, surface?: CallsScreenSurface): void;
+    // A quality preset asks for that size and frame rate, and sends the screen at a matching bitrate; a surface opens
+    // the browser's picker on that kind of source. In the desktop app, shares the given source, or opens Calls' own
+    // screen source picker without one.
+    startScreenShare(quality?: CallsScreenQuality, surface?: CallsScreenSurface, source?: CallsScreenSource): void;
+
+    // Whether a screen shared from the desktop app can bring the system's audio along (Linux and Windows, unless
+    // turned off in the Calls settings).
+    canShareSystemAudio(): boolean;
     stopScreenShare(): void;
     setHandRaised(raised: boolean): void;
 

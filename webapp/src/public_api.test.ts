@@ -184,7 +184,7 @@ describe('createCallsAPI', () => {
         const {api} = createCallsAPI(store, join);
         expect(api.version).toBe(1);
         expect(Object.keys(api).sort()).toEqual([
-            'dismissIncomingCall', 'getBackgroundBlur', 'getLocalScreenStream', 'getLocalVideoStream', 'getParticipantVolume',
+            'canShareSystemAudio', 'dismissIncomingCall', 'getBackgroundBlur', 'getLocalScreenStream', 'getLocalVideoStream', 'getParticipantVolume',
             'getRemoteScreenStream', 'getRemoteVideoStreams', 'host', 'join', 'leave', 'on', 'openSettings', 'selectors',
             'sendReaction', 'setBackgroundBlur', 'setHandRaised', 'setMuted', 'setParticipantVolume', 'setVideo',
             'startScreenShare', 'startTranscription', 'stopScreenShare', 'stopTranscription', 'version',
@@ -297,6 +297,65 @@ describe('createCallsAPI', () => {
 
         api.startScreenShare({height: 1080, frameRate: 30}, 'window');
         expect(client.shareScreen).toHaveBeenCalledWith('', expect.anything(), {height: 1080, frameRate: 30}, 'window');
+    });
+
+    describe('in the desktop app', () => {
+        afterEach(() => {
+            delete window.desktop;
+            window.localStorage.clear();
+        });
+
+        test('startScreenShare shares the source picked by the caller', () => {
+            window.desktop = {version: '6.0.0'};
+            const {api, clientCreated} = createCallsAPI(store, join);
+            const client = new FakeClient();
+            clientCreated(client as unknown as CallsClient);
+
+            api.startScreenShare({height: 720, frameRate: 15}, undefined, {desktopSourceId: 'screen:1:0', withAudio: true});
+            expect(client.shareScreen).toHaveBeenCalledWith('screen:1:0', true, {height: 720, frameRate: 15}, undefined);
+            expect(store.dispatch).not.toHaveBeenCalledWith({type: 'screen-source'});
+        });
+
+        test('startScreenShare leaves the system audio out unless asked for and allowed', () => {
+            window.desktop = {version: '6.0.0'};
+            const {api, clientCreated} = createCallsAPI(store, join);
+            const client = new FakeClient();
+            clientCreated(client as unknown as CallsClient);
+
+            api.startScreenShare(undefined, undefined, {desktopSourceId: 'window:2:0'});
+            expect(client.shareScreen).toHaveBeenLastCalledWith('window:2:0', false, undefined, undefined);
+
+            window.localStorage.setItem('calls_share_audio_with_screen', 'off');
+            api.startScreenShare(undefined, undefined, {desktopSourceId: 'window:2:0', withAudio: true});
+            expect(client.shareScreen).toHaveBeenLastCalledWith('window:2:0', false, undefined, undefined);
+        });
+
+        test('startScreenShare opens Calls\' picker without a source', () => {
+            window.desktop = {version: '6.0.0'};
+            const {api, clientCreated} = createCallsAPI(store, join);
+            const client = new FakeClient();
+            clientCreated(client as unknown as CallsClient);
+
+            api.startScreenShare();
+            expect(client.shareScreen).not.toHaveBeenCalled();
+            expect(store.dispatch).toHaveBeenCalledWith({type: 'screen-source'});
+        });
+
+        test('canShareSystemAudio', () => {
+            const {api} = createCallsAPI(store, join);
+            expect(api.canShareSystemAudio()).toBe(false);
+
+            window.desktop = {version: '6.0.0'};
+            const platform = jest.spyOn(window.navigator, 'platform', 'get');
+            platform.mockReturnValue('Linux x86_64');
+            expect(api.canShareSystemAudio()).toBe(true);
+            window.localStorage.setItem('calls_share_audio_with_screen', 'off');
+            expect(api.canShareSystemAudio()).toBe(false);
+            window.localStorage.clear();
+            platform.mockReturnValue('MacIntel');
+            expect(api.canShareSystemAudio()).toBe(false);
+            platform.mockRestore();
+        });
     });
 
     test('startScreenShare does nothing while someone else shares', () => {
