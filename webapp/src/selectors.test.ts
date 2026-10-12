@@ -15,6 +15,7 @@ import {
     isCurrentUserOwnerOfCurrentCall,
     numUsersInCallInChannel,
     otherUserIDForCurrentDMCall,
+    recordingsTranscribed,
     selfFirstSessionsInCurrentCall,
     sessionForCurrentCall,
     sessionsInCurrentCall,
@@ -142,6 +143,21 @@ describe('videoEnabledInChannel', () => {
 
     test('no channel', () => {
         expect(videoEnabledInChannel(videoState(true), undefined)).toBe(false);
+    });
+});
+
+describe('recordingsTranscribed', () => {
+    const configState = (callsConfig: Record<string, unknown>) => ({
+        'plugins-com.mattermost.calls': {callsConfig},
+    } as unknown as GlobalState);
+
+    test('by the job service, along with recordings', () => {
+        expect(recordingsTranscribed(configState({EnableTranscriptions: true}))).toBe(true);
+        expect(recordingsTranscribed(configState({EnableTranscriptions: false}))).toBe(false);
+    });
+
+    test('not by a speech-to-text API, which transcribes calls on its own', () => {
+        expect(recordingsTranscribed(configState({EnableTranscriptions: true, TranscribeFromClients: true}))).toBe(false);
     });
 });
 

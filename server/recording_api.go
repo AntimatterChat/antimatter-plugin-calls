@@ -163,7 +163,7 @@ func (p *Plugin) startRecordingJob(state *callState, callID, userID string) (rst
 	p.LogDebug("recording job started successfully", "jobID", recJobID, "callID", callID)
 
 	var trID string
-	if cfg := p.getConfiguration(); cfg.transcriptionsEnabled() {
+	if cfg := p.getConfiguration(); cfg.transcribeWithJobService() {
 		trID = model.NewId()
 		p.LogDebug("transcriptions enabled, starting job", "callID", callID)
 		if err := p.startTranscribingJob(state, callID, userID, trID); err != nil {

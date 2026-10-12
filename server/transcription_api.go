@@ -237,6 +237,12 @@ func (p *Plugin) startTranscribingJob(state *callState, callID, userID, trID str
 }
 
 func (p *Plugin) stopTranscribingJob(state *callState, callID string) (rerr error) {
+	// A transcription by a speech-to-text API doesn't run on the job service and isn't tied to a recording: only its
+	// host (stopSTTTranscription) or the end of the call stops it.
+	if isSTTJob(state.Transcription) {
+		return nil
+	}
+
 	p.LogDebug("stopping transcribing job", "callID", callID)
 
 	if state.Transcription == nil || state.Transcription.EndAt != 0 {

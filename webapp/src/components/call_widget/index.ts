@@ -31,6 +31,7 @@ import {
     recentlyJoinedUsersInCurrentCall,
     recordingForCurrentCall,
     recordingsEnabled,
+    recordingsTranscribed,
     screenSharingSessionForCurrentCall,
     sessionForCurrentCall,
     sessionsForOtherUsersInCall,
@@ -38,7 +39,6 @@ import {
     sortedIncomingCalls,
     sortedSessionsInCurrentCall,
     threadIDForCallInChannel,
-    transcriptionsEnabled,
     videoEnabledInChannel,
 } from 'src/selectors';
 import {getUserIdFromDM, isDMChannel} from 'src/utils';
@@ -91,7 +91,7 @@ const mapStateToProps = (state: GlobalState) => {
         hostNotices: hostControlNoticesForCurrentCall(state),
         wider: getMyTeams(state)?.length > 1,
         callsIncoming: sortedIncomingCalls(state),
-        transcriptionsEnabled: transcriptionsEnabled(state),
+        transcriptionsEnabled: recordingsTranscribed(state),
         clientConnecting: clientConnecting(state),
         callThreadID,
         recordingsEnabled: recordingsEnabled(state),

@@ -231,7 +231,7 @@ func (p *Plugin) handleBotPostRecordings(w http.ResponseWriter, r *http.Request)
 
 	startAt, _ := post.GetProp("start_at").(int64)
 	postMsg := T("app.call.new_recording_message")
-	if cfg := p.getConfiguration(); cfg.transcriptionsEnabled() {
+	if cfg := p.getConfiguration(); cfg.transcribeWithJobService() {
 		postMsg = T("app.call.new_recording_and_transcription_message")
 	}
 

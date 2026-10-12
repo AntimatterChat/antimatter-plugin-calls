@@ -533,6 +533,12 @@ func (c *configuration) transcribeWithAPI() bool {
 	return c.TranscribeAPI == transcribeAPIOpenAI
 }
 
+// transcribeWithJobService returns whether calls are transcribed by the job service's transcriber, which runs
+// alongside their recordings.
+func (c *configuration) transcribeWithJobService() bool {
+	return c.transcriptionsEnabled() && !c.transcribeWithAPI()
+}
+
 func (c *configuration) transcriptionsEnabled() bool {
 	if (c.recordingsEnabled() || c.transcribeWithAPI()) && c.EnableTranscriptions != nil && *c.EnableTranscriptions {
 		return true

@@ -29,6 +29,7 @@ import {
     recordingForCurrentCall,
     recordingMaxDuration,
     recordingsEnabled,
+    recordingsTranscribed,
     screenSharingSessionForCurrentCall,
     selfFirstSessionsInCurrentCall,
     sessionForCurrentCall,
@@ -36,7 +37,6 @@ import {
     sessionsInCurrentCallMap,
     sortedSessionsInCurrentCall,
     threadIDForCallInChannel,
-    transcriptionsEnabled,
 } from 'src/selectors';
 import {getUserIdFromDM, isDMChannel} from 'src/utils';
 import {closeRhs, getIsRhsOpen, getRhsSelectedPostId, modals, selectRhsPost} from 'src/webapp_globals';
@@ -90,7 +90,7 @@ const mapStateToProps = (state: GlobalState) => {
         allowScreenSharing: allowScreenSharing(state),
         recordingsEnabled: recordingsEnabled(state),
         recordingMaxDuration: recordingMaxDuration(state),
-        transcriptionsEnabled: transcriptionsEnabled(state),
+        transcriptionsEnabled: recordingsTranscribed(state),
         isAdmin: isCurrentUserSystemAdmin(state),
         enableVideo: callsConfig(state).EnableVideo && isDM,
         otherSessions: sessionsForOtherUsersInCall(state),

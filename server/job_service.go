@@ -419,7 +419,7 @@ func (p *Plugin) initJobService() error {
 
 	// We only initialize the transcriber runner (image prefetch) if transcriptions are enabled.
 	// We still need to set the runner above in case they are enabled at a later point.
-	if cfg := p.getConfiguration(); cfg.transcriptionsEnabled() {
+	if cfg := p.getConfiguration(); cfg.transcribeWithJobService() {
 		runners = append(runners, transcriberJobRunner)
 	}
 

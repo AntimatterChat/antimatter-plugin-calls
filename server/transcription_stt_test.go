@@ -14,6 +14,8 @@ import (
 
 	"github.com/mattermost/mattermost/server/public/model"
 	"github.com/stretchr/testify/require"
+
+	"github.com/antimatterchat/antimatter-plugin-calls/server/public"
 )
 
 func TestBuildTranscript(t *testing.T) {
@@ -114,6 +116,22 @@ func TestTranscribeWithAPIConfig(t *testing.T) {
 	require.True(t, client.TranscribeFromClients)
 	require.True(t, *client.EnableTranscriptions)
 	require.True(t, *client.EnableLiveCaptions)
+
+	// Recordings don't start the job service's transcriber then.
+	require.False(t, cfg.transcribeWithJobService())
+	cfg.TranscribeAPI = "whisper"
+	cfg.EnableRecordings = model.NewPointer(true)
+	require.True(t, cfg.transcribeWithJobService())
+}
+
+func TestStopTranscribingJobLeavesSTTJobs(t *testing.T) {
+	// Stopping a recording stops its transcription, but not one by a speech-to-text API, which isn't tied to it (and
+	// has no job to stop: the plugin has neither store nor job service here).
+	p := &Plugin{}
+	job := &public.CallJob{ID: model.NewId(), Type: public.JobTypeTranscribing, StartAt: 1, Props: public.CallJobProps{JobID: sttJobID}}
+	state := &callState{Call: public.Call{ID: model.NewId()}, Transcription: job}
+	require.NoError(t, p.stopTranscribingJob(state, model.NewId()))
+	require.Zero(t, job.EndAt)
 }
 
 func TestFormatVTTTime(t *testing.T) {

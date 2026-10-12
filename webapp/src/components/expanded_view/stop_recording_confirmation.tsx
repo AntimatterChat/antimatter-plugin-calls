@@ -6,7 +6,7 @@ import {useIntl} from 'react-intl';
 import {useSelector} from 'react-redux';
 import {stopCallRecording} from 'src/actions';
 import GenericModal from 'src/components/generic_modal';
-import {transcriptionsEnabled} from 'src/selectors';
+import {recordingsTranscribed} from 'src/selectors';
 import styled from 'styled-components';
 
 export const IDStopRecordingConfirmation = 'stop_recording_confirmation';
@@ -17,7 +17,7 @@ type Props = Partial<ComponentProps<typeof GenericModal>> & {
 
 export const StopRecordingConfirmation = ({channelID, ...modalProps}: Props) => {
     const {formatMessage} = useIntl();
-    const hasTranscriptions = useSelector(transcriptionsEnabled);
+    const hasTranscriptions = useSelector(recordingsTranscribed);
 
     let stopRecordingText = formatMessage({defaultMessage: 'Stop recording'});
     let bodyText = formatMessage({defaultMessage: 'The call recording will be processed and posted in the call thread. Are you sure you want to stop the recording?'});

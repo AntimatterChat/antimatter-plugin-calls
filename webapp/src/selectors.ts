@@ -576,6 +576,11 @@ export const recordingsEnabled = (state: GlobalState) =>
 export const transcriptionsEnabled = (state: GlobalState) =>
     callsConfig(state).EnableTranscriptions;
 
+// Whether recordings come with a transcription by the job service. A speech-to-text API transcribes calls on its own,
+// apart from recordings.
+export const recordingsTranscribed = (state: GlobalState) =>
+    Boolean(transcriptionsEnabled(state)) && !transcribeFromClients(state);
+
 export const liveCaptionsEnabled = (state: GlobalState) =>
     callsConfig(state).EnableLiveCaptions;
 

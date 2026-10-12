@@ -333,7 +333,8 @@ func (p *Plugin) removeUserSession(state *callState, userID, originalConnID, con
 			}
 		}
 
-		if state.Transcription != nil {
+		// A transcription by a speech-to-text API has no job to stop: it ends with the call.
+		if state.Transcription != nil && !isSTTJob(state.Transcription) {
 			p.LogDebug("stopping ongoing transcription", "jobID", state.Transcription.Props.JobID, "botConnID", state.Transcription.Props.BotConnID)
 			if err := p.getJobService().StopJob(channelID, state.Transcription.ID, p.getBotID(), state.Transcription.Props.BotConnID); err != nil {
 				p.LogError("failed to stop transcribing job", "error", err.Error(),
