@@ -668,7 +668,7 @@ func (p *Plugin) loadConfig() error {
 	// Set defaults in case anything is missing.
 	cfg.SetDefaults()
 
-	// Permanently override with envVar and cloud overrides.
+	// Permanently override with environment variables.
 	p.setOverrides(cfg)
 
 	return p.setConfiguration(cfg)

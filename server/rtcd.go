@@ -12,7 +12,6 @@ import (
 	"net"
 	"net/http"
 	"net/url"
-	"os"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -470,12 +469,7 @@ func (m *rtcdClientManager) getRTCDClientConfig(rtcdURL string) (rtcd.ClientConf
 	cfg.ReconnectInterval = time.Duration(rand.Intn(baseReconnectIntervalMs)) * time.Millisecond
 
 	// Give precedence to environment to override everything else.
-	cfg.ClientID = os.Getenv("MM_CLOUD_INSTALLATION_ID")
-	if cfg.ClientID == "" {
-		cfg.ClientID = amenv.Get("AM_CALLS_RTCD_CLIENT_ID")
-	} else {
-		m.ctx.LogDebug("installation id is set", "id", cfg.ClientID)
-	}
+	cfg.ClientID = amenv.Get("AM_CALLS_RTCD_CLIENT_ID")
 	cfg.AuthKey = amenv.Get("AM_CALLS_RTCD_AUTH_KEY")
 	cfg.URL = rtcdURL
 
