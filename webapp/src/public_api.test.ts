@@ -155,6 +155,7 @@ class FakeClient extends EventEmitter {
     getRemoteVideoStreams = () => this.remoteVideo;
     getRemoteScreenStream = () => null;
     getLocalScreenStream = () => null;
+    getSessionID = () => 's1';
 }
 
 const fakeTrack = (id: string) => ({id} as MediaStreamTrack);
@@ -170,7 +171,7 @@ describe('createCallsAPI', () => {
         // @ts-ignore - jsdom has no MediaStream
         global.MediaStream = jest.fn((tracks: MediaStreamTrack[]) => ({getVideoTracks: () => tracks}));
         state = makeState({localCall: {channelID, sessionID: 's1', state: 'connected'}});
-        store = {getState: () => state, dispatch: jest.fn()} as unknown as Store;
+        store = {getState: () => state, dispatch: jest.fn(), subscribe: jest.fn(() => () => {})} as unknown as Store;
         join = jest.fn(() => Promise.resolve());
     });
 
@@ -186,11 +187,12 @@ describe('createCallsAPI', () => {
             'dismissIncomingCall', 'getBackgroundBlur', 'getLocalScreenStream', 'getLocalVideoStream', 'getParticipantVolume',
             'getRemoteScreenStream', 'getRemoteVideoStreams', 'host', 'join', 'leave', 'on', 'openSettings', 'selectors',
             'sendReaction', 'setBackgroundBlur', 'setHandRaised', 'setMuted', 'setParticipantVolume', 'setVideo',
-            'startScreenShare', 'stopScreenShare', 'version',
+            'startScreenShare', 'startTranscription', 'stopScreenShare', 'stopTranscription', 'version',
         ]);
         expect(Object.keys(api.selectors).sort()).toEqual([
-            'getCall', 'getIncomingCalls', 'getLocalCall', 'getMyMuted', 'getParticipants', 'getReactions', 'getScreenSharingSessionId',
-            'isCallsEnabled', 'isScreenSharingAllowed', 'isVideoAllowed',
+            'getCall', 'getIncomingCalls', 'getLiveCaptions', 'getLocalCall', 'getMyMuted', 'getParticipants', 'getReactions',
+            'getScreenSharingSessionId', 'getTranscription', 'isCallsEnabled', 'isScreenSharingAllowed', 'isTranscriptionAvailable',
+            'isVideoAllowed',
         ]);
         expect(Object.keys(api.host).sort()).toEqual(['lowerHand', 'mute', 'remove', 'stopScreen']);
     });

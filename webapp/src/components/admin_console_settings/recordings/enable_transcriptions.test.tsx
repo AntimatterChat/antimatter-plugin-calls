@@ -75,7 +75,7 @@ describe('EnableTranscriptions', () => {
         expect(screen.getByText('Enable call transcriptions (Beta)')).toBeInTheDocument();
         expect(screen.getByText('True')).toBeInTheDocument();
         expect(screen.getByText('False')).toBeInTheDocument();
-        expect(screen.getByText('(Optional) When set to true, post-call transcriptions are enabled.')).toBeInTheDocument();
+        expect(screen.getByText(/^\(Optional\) When set to true, post-call transcriptions are enabled\./)).toBeInTheDocument();
 
         // True should be checked
         expect(screen.getByTestId('EnableTranscriptionstrue')).toBeChecked();
@@ -160,7 +160,8 @@ describe('EnableTranscriptions', () => {
         expect(screen.getByTestId('EnableTranscriptionsfalse')).toBeDisabled();
     });
 
-    it('should not render when recordings are disabled', () => {
+    // A speech-to-text API transcribes without recordings, so the setting stays available.
+    it('should render when recordings are disabled', () => {
         renderComponent({}, {
             'plugins-com.mattermost.calls': {
                 callsConfig: {
@@ -171,6 +172,6 @@ describe('EnableTranscriptions', () => {
             },
         });
 
-        expect(screen.queryByText('Enable call transcriptions (Beta)')).not.toBeInTheDocument();
+        expect(screen.getByText('Enable call transcriptions (Beta)')).toBeInTheDocument();
     });
 });
