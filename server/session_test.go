@@ -501,7 +501,7 @@ func TestAddUserSession(t *testing.T) {
 		defer mockMetrics.AssertExpectations(t)
 
 		var cs *callState
-		state, err := p.addUserSession(cs, model.NewPointer(false), "userID", "connID", "channelID", "", model.ChannelTypeOpen)
+		state, err := p.addUserSession(cs, model.NewPointer(false), "userID", "connID", "channelID", "")
 		require.Nil(t, state)
 		require.EqualError(t, err, "calls are disabled in the channel")
 	})
@@ -517,7 +517,7 @@ func TestAddUserSession(t *testing.T) {
 			&model.WebsocketBroadcast{UserId: "userA", ChannelId: "channelID", ReliableClusterSend: true}).Once()
 
 		// Start call
-		retState, err := p.addUserSession(nil, model.NewPointer(true), "userA", "connA", "channelID", "", model.ChannelTypeOpen)
+		retState, err := p.addUserSession(nil, model.NewPointer(true), "userA", "connA", "channelID", "")
 		require.NoError(t, err)
 		require.NotNil(t, retState)
 		require.Equal(t, map[string]struct{}{"userA": {}}, retState.Props.Participants)
@@ -533,7 +533,7 @@ func TestAddUserSession(t *testing.T) {
 		})
 		require.NoError(t, err)
 
-		retState2, err := p.addUserSession(retState, model.NewPointer(true), "userB", "connB", "channelID", "", model.ChannelTypeOpen)
+		retState2, err := p.addUserSession(retState, model.NewPointer(true), "userB", "connB", "channelID", "")
 		require.NotNil(t, retState2)
 		require.ErrorContains(t, err, "failed to create call session: failed to run query: pq: duplicate key value violates unique constraint \"calls_sessions_pkey\"")
 
@@ -543,31 +543,5 @@ func TestAddUserSession(t *testing.T) {
 		require.NotNil(t, retState.sessions["connA"])
 
 		require.Equal(t, retState, retState2)
-	})
-
-	t.Run("allow calls in all channel types", func(t *testing.T) {
-		defer mockAPI.AssertExpectations(t)
-		defer mockMetrics.AssertExpectations(t)
-		defer ResetTestStore(t, p.store)
-
-		for _, ct := range []model.ChannelType{
-			model.ChannelTypeOpen,
-			model.ChannelTypePrivate,
-			model.ChannelTypeGroup,
-			model.ChannelTypeDirect,
-		} {
-			t.Run(string(ct), func(t *testing.T) {
-				channelID := model.NewId()
-
-				mockMetrics.On("IncWebSocketEvent", "out", wsEventCallHostChanged).Once()
-				mockAPI.On("PublishWebSocketEvent", wsEventCallHostChanged, mock.Anything,
-					&model.WebsocketBroadcast{UserId: "userA", ChannelId: channelID, ReliableClusterSend: true}).Once()
-
-				retState, err := p.addUserSession(nil, model.NewPointer(true), "userA", "connA"+string(ct), channelID, "", ct)
-				require.NoError(t, err)
-				require.NotNil(t, retState)
-				require.Equal(t, map[string]struct{}{"userA": {}}, retState.Props.Participants)
-			})
-		}
 	})
 }

@@ -786,7 +786,7 @@ func (p *Plugin) handleJoin(userID, connID, authSessionID string, joinData calls
 	addSessionToCall := func(state *callState) *callState {
 		var err error
 
-		state, err = p.addUserSession(state, callsEnabled, userID, connID, channelID, joinData.JobID, channel.Type)
+		state, err = p.addUserSession(state, callsEnabled, userID, connID, channelID, joinData.JobID)
 		if err != nil {
 			p.LogError("failed to add user session", "err", err.Error())
 			p.publishWebSocketEvent(wsEventError, map[string]interface{}{

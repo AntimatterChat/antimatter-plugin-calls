@@ -77,7 +77,7 @@ func newUserSession(userID, channelID, connID, callID string, rtc bool) *session
 	}
 }
 
-func (p *Plugin) addUserSession(state *callState, callsEnabled *bool, userID, connID, channelID, jobID string, ct model.ChannelType) (retState *callState, retErr error) {
+func (p *Plugin) addUserSession(state *callState, callsEnabled *bool, userID, connID, channelID, jobID string) (retState *callState, retErr error) {
 	defer func(start time.Time) {
 		p.metrics.ObserveAppHandlersTime("addUserSession", time.Since(start).Seconds())
 	}(time.Now())
@@ -96,7 +96,7 @@ func (p *Plugin) addUserSession(state *callState, callsEnabled *bool, userID, co
 
 	// If there is an ongoing call, we can let anyone join.
 	if state == nil {
-		if err := p.userCanStartOrJoin(userID, callsEnabled, ct); err != nil {
+		if err := p.userCanStartOrJoin(userID, callsEnabled); err != nil {
 			return nil, err
 		}
 	}
@@ -228,7 +228,7 @@ func (p *Plugin) addUserSession(state *callState, callsEnabled *bool, userID, co
 	return state, nil
 }
 
-func (p *Plugin) userCanStartOrJoin(userID string, enabled *bool, channelType model.ChannelType) error {
+func (p *Plugin) userCanStartOrJoin(userID string, enabled *bool) error {
 	// If calls are disabled, no-one can start or join.
 	// If explicitly enabled, everyone can start or join.
 	// If not explicitly enabled and default enabled, everyone can join or start
