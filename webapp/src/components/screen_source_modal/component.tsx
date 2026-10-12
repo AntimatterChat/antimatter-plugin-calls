@@ -4,7 +4,7 @@
 import './component.scss';
 
 import {type DesktopCaptureSource} from '@mattermost/desktop-api';
-import React, {CSSProperties} from 'react';
+import React from 'react';
 import {OverlayTrigger, Tooltip} from 'react-bootstrap';
 import {IntlShape} from 'react-intl';
 import CompassIcon from 'src/components/icons/compassIcon';
@@ -26,85 +26,6 @@ interface State {
 
 export default class ScreenSourceModal extends React.PureComponent<Props, State> {
     private node: React.RefObject<HTMLDivElement>;
-    private style = {
-        main: {
-            position: 'absolute',
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            display: 'flex',
-            justifyContent: 'center',
-            alignItems: 'center',
-            zIndex: 1000,
-            background: 'rgba(0, 0, 0, 0.64)',
-        },
-        modal: {
-            position: 'relative',
-            display: 'flex',
-            justifyContent: 'center',
-            alignItems: 'center',
-            flexDirection: 'column',
-            background: 'var(--center-channel-bg)',
-            color: 'var(--center-channel-color)',
-            borderRadius: '8px',
-            border: '1px solid rgba(var(--center-channel-color-rgb), 0.16)',
-            boxShadow: '0px 20px 32px rgba(var(--center-channel-color-rgb), 0.12)',
-            maxWidth: '832px',
-            maxHeight: '614px',
-        },
-        header: {
-            position: 'relative',
-            width: '100%',
-            padding: '26px 32px',
-        },
-        title: {
-            fontWeight: 600,
-            fontFamily: 'Metropolis',
-            fontSize: '22px',
-            lineHeight: '28px',
-        },
-        body: {
-            display: 'grid',
-            gridTemplateColumns: 'repeat(3, 1fr)',
-            overflow: 'auto',
-            padding: '28px 32px',
-        },
-        footer: {
-            display: 'flex',
-            justifyContent: 'center',
-            alignItems: 'center',
-            alignSelf: 'flex-end',
-            padding: '24px 32px',
-        },
-        source: {
-            display: 'flex',
-            flexDirection: 'column',
-            justifyContent: 'center',
-            alignItems: 'center',
-            margin: '8px 4px',
-        },
-        sourceLabel: {
-            whiteSpace: 'nowrap',
-            textOverflow: 'ellipsis',
-            overflow: 'hidden',
-            width: '224px',
-        },
-        divider: {
-            border: '1px solid rgba(var(--center-channel-color-rgb), 0.08)',
-            width: '100%',
-            margin: 0,
-        },
-        audioToggleContainer: {
-            display: 'flex',
-            alignItems: 'center',
-            gap: '6px',
-            margin: 0,
-            fontWeight: 400,
-            alignSelf: 'end',
-            padding: '16px 32px',
-        },
-    };
 
     constructor(props: Props) {
         super(props);
@@ -136,17 +57,14 @@ export default class ScreenSourceModal extends React.PureComponent<Props, State>
         return this.state.sources.map((source) => {
             return (
                 <button
-                    className='style--none'
-                    style={this.style.source as CSSProperties}
+                    className='style--none screen-source'
                     key={source.id}
                     onClick={() => this.setState({selected: source.id})}
                 >
                     <div className={`screen-source-thumbnail ${source.id === this.state.selected ? 'selected' : ''}`}>
                         <img
-                            style={{
-                                height: '100%',
-                            }}
                             src={source.thumbnailURL}
+                            alt=''
                         />
                     </div>
 
@@ -158,7 +76,7 @@ export default class ScreenSourceModal extends React.PureComponent<Props, State>
                             </Tooltip>
                         }
                     >
-                        <span style={this.style.sourceLabel as CSSProperties}>{source.name}</span>
+                        <span className='screen-source-label'>{source.name}</span>
                     </OverlayTrigger>
                 </button>
             );
@@ -177,17 +95,19 @@ export default class ScreenSourceModal extends React.PureComponent<Props, State>
     private shareScreen = () => {
         logDebug('ScreenSourceModal.shareScreen', this.state.selected, shareAudioWithScreen(), this.state.shareSystemAudio);
 
-        if (window.desktopAPI?.shareScreen) {
+        const withAudio = shareAudioWithScreen() && this.state.shareSystemAudio;
+        if (window.callsClient) {
+            // The call runs in this window (the Fusion web UI's calls, or desktop apps without a call window).
+            window.callsClient.shareScreen(this.state.selected, withAudio);
+        } else if (window.desktopAPI?.shareScreen) {
             logDebug('desktopAPI.shareScreen');
-            window.desktopAPI.shareScreen(this.state.selected, shareAudioWithScreen() && this.state.shareSystemAudio);
+            window.desktopAPI.shareScreen(this.state.selected, withAudio);
         } else if (shouldRenderDesktopWidget()) {
             // DEPRECATED: legacy Desktop API logic (<= 5.6.0)
             sendDesktopEvent('calls-widget-share-screen', {
                 sourceID: this.state.selected,
-                withAudio: shareAudioWithScreen() && this.state.shareSystemAudio,
+                withAudio,
             });
-        } else {
-            window.callsClient?.shareScreen(this.state.selected, shareAudioWithScreen());
         }
         this.hide();
     };
@@ -210,7 +130,6 @@ export default class ScreenSourceModal extends React.PureComponent<Props, State>
                     name='shareSystemAudio'
                     checked={this.state.shareSystemAudio}
                     onChange={() => this.setState((prevState) => ({shareSystemAudio: !prevState.shareSystemAudio}))}
-                    style={{zoom: '1.4'}}
                 />
             </>
         );
@@ -304,14 +223,14 @@ export default class ScreenSourceModal extends React.PureComponent<Props, State>
         const shouldRenderAudioToggle = shareAudioWithScreen() && (platformName === 'Linux' || platformName === 'Windows');
 
         return (
-            <div style={this.style.main as CSSProperties}>
+            <div className='screen-source-modal-backdrop'>
                 <div
                     id='calls-screen-source-modal'
-                    style={this.style.modal as CSSProperties}
+                    className='screen-source-modal'
                     ref={this.node}
                 >
-                    <div style={this.style.header as CSSProperties}>
-                        <span style={this.style.title}>
+                    <div className='screen-source-modal-header'>
+                        <span className='screen-source-modal-title'>
                             {formatMessage({defaultMessage: 'Choose what to share'})}
                         </span>
                         <button
@@ -321,21 +240,17 @@ export default class ScreenSourceModal extends React.PureComponent<Props, State>
                             <CompassIcon icon='close'/>
                         </button>
                     </div>
-                    <hr style={this.style.divider}/>
-                    <div style={this.style.body as CSSProperties}>
-                        { this.renderSources() }
-
+                    <div className='screen-source-modal-body'>
+                        {this.renderSources()}
                     </div>
 
-                    { shouldRenderAudioToggle &&
-                        <label style={this.style.audioToggleContainer}>
+                    {shouldRenderAudioToggle &&
+                        <label className='screen-source-modal-audio'>
                             {this.renderAudioToggle()}
                         </label>
                     }
 
-                    <hr style={this.style.divider}/>
-
-                    <div style={this.style.footer}>
+                    <div className='screen-source-modal-footer'>
                         <button
                             className='style--none screen-source-modal-cancel'
                             onClick={this.hide}
