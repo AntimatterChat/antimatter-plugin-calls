@@ -67,8 +67,7 @@ type configuration struct {
 	// When set to true the RTC service will work in dual-stack mode, listening for IPv6
 	// connections and generating candidates in addition to IPv4 ones.
 	EnableIPv6 *bool
-	// Ringing is default off (for now -- 8.0), allow sysadmins to turn it on.
-	// When set to true it enables ringing for DM/GM channels.
+	// When set to true it enables ringing for DM/GM channels (on by default in Antimatter).
 	EnableRinging *bool
 	// The speech-to-text model size to use to transcribe calls.
 	TranscriberModelSize transcriber.ModelSize
@@ -246,7 +245,7 @@ func (c *configuration) SetDefaults() {
 		c.EnableIPv6 = model.NewPointer(false)
 	}
 	if c.EnableRinging == nil {
-		c.EnableRinging = model.NewPointer(false)
+		c.EnableRinging = model.NewPointer(true)
 	}
 	if c.TranscriberModelSize == "" {
 		c.TranscriberModelSize = transcriber.ModelSizeDefault
