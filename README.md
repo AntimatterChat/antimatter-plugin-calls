@@ -108,9 +108,15 @@ To trigger a release, follow these steps:
 
 Refer to the load-test client [documentation](lt/) for information on how to simulate and load-test calls.
 
-## Get involved
+## Feedback and support
 
-Please join the [Developers: Calls](https://docs.antimatter.example/core/channels/developers-channel-call) channel to discuss any topic related to this project.
+Found a bug in the Calls plugin, or missing a feature? Please [open an
+issue](https://github.com/AntimatterChat/community/issues/new/choose) in the [Antimatter community
+repository](https://github.com/AntimatterChat/community), where the feedback for every part of
+Antimatter is gathered. Questions and ideas are welcome in its
+[Discussions](https://github.com/AntimatterChat/community/discussions). Please report security
+problems privately, as explained in the [security
+policy](https://github.com/AntimatterChat/.github/blob/main/SECURITY.md).
 
 ## License
 
