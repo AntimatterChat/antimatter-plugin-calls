@@ -85,10 +85,8 @@ func (p *Plugin) muteSession(requesterID, channelID, sessionID string) error {
 		return ErrNoCallOngoing
 	}
 
-	if requesterID != state.Call.GetHostID() {
-		if isAdmin := p.API.HasPermissionTo(requesterID, model.PermissionManageSystem); !isAdmin {
-			return ErrNoPermissions
-		}
+	if !p.canModerateCall(requesterID, channelID, state) {
+		return ErrNoPermissions
 	}
 
 	ust, ok := state.sessions[sessionID]
@@ -118,10 +116,8 @@ func (p *Plugin) muteOthers(requesterID, channelID string) error {
 		return ErrNoCallOngoing
 	}
 
-	if requesterID != state.Call.GetHostID() {
-		if isAdmin := p.API.HasPermissionTo(requesterID, model.PermissionManageSystem); !isAdmin {
-			return ErrNoPermissions
-		}
+	if !p.canModerateCall(requesterID, channelID, state) {
+		return ErrNoPermissions
 	}
 
 	// Unmute anyone muted (who is not the host/requester).
@@ -148,10 +144,8 @@ func (p *Plugin) screenOff(requesterID, channelID, sessionID string) error {
 		return ErrNoCallOngoing
 	}
 
-	if requesterID != state.Call.GetHostID() {
-		if isAdmin := p.API.HasPermissionTo(requesterID, model.PermissionManageSystem); !isAdmin {
-			return ErrNoPermissions
-		}
+	if !p.canModerateCall(requesterID, channelID, state) {
+		return ErrNoPermissions
 	}
 
 	if state.Props.ScreenSharingSessionID != sessionID {
@@ -181,10 +175,8 @@ func (p *Plugin) lowerHand(requesterID, channelID, sessionID string) error {
 		return ErrNoCallOngoing
 	}
 
-	if requesterID != state.Call.GetHostID() {
-		if isAdmin := p.API.HasPermissionTo(requesterID, model.PermissionManageSystem); !isAdmin {
-			return ErrNoPermissions
-		}
+	if !p.canModerateCall(requesterID, channelID, state) {
+		return ErrNoPermissions
 	}
 
 	ust, ok := state.sessions[sessionID]
@@ -216,10 +208,8 @@ func (p *Plugin) hostRemoveSession(requesterID, channelID, sessionID string) err
 		return ErrNoCallOngoing
 	}
 
-	if requesterID != state.Call.GetHostID() {
-		if isAdmin := p.API.HasPermissionTo(requesterID, model.PermissionManageSystem); !isAdmin {
-			return ErrNoPermissions
-		}
+	if !p.canModerateCall(requesterID, channelID, state) {
+		return ErrNoPermissions
 	}
 
 	ust, ok := state.sessions[sessionID]

@@ -217,6 +217,9 @@ func (p *Plugin) OnActivate() (retErr error) {
 	// Cluster events need to be handled regardless of whether the embedded RTC service or RTCD are in use.
 	go p.clusterEventsHandler()
 
+	// Moderator-muted sessions are kept muted in rtcd.
+	go p.modMuteEnforcer()
+
 	// Start historical metrics update job (runs every hour)
 	if p.metrics != nil {
 		p.metricsUpdateTicker = time.NewTicker(1 * time.Hour)

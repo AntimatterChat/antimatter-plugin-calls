@@ -103,6 +103,9 @@ type CallStateClient struct {
 	Transcription          *JobStateClient `json:"transcription,omitempty"`
 	LiveCaptions           *JobStateClient `json:"live_captions,omitempty"`
 	DismissedNotification  map[string]bool `json:"dismissed_notification,omitempty"`
+
+	// The moderator-muted people of the channel: user ID -> who muted them.
+	ModMuted map[string]string `json:"mod_muted,omitempty"`
 }
 
 type JobStateClient struct {
@@ -377,6 +380,9 @@ func (p *Plugin) cleanCallState(call *public.Call) error {
 	if call.EndAt == 0 {
 		setCallEnded(call)
 	}
+
+	// The moderator mutes of the call last a while after it.
+	p.releaseModMutes(call.ChannelID, "")
 
 	if err := p.store.DeleteCallsSessions(call.ID); err != nil {
 		p.LogError("failed to delete calls sessions", "err", err.Error())

@@ -280,6 +280,9 @@ func (p *Plugin) removeUserSession(state *callState, userID, originalConnID, con
 	delete(state.sessions, originalConnID)
 	p.LogDebug("session was removed from state", "userID", userID, "connID", connID, "originalConnID", originalConnID)
 
+	// A moderator mute outlasts leaving the call for a while.
+	p.onLeaveModMuted(state, channelID, userID)
+
 	// Check if leaving session was screen sharing.
 	if state.Call.Props.ScreenSharingSessionID == originalConnID {
 		state.Call.Props.ScreenSharingSessionID = ""

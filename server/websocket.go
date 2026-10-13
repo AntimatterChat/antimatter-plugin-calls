@@ -318,6 +318,12 @@ func (p *Plugin) handleClientMsg(us *session, msg clientMessage, handlerID strin
 			}
 		}
 	case clientMessageTypeMute, clientMessageTypeUnmute:
+		// Someone moderator-muted can't unmute.
+		if msg.Type == clientMessageTypeUnmute && p.isModMuted(us.channelID, us.userID) {
+			p.refuseUnmute(us, handlerID)
+			return nil
+		}
+
 		if handlerID != p.nodeID {
 			// need to relay track event.
 			if err := p.sendClusterMessage(clusterMessage{
@@ -963,7 +969,10 @@ func (p *Plugin) handleJoin(userID, connID, authSessionID string, joinData calls
 			})
 		}
 
-		clientStateData, err := json.Marshal(state.getClientState(p.getBotID(), userID))
+		// Someone moderator-muted stays so as they join.
+		p.onJoinModMuted(state, channelID, userID, connID, handlerID)
+
+		clientStateData, err := json.Marshal(p.getClientStateFor(state, userID))
 		if err != nil {
 			p.LogError("failed to marshal client state", "err", err.Error())
 		} else {
@@ -1185,7 +1194,7 @@ func (p *Plugin) handleCallStateRequest(channelID, userID, connID string) error 
 		return fmt.Errorf("no call ongoing")
 	}
 
-	clientStateData, err := json.Marshal(state.getClientState(p.getBotID(), userID))
+	clientStateData, err := json.Marshal(p.getClientStateFor(state, userID))
 	if err != nil {
 		return fmt.Errorf("failed to marshal client state: %w", err)
 	}

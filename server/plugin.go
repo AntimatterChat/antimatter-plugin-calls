@@ -80,6 +80,9 @@ type Plugin struct {
 	// Cached Calls settings of channels, see getCachedCallsChannel.
 	channelSettings channelSettingsCache
 
+	// Cached moderator mutes of channels, see getModMutes.
+	modMuteCache modMuteCache
+
 	// Batchers
 	addSessionsBatchers    map[string]*batching.Batcher
 	removeSessionsBatchers map[string]*batching.Batcher

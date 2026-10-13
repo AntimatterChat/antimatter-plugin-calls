@@ -107,7 +107,7 @@ func (p *Plugin) handleGetCallChannelState(w http.ResponseWriter, r *http.Reques
 	data["channel_id"] = channel.ChannelID
 	data["enabled"] = channel.Enabled
 	data["props"] = channel.Props
-	data["call"] = cs.getClientState(p.getBotID(), userID)
+	data["call"] = p.getClientStateFor(cs, userID)
 
 	w.Header().Set("Content-Type", "application/json")
 	if err := json.NewEncoder(w).Encode(data); err != nil {
@@ -223,7 +223,7 @@ func (p *Plugin) handleGetAllCallChannelStates(w http.ResponseWriter, r *http.Re
 				http.Error(w, err.Error(), http.StatusInternalServerError)
 				return
 			}
-			channelData["call"] = cs.getClientState(p.getBotID(), userID)
+			channelData["call"] = p.getClientStateFor(cs, userID)
 			delete(callsMap, ch.ChannelID)
 		}
 
@@ -244,7 +244,7 @@ func (p *Plugin) handleGetAllCallChannelStates(w http.ResponseWriter, r *http.Re
 
 		data = append(data, map[string]any{
 			"channel_id": call.ChannelID,
-			"call":       cs.getClientState(p.getBotID(), userID),
+			"call":       p.getClientStateFor(cs, userID),
 		})
 	}
 
