@@ -20,8 +20,11 @@ jest.mock('src/components/incoming_calls/call_incoming_condensed', () => ({
     CallIncomingCondensed: ({call}: {call: IncomingCallNotification}) => <div data-testid={`condensed-${call.callID}`}/>,
 }));
 
+const mockRing = jest.fn();
+
 jest.mock('src/components/incoming_calls/hooks', () => ({
     useOnACallWithoutGlobalWidget: () => mockOnACall(),
+    useRingingAndNotification: (call: IncomingCallNotification, onWidget: boolean) => mockRing(call, onWidget),
 }));
 
 jest.mock('mattermost-redux/selectors/entities/teams', () => ({
@@ -59,9 +62,13 @@ describe('IncomingCallContainer', () => {
         expect(renderContainer().queryByTestId('incoming-call-id')).toBeNull();
     });
 
-    test('shows incoming calls while in a call under Fusion, which has no widget', () => {
+    test('only rings under Fusion, which draws the incoming calls itself', () => {
         window.antimatterWebUI = 'fusion';
         mockOnACall.mockReturnValue(true);
-        expect(renderContainer().queryByTestId('incoming-call-id')).not.toBeNull();
+        mockRing.mockClear();
+        const {container, queryByTestId} = renderContainer();
+        expect(queryByTestId('incoming-call-id')).toBeNull();
+        expect(container.innerHTML).toBe('');
+        expect(mockRing).toHaveBeenCalledWith(incomingCall, false);
     });
 });

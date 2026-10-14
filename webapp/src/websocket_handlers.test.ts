@@ -7,16 +7,18 @@ import {getCurrentUserId, getUser} from 'mattermost-redux/selectors/entities/use
 import {loadProfilesByIdsIfMissing, removeIncomingCallNotification, setDMCalleeAnsweredAt, userLeft} from 'src/actions';
 import {Store} from 'src/types/antimatter-webapp';
 
-import {CALL_HOST, HOST_CONTROL_NOTICE, USER_JOINED} from './action_types';
+import {CALL_HOST, HOST_CONTROL_NOTICE, MOD_MUTE_CHANGED, USER_JOINED} from './action_types';
 import {
     calls,
     dmCalleeAnsweredAtForCurrentCall,
     idForCurrentCall,
     isCurrentUserOwnerOfCurrentCall,
     ringingEnabled,
+    sessionsInCurrentCall,
     shouldPlayJoinUserSound,
 } from './selectors';
 import {
+    getCallsClient,
     getCallsClientChannelID,
     getCallsClientSessionID,
     getCallsWindow,
@@ -24,7 +26,7 @@ import {
     notificationsStopRinging,
     playSound,
 } from './utils';
-import {handleCallHostChanged, handleUserJoined, handleUserLeft} from './websocket_handlers';
+import {handleAskUnmute, handleCallHostChanged, handleModMute, handleUserJoined, handleUserLeft} from './websocket_handlers';
 
 jest.mock('mattermost-redux/selectors/entities/channels', () => ({
     getChannel: jest.fn(() => ({id: 'channel-id', type: 'D'})),
@@ -53,6 +55,7 @@ jest.mock('./selectors', () => ({
     isCurrentUserOwnerOfCurrentCall: jest.fn(),
     profilesInCurrentCallMap: jest.fn(() => ({})),
     ringingEnabled: jest.fn(),
+    sessionsInCurrentCall: jest.fn(() => []),
     shouldPlayJoinUserSound: jest.fn(),
 }));
 
@@ -348,5 +351,63 @@ describe('handleUserLeft', () => {
         handleUserLeft(store, userLeftEvent(otherUserID));
 
         expect(playSound).not.toHaveBeenCalled();
+    });
+});
+
+describe('moderator mutes', () => {
+    const makeStore = () => ({dispatch: jest.fn(), getState: jest.fn(() => ({}))}) as unknown as Store;
+    const fakeClient = (extra = {}) => ({channelID, modMuted: false, mute: jest.fn(), getSessionID: () => 'my-session', ...extra});
+
+    beforeEach(() => {
+        jest.clearAllMocks();
+        (getCurrentUserId as jest.Mock).mockReturnValue(currentUserID);
+    });
+
+    test('handleModMute records the change and mutes the user in their call', () => {
+        const store = makeStore();
+        const client = fakeClient();
+        (getCallsClient as jest.Mock).mockReturnValue(client);
+
+        handleModMute(store, {data: {channel_id: channelID, user_id: currentUserID, muted: true, by: otherUserID}} as WebSocketMessage<any>);
+        expect(store.dispatch).toHaveBeenCalledWith({type: MOD_MUTE_CHANGED, data: {channelID, userID: currentUserID, muted: true, by: otherUserID}});
+        expect(client.modMuted).toBe(true);
+        expect(client.mute).toHaveBeenCalled();
+
+        // Lifting it leaves them muted.
+        handleModMute(store, {data: {channel_id: channelID, user_id: currentUserID, muted: false, by: otherUserID}} as WebSocketMessage<any>);
+        expect(client.modMuted).toBe(false);
+        expect(client.mute).toHaveBeenCalledTimes(1);
+    });
+
+    test('handleModMute leaves the client alone for others or other calls', () => {
+        const store = makeStore();
+        const client = fakeClient();
+        (getCallsClient as jest.Mock).mockReturnValue(client);
+
+        handleModMute(store, {data: {channel_id: channelID, user_id: otherUserID, muted: true, by: currentUserID}} as WebSocketMessage<any>);
+        handleModMute(store, {data: {channel_id: 'other', user_id: currentUserID, muted: true, by: otherUserID}} as WebSocketMessage<any>);
+        expect(store.dispatch).toHaveBeenCalledTimes(2);
+        expect(client.modMuted).toBe(false);
+        expect(client.mute).not.toHaveBeenCalled();
+    });
+
+    test('handleAskUnmute passes on requests for this window\'s muted session', () => {
+        const store = makeStore();
+        const onRequest = jest.fn();
+        const ev = {data: {channel_id: channelID, session_id: 'my-session', by: otherUserID}} as WebSocketMessage<any>;
+
+        (getCallsClient as jest.Mock).mockReturnValue(fakeClient());
+        handleAskUnmute(store, ev, onRequest);
+        expect(onRequest).toHaveBeenCalledWith({channelId: channelID, sessionId: 'my-session', byUserId: otherUserID});
+
+        // Not when unmuted already, moderator-muted, or for another session.
+        onRequest.mockClear();
+        (sessionsInCurrentCall as unknown as jest.Mock).mockReturnValueOnce([{session_id: 'my-session', unmuted: true}]);
+        handleAskUnmute(store, ev, onRequest);
+        (getCallsClient as jest.Mock).mockReturnValue(fakeClient({modMuted: true}));
+        handleAskUnmute(store, ev, onRequest);
+        (getCallsClient as jest.Mock).mockReturnValue(fakeClient({getSessionID: () => 'other-session'}));
+        handleAskUnmute(store, ev, onRequest);
+        expect(onRequest).not.toHaveBeenCalled();
     });
 });

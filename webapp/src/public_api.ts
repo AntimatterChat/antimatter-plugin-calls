@@ -5,7 +5,7 @@ import {mosThreshold} from '@mattermost/calls-common';
 import {Reaction, UserSessionState} from '@mattermost/calls-common/lib/types';
 import {GlobalState} from '@mattermost/types/store';
 import {getChannel} from 'mattermost-redux/selectors/entities/channels';
-import {isCurrentUserSystemAdmin} from 'mattermost-redux/selectors/entities/users';
+import {getCurrentUserId, isCurrentUserSystemAdmin} from 'mattermost-redux/selectors/entities/users';
 import {compareSemVer} from 'semver-parser';
 import {
     dismissIncomingCallNotification,
@@ -15,6 +15,7 @@ import {
     hostScreenOff,
     openCallsUserSettings,
     showScreenSourceModal,
+    stopRingingForCall,
 } from 'src/actions';
 import {getSessionVolume, setSessionVolume} from 'src/call_audio';
 import CallsClient, {
@@ -34,7 +35,10 @@ import {
     channelIDForCurrentCall,
     defaultEnabled,
     isJobRunning,
+    isModMuted,
+    modMutedInChannel,
     pluginState,
+    ringingForCall,
     transcribeFromClients,
     transcriptionStateInChannel,
     videoEnabledInChannel,
@@ -47,9 +51,11 @@ import type {
     CallsEvent,
     CallsIncomingCall,
     CallsJoinOptions,
+    CallsModMute,
     CallsParticipant,
     CallsReaction,
     CallsTranscription,
+    CallsUnmuteRequest,
     LocalCall,
 } from 'src/types/public_api';
 import {CallJobReduxState, ChannelType, IncomingCallNotification, LiveCaptions} from 'src/types/types';
@@ -118,6 +124,7 @@ function getCall(state: GlobalState, channelId: string): CallsCall | null {
 
 type ParticipantsCacheEntry = {
     sessions: unknown;
+    modMuted: unknown;
     screenSharingId: string;
     hostId: string;
     mySessionId: string;
@@ -134,9 +141,10 @@ function getParticipants(state: GlobalState, channelId: string): CallsParticipan
     const hostId: string = calls.hosts?.[channelId]?.hostID || '';
     const me = myCall(state);
     const mySessionId = me?.channelID === channelId ? me.sessionID : '';
+    const modMuted = modMutedInChannel(state, channelId);
 
     const cached = participantsCache.get(channelId);
-    if (cached && cached.sessions === sessions && cached.screenSharingId === screenSharingId &&
+    if (cached && cached.sessions === sessions && cached.modMuted === modMuted && cached.screenSharingId === screenSharingId &&
         cached.hostId === hostId && cached.mySessionId === mySessionId) {
         return cached.result;
     }
@@ -154,9 +162,10 @@ function getParticipants(state: GlobalState, channelId: string): CallsParticipan
             raisedHandAt: session.raised_hand || 0,
             isHost: Boolean(hostId) && session.user_id === hostId,
             isMe: Boolean(mySessionId) && session.session_id === mySessionId,
+            modMuted: Object.hasOwn(modMuted, session.user_id),
         }));
     }
-    participantsCache.set(channelId, {sessions, screenSharingId, hostId, mySessionId, result});
+    participantsCache.set(channelId, {sessions, modMuted, screenSharingId, hostId, mySessionId, result});
     return result;
 }
 
@@ -184,11 +193,12 @@ function getScreenSharingSessionId(state: GlobalState, channelId: string): strin
     return pluginState(state).screenSharingIDs?.[channelId] || '';
 }
 
-let incomingCallsCache: {calls: unknown; result: CallsIncomingCall[]} = {calls: null, result: []};
+let incomingCallsCache: {calls: unknown; ringing: unknown; result: CallsIncomingCall[]} = {calls: null, ringing: null, result: []};
 
 function getIncomingCalls(state: GlobalState): CallsIncomingCall[] {
     const calls: IncomingCallNotification[] = pluginState(state).incomingCalls || [];
-    if (incomingCallsCache.calls === calls) {
+    const ringing = pluginState(state).ringingForCalls;
+    if (incomingCallsCache.calls === calls && incomingCallsCache.ringing === ringing) {
         return incomingCallsCache.result;
     }
 
@@ -198,8 +208,9 @@ function getIncomingCalls(state: GlobalState): CallsIncomingCall[] {
         callerId: call.callerID,
         startAt: call.startAt,
         type: call.type === ChannelType.DM ? 'dm' as const : 'gm' as const,
+        ringing: ringingForCall(state, call.callID),
     }));
-    incomingCallsCache = {calls, result};
+    incomingCallsCache = {calls, ringing, result};
     return result;
 }
 
@@ -275,6 +286,21 @@ function getLiveCaptions(state: GlobalState, channelId: string): CallsCaption[] 
     return result;
 }
 
+const modMutesCache = new Map<string, {modMuted: unknown; result: CallsModMute[]}>();
+const noModMutes: CallsModMute[] = [];
+
+function getModMutes(state: GlobalState, channelId: string): CallsModMute[] {
+    const modMuted = modMutedInChannel(state, channelId);
+    const cached = modMutesCache.get(channelId);
+    if (cached && cached.modMuted === modMuted) {
+        return cached.result;
+    }
+    const entries = Object.entries(modMuted);
+    const result = entries.length ? entries.map(([userId, byUserId]) => ({userId, byUserId})) : noModMutes;
+    modMutesCache.set(channelId, {modMuted, result});
+    return result;
+}
+
 export const selectors = {
     isCallsEnabled,
     getCall,
@@ -289,6 +315,7 @@ export const selectors = {
     isTranscriptionAvailable,
     getTranscription,
     getLiveCaptions,
+    getModMutes,
 } as AntimatterCallsAPI['selectors'];
 
 //
@@ -341,6 +368,9 @@ export type CallsAPIHandle = {
     // To be called when this window creates a calls client, and when it's closed.
     clientCreated(client: CallsClient): void;
     clientClosed(err?: Error): void;
+
+    // To be called when a moderator asks the user to unmute in the call of this window.
+    unmuteRequested(request: CallsUnmuteRequest): void;
 };
 
 // createCallsAPI creates window.antimatterCalls. Joins go through joinCall, so that they get the
@@ -349,6 +379,7 @@ export function createCallsAPI(store: Store, joinCall: JoinCall): CallsAPIHandle
     const listeners: Record<CallsEvent, Set<(...args: any[]) => void>> = {
         change: new Set(),
         error: new Set(),
+        'unmute-request': new Set(),
     };
 
     const emit = (event: CallsEvent, ...args: unknown[]) => {
@@ -479,10 +510,20 @@ export function createCallsAPI(store: Store, joinCall: JoinCall): CallsAPIHandle
         emit('change');
     };
 
-    const hostAction = (action: (callID: string, sessionID: string) => Promise<unknown>) => (sessionId: string) => {
-        const channelID = channelIDForCurrentCall(store.getState());
+    const hostAction = (action: (callID: string, sessionID: string) => Promise<unknown>) => (sessionId: string, channelId?: string) => {
+        const channelID = channelId || channelIDForCurrentCall(store.getState());
         if (channelID) {
             action(channelID, sessionId).catch((err) => logErr(err));
+        }
+    };
+
+    // The moderation requests reject with an Error carrying the HTTP status.
+    const moderationRequest = async (channelId: string, action: string, body: object) => {
+        try {
+            await RestClient.fetch(`${getPluginPath()}/calls/${channelId}/host/${action}`, {method: 'post', body: JSON.stringify(body)});
+        } catch (err) {
+            const status = (err as {status_code?: number})?.status_code || 0;
+            throw Object.assign(new Error((err as Error)?.message || String(err)), {status});
         }
     };
 
@@ -524,6 +565,8 @@ export function createCallsAPI(store: Store, joinCall: JoinCall): CallsAPIHandle
             }
             if (muted) {
                 client.mute();
+            } else if (client.modMuted || isModMuted(store.getState(), client.channelID, getCurrentUserId(store.getState()))) {
+                emit('error', {kind: 'mod-muted'});
             } else {
                 client.unmute().catch((err) => logErr(err));
             }
@@ -652,6 +695,11 @@ export function createCallsAPI(store: Store, joinCall: JoinCall): CallsAPIHandle
             stopScreen: hostAction(hostScreenOff),
         },
 
+        moderation: {
+            setModMuted: (channelId, userId, muted) => moderationRequest(channelId, 'mod-mute', {user_id: userId, muted}),
+            askToUnmute: (channelId, sessionId) => moderationRequest(channelId, 'ask-unmute', {session_id: sessionId}),
+        },
+
         startTranscription: () => transcriptionAction('start'),
         stopTranscription: () => transcriptionAction('stop'),
 
@@ -659,10 +707,16 @@ export function createCallsAPI(store: Store, joinCall: JoinCall): CallsAPIHandle
             store.dispatch(dismissIncomingCallNotification(channelId, callId));
         },
 
+        stopRinging: (callId) => {
+            store.dispatch(stopRingingForCall(callId));
+        },
+
         openSettings: () => {
             store.dispatch(openCallsUserSettings());
         },
     };
 
-    return {api, clientCreated, clientClosed};
+    const unmuteRequested = (request: CallsUnmuteRequest) => emit('unmute-request', request);
+
+    return {api, clientCreated, clientClosed, unmuteRequested};
 }

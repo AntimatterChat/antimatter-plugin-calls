@@ -84,6 +84,9 @@ export function getSenderSessionIDFromSDP(sdp: string, mid: string): string {
 
 export default class CallsClient extends EventEmitter {
     public channelID: string;
+
+    // Antimatter: a moderator muted the user in this call; unmuting does nothing until they lift it.
+    public modMuted = false;
     private readonly config: CallsClientConfig;
     private peer: RTCPeer | null;
     public ws: WebSocketClient | null;
@@ -966,6 +969,11 @@ export default class CallsClient extends EventEmitter {
 
     public async unmute() {
         if (!this.peer) {
+            return;
+        }
+
+        if (this.modMuted) {
+            logDebug('not unmuting: muted by a moderator');
             return;
         }
 

@@ -117,6 +117,7 @@ import {
     CALL_END,
     CALL_STATE,
     DISMISS_CALL,
+    MOD_MUTED_STATE,
     RECEIVED_CHANNEL_STATE,
     UNINIT,
     USER_LOWER_HAND,
@@ -162,6 +163,7 @@ import {
     iceServers,
     incomingCalls,
     isLimitRestricted,
+    isModMuted,
     needsTURNCredentials,
     ringingEnabled,
     sessionsInCurrentCall,
@@ -189,6 +191,7 @@ import {
 } from './utils';
 import {isFusionUI, WebUI} from './web_ui';
 import {
+    handleAskUnmute,
     handleCallEnd,
     handleCallHostChanged,
     handleCallJobState,
@@ -199,6 +202,7 @@ import {
     handleHostMute,
     handleHostRemoved,
     handleHostScreenOff,
+    handleModMute,
     handleUserDismissedNotification,
     handleUserJoined,
     handleUserLeft,
@@ -323,6 +327,10 @@ export default class Plugin {
 
         registry.registerWebSocketEventHandler(`custom_${pluginId}_host_mute`, (ev) => {
             handleHostMute(store, ev);
+        });
+
+        registry.registerWebSocketEventHandler(`custom_${pluginId}_mod_mute`, (ev) => {
+            handleModMute(store, ev);
         });
 
         registry.registerWebSocketEventHandler(`custom_${pluginId}_host_screen_off`, (ev) => {
@@ -748,6 +756,7 @@ export default class Plugin {
                     dcLocking: hasDCSignalingLockSupport(callsVersionInfo(state)),
                     enableVideo: videoEnabledInChannel(state, channel),
                 });
+                window.callsClient.modMuted = isModMuted(state, channelID, getCurrentUserId(state));
                 window.currentCallData = {...CurrentCallDataDefault};
                 store.dispatch(setLocalCall({channelID, sessionID: '', state: 'connecting'}));
                 callsAPI.clientCreated(window.callsClient);
@@ -935,6 +944,11 @@ export default class Plugin {
         });
         window.dispatchEvent(new Event('antimatter-calls:ready'));
 
+        // A moderator asking the user to unmute reaches the UI through the API.
+        registry.registerWebSocketEventHandler(`custom_${pluginId}_ask_unmute`, (ev) => {
+            handleAskUnmute(store, ev, (req) => callsAPI.unmuteRequested(req));
+        });
+
         const windowEventHandler = (ev: MessageEvent) => {
             if (ev.origin !== window.origin) {
                 return;
@@ -1029,6 +1043,14 @@ export default class Plugin {
                     }
 
                     store.dispatch(loadProfilesByIdsIfMissing(getUserIDsForSessions(call.sessions)));
+
+                    actions.push({
+                        type: MOD_MUTED_STATE,
+                        data: {
+                            channelID: data[i].channel_id,
+                            modMuted: (call as typeof call & {mod_muted?: Record<string, string>}).mod_muted,
+                        },
+                    });
 
                     // Antimatter: the people in a call we already know about may have changed while our
                     // websocket was down, e.g. someone left: their session would otherwise stay listed.

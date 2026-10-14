@@ -2,7 +2,17 @@
 // See LICENSE.txt for license information.
 
 import type {AnyAction} from 'redux';
-import {ADD_INCOMING_CALL, CALL_END, CALL_STATE, DM_CALLEE_ANSWERED_AT, LOCAL_CALL_STATE, REMOVE_INCOMING_CALL, UNINIT} from 'src/action_types';
+import {
+    ADD_INCOMING_CALL,
+    CALL_END,
+    CALL_STATE,
+    DM_CALLEE_ANSWERED_AT,
+    LOCAL_CALL_STATE,
+    MOD_MUTE_CHANGED,
+    MOD_MUTED_STATE,
+    REMOVE_INCOMING_CALL,
+    UNINIT,
+} from 'src/action_types';
 
 import reducer from './reducers';
 
@@ -131,5 +141,33 @@ describe('localCall', () => {
 
     it('should be cleared on UNINIT', () => {
         expect(apply({type: LOCAL_CALL_STATE, data: connected}, {type: UNINIT}).localCall).toBeNull();
+    });
+});
+
+describe('modMuted', () => {
+    const changed = (userID: string, muted: boolean, by = 'admin') => ({type: MOD_MUTE_CHANGED, data: {channelID, userID, muted, by}});
+
+    it('should load the moderator mutes of the call state', () => {
+        const state = apply({type: MOD_MUTED_STATE, data: {channelID, modMuted: {u1: 'admin'}}});
+        expect(state.modMuted).toEqual({[channelID]: {u1: 'admin'}});
+        expect(apply(
+            {type: MOD_MUTED_STATE, data: {channelID, modMuted: {u1: 'admin'}}},
+            {type: MOD_MUTED_STATE, data: {channelID}},
+        ).modMuted).toEqual({});
+    });
+
+    it('should follow the mod_mute events', () => {
+        expect(apply(changed('u1', true)).modMuted).toEqual({[channelID]: {u1: 'admin'}});
+        expect(apply(changed('u1', true), changed('u2', true, 'host')).modMuted).toEqual({[channelID]: {u1: 'admin', u2: 'host'}});
+        expect(apply(changed('u1', true), changed('u1', false)).modMuted).toEqual({});
+    });
+
+    it('should keep the state when lifting someone not muted', () => {
+        const before = apply(changed('u1', true));
+        expect(reducer(before, changed('u2', false)).modMuted).toBe(before.modMuted);
+    });
+
+    it('should drop the channel\'s mutes as its call ends', () => {
+        expect(apply(changed('u1', true), callEnd(callID)).modMuted).toEqual({});
     });
 });

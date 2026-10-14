@@ -717,3 +717,13 @@ export const clientConnecting = (state: GlobalState) => {
 
 export const callsVersionInfo = (state: GlobalState): CallsVersionInfo =>
     pluginState(state).callsVersionInfo;
+
+const noModMuted: {[userID: string]: string} = {};
+
+// modMutedInChannel gives the moderator-muted people of a channel: user ID -> who muted them (Antimatter).
+export const modMutedInChannel = (state: GlobalState, channelID: string): {[userID: string]: string} =>
+    pluginState(state).modMuted?.[channelID] || noModMuted;
+
+// isModMuted tells whether someone is moderator-muted in a channel: they can't unmute until it's lifted.
+export const isModMuted = (state: GlobalState, channelID: string, userID: string): boolean =>
+    Boolean(channelID && userID && Object.hasOwn(modMutedInChannel(state, channelID), userID));

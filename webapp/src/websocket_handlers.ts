@@ -66,6 +66,7 @@ import {
     HOST_CONTROL_NOTICE_TIMEOUT_EVENT,
     LIVE_CAPTION,
     LIVE_CAPTION_TIMEOUT_EVENT,
+    MOD_MUTE_CHANGED,
     USER_JOINED,
     USER_JOINED_TIMEOUT,
     USER_LOWER_HAND,
@@ -90,6 +91,7 @@ import {
     isCurrentUserOwnerOfCurrentCall,
     profilesInCurrentCallMap,
     ringingEnabled,
+    sessionsInCurrentCall,
     shouldPlayJoinUserSound,
 } from './selectors';
 import {Store} from './types/antimatter-webapp';
@@ -711,4 +713,59 @@ export function handleUserVideoOff(store: Store, ev: WebSocketMessage<UserVideoO
             session_id: ev.data.session_id,
         },
     });
+}
+
+type ModMuteData = {
+    channel_id: string;
+    user_id: string;
+    muted: boolean;
+    by: string;
+};
+
+// handleModMute follows the moderator mutes of a channel (Antimatter). Someone moderator-muted is muted, and can't
+// unmute until it's lifted; lifting it leaves them muted.
+export function handleModMute(store: Store, ev: WebSocketMessage<ModMuteData>) {
+    const {channel_id: channelID, user_id: userID, muted, by} = ev.data;
+    store.dispatch({
+        type: MOD_MUTE_CHANGED,
+        data: {channelID, userID, muted, by},
+    });
+
+    if (userID !== getCurrentUserId(store.getState())) {
+        return;
+    }
+    const client = getCallsClient();
+    if (!client || client.channelID !== channelID) {
+        return;
+    }
+    client.modMuted = muted;
+    if (muted) {
+        client.mute();
+    }
+}
+
+type AskUnmuteData = {
+    channel_id: string;
+    session_id: string;
+    by: string;
+};
+
+export type UnmuteRequest = {
+    channelId: string;
+    sessionId: string;
+    byUserId: string;
+};
+
+// handleAskUnmute passes on a host's request to unmute, when it's for the call this window runs and the user is
+// muted (and not by a moderator).
+export function handleAskUnmute(store: Store, ev: WebSocketMessage<AskUnmuteData>, onRequest: (req: UnmuteRequest) => void) {
+    const client = getCallsClient();
+    if (!client || client.channelID !== ev.data.channel_id || client.getSessionID() !== ev.data.session_id || client.modMuted) {
+        return;
+    }
+    const session = sessionsInCurrentCall(store.getState()).find((s) => s.session_id === ev.data.session_id);
+    if (session?.unmuted) {
+        return;
+    }
+    onRequest({channelId: ev.data.channel_id, sessionId: ev.data.session_id, byUserId: ev.data.by});
 }

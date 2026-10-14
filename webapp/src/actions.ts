@@ -63,6 +63,7 @@ import {
     LIVE_CAPTIONS_ENABLED,
     LOCAL_CALL_STATE,
     LOCAL_SESSION_CLOSE,
+    MOD_MUTED_STATE,
     RECEIVED_CALLS_CONFIG,
     RECEIVED_CALLS_CONFIG_ENV_OVERRIDES,
     RECEIVED_CALLS_VERSION_INFO,
@@ -537,6 +538,14 @@ export const loadCallState = (channelID: string, call: CallState) => (dispatch: 
         data: {
             states: getSessionsMapFromSessions(call.sessions),
             channelID,
+        },
+    });
+
+    actions.push({
+        type: MOD_MUTED_STATE,
+        data: {
+            channelID,
+            modMuted: (call as CallState & {mod_muted?: Record<string, string>}).mod_muted,
         },
     });
 

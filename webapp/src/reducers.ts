@@ -42,6 +42,8 @@ import {
     LIVE_CAPTIONS_ENABLED,
     LOCAL_CALL_STATE,
     LOCAL_SESSION_CLOSE,
+    MOD_MUTE_CHANGED,
+    MOD_MUTED_STATE,
     RECEIVED_CALLS_CONFIG,
     RECEIVED_CALLS_CONFIG_ENV_OVERRIDES,
     RECEIVED_CALLS_USER_PREFERENCES,
@@ -1149,6 +1151,70 @@ const hostControlNotices = (state: hostControlNoticeState = {},
     }
 };
 
+// The moderator-muted people of each channel: user ID -> who muted them (Antimatter). Kept from the call state and
+// the mod_mute events, and dropped as the call ends (the next call's state brings them back).
+export type ModMutedState = {[channelID: string]: {[userID: string]: string}};
+
+type ModMutedAction = {
+    type: string;
+    data: {
+        channelID: string;
+        modMuted?: {[userID: string]: string};
+        userID?: string;
+        muted?: boolean;
+        by?: string;
+    };
+};
+
+const modMuted = (state: ModMutedState = {}, action: ModMutedAction) => {
+    switch (action.type) {
+    case UNINIT:
+        return {};
+    case MOD_MUTED_STATE: {
+        const next = {...state};
+        if (action.data.modMuted && Object.keys(action.data.modMuted).length) {
+            next[action.data.channelID] = {...action.data.modMuted};
+        } else if (state[action.data.channelID]) {
+            delete next[action.data.channelID];
+        } else {
+            return state;
+        }
+        return next;
+    }
+    case MOD_MUTE_CHANGED: {
+        const {channelID, userID, muted, by} = action.data;
+        if (!userID) {
+            return state;
+        }
+        const users = {...state[channelID]};
+        if (muted) {
+            users[userID] = by || '';
+        } else if (userID in users) {
+            delete users[userID];
+        } else {
+            return state;
+        }
+        const next = {...state};
+        if (Object.keys(users).length) {
+            next[channelID] = users;
+        } else {
+            delete next[channelID];
+        }
+        return next;
+    }
+    case CALL_END: {
+        if (!state[action.data.channelID]) {
+            return state;
+        }
+        const next = {...state};
+        delete next[action.data.channelID];
+        return next;
+    }
+    default:
+        return state;
+    }
+};
+
 export default combineReducers({
     channels,
     clientStateReducer,
@@ -1179,4 +1245,5 @@ export default combineReducers({
     liveCaptions,
     clientConnecting,
     hostControlNotices,
+    modMuted,
 });

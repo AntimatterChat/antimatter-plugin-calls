@@ -3,8 +3,9 @@
 
 import {GlobalState} from '@mattermost/types/store';
 import {EventEmitter} from 'events';
-import {hostMute} from 'src/actions';
+import {hostMute, stopRingingForCall} from 'src/actions';
 import CallsClient, {AudioInputPermissionsError} from 'src/client';
+import RestClient from 'src/rest_client';
 import {ChannelType} from 'src/types/types';
 
 import {createCallsAPI, selectors} from './public_api';
@@ -18,6 +19,12 @@ jest.mock('src/actions', () => ({
     hostScreenOff: jest.fn(() => Promise.resolve()),
     openCallsUserSettings: jest.fn(() => ({type: 'settings'})),
     showScreenSourceModal: jest.fn(() => ({type: 'screen-source'})),
+    stopRingingForCall: jest.fn(() => ({type: 'stop-ringing'})),
+}));
+
+jest.mock('src/rest_client', () => ({
+    __esModule: true,
+    default: {fetch: jest.fn(() => Promise.resolve({})), getOptions: jest.fn()},
 }));
 
 const channelID = 'channel-id';
@@ -32,6 +39,8 @@ type StateOpts = {
     screenSharingIDs?: Record<string, string>;
     hosts?: Record<string, {hostID: string}>;
     incomingCalls?: unknown[];
+    ringingForCalls?: Record<string, boolean>;
+    modMuted?: Record<string, Record<string, string>>;
     callsConfig?: Record<string, unknown>;
 };
 
@@ -46,6 +55,8 @@ const makeState = (opts: StateOpts = {}) => ({
         localCall: opts.localCall ?? null,
         clientStateReducer: opts.clientStateReducer ?? null,
         incomingCalls: opts.incomingCalls || [],
+        ringingForCalls: opts.ringingForCalls || {},
+        modMuted: opts.modMuted || {},
         callsConfig: {AllowScreenSharing: true, DefaultEnabled: true, ...opts.callsConfig},
     },
     entities: {
@@ -65,8 +76,8 @@ describe('selectors', () => {
 
         const participants = selectors.getParticipants(state, channelID);
         expect(participants).toEqual([
-            {sessionId: 's1', userId: 'owner', muted: false, video: false, screenSharing: true, speaking: true, raisedHand: false, raisedHandAt: 0, isHost: true, isMe: false},
-            {sessionId: 's2', userId: currentUserID, muted: true, video: true, screenSharing: false, speaking: false, raisedHand: true, raisedHandAt: 5, isHost: false, isMe: true},
+            {sessionId: 's1', userId: 'owner', muted: false, video: false, screenSharing: true, speaking: true, raisedHand: false, raisedHandAt: 0, isHost: true, isMe: false, modMuted: false},
+            {sessionId: 's2', userId: currentUserID, muted: true, video: true, screenSharing: false, speaking: false, raisedHand: true, raisedHandAt: 5, isHost: false, isMe: true, modMuted: false},
         ]);
 
         // Another state with the same call slices gives the same array
@@ -108,13 +119,28 @@ describe('selectors', () => {
             {callID: 'c1', channelID: 'ch1', callerID: 'u1', startAt: 1, type: ChannelType.DM},
             {callID: 'c2', channelID: 'ch2', callerID: 'u2', startAt: 2, type: ChannelType.GM},
         ];
-        const state = makeState({incomingCalls});
+        const ringingForCalls = {c1: true};
+        const state = makeState({incomingCalls, ringingForCalls});
         const calls = selectors.getIncomingCalls(state);
         expect(calls).toEqual([
-            {channelId: 'ch2', callId: 'c2', callerId: 'u2', startAt: 2, type: 'gm'},
-            {channelId: 'ch1', callId: 'c1', callerId: 'u1', startAt: 1, type: 'dm'},
+            {channelId: 'ch2', callId: 'c2', callerId: 'u2', startAt: 2, type: 'gm', ringing: false},
+            {channelId: 'ch1', callId: 'c1', callerId: 'u1', startAt: 1, type: 'dm', ringing: true},
         ]);
-        expect(selectors.getIncomingCalls(makeState({incomingCalls}))).toBe(calls);
+        expect(selectors.getIncomingCalls(makeState({incomingCalls, ringingForCalls}))).toBe(calls);
+
+        // The ring stopping gives a new list.
+        expect(selectors.getIncomingCalls(makeState({incomingCalls, ringingForCalls: {}}))[1].ringing).toBe(false);
+    });
+
+    test('getModMutes and the participants\' modMuted flag follow the moderator mutes', () => {
+        expect(selectors.getModMutes(makeState(), channelID)).toEqual([]);
+        const modMuted = {[channelID]: {owner: 'admin'}};
+        const sessions = {s1: session('s1', 'owner'), s2: session('s2', currentUserID)};
+        const state = makeState({sessions, modMuted});
+        const mutes = selectors.getModMutes(state, channelID);
+        expect(mutes).toEqual([{userId: 'owner', byUserId: 'admin'}]);
+        expect(selectors.getModMutes(makeState({modMuted}), channelID)).toBe(mutes);
+        expect(selectors.getParticipants(state, channelID).map((p) => p.modMuted)).toEqual([true, false]);
     });
 
     test('getReactions maps the call\'s reactions and keeps the result while unchanged', () => {
@@ -185,16 +211,17 @@ describe('createCallsAPI', () => {
         expect(api.version).toBe(1);
         expect(Object.keys(api).sort()).toEqual([
             'canShareSystemAudio', 'dismissIncomingCall', 'getBackgroundBlur', 'getLocalScreenStream', 'getLocalVideoStream', 'getParticipantVolume',
-            'getRemoteScreenStream', 'getRemoteVideoStreams', 'host', 'join', 'leave', 'on', 'openSettings', 'selectors',
+            'getRemoteScreenStream', 'getRemoteVideoStreams', 'host', 'join', 'leave', 'moderation', 'on', 'openSettings', 'selectors',
             'sendReaction', 'setBackgroundBlur', 'setHandRaised', 'setMuted', 'setParticipantVolume', 'setVideo',
-            'startScreenShare', 'startTranscription', 'stopScreenShare', 'stopTranscription', 'version',
+            'startScreenShare', 'startTranscription', 'stopRinging', 'stopScreenShare', 'stopTranscription', 'version',
         ]);
         expect(Object.keys(api.selectors).sort()).toEqual([
-            'getCall', 'getIncomingCalls', 'getLiveCaptions', 'getLocalCall', 'getMyMuted', 'getParticipants', 'getReactions',
+            'getCall', 'getIncomingCalls', 'getLiveCaptions', 'getLocalCall', 'getModMutes', 'getMyMuted', 'getParticipants', 'getReactions',
             'getScreenSharingSessionId', 'getTranscription', 'isCallsEnabled', 'isScreenSharingAllowed', 'isTranscriptionAvailable',
             'isVideoAllowed',
         ]);
         expect(Object.keys(api.host).sort()).toEqual(['lowerHand', 'mute', 'remove', 'stopScreen']);
+        expect(Object.keys(api.moderation).sort()).toEqual(['askToUnmute', 'setModMuted']);
     });
 
     test('join goes through the given join function', async () => {
@@ -400,5 +427,57 @@ describe('createCallsAPI', () => {
         const {api} = createCallsAPI(store, join);
         api.host.mute('s2');
         expect(hostMute).toHaveBeenCalledWith(channelID, 's2');
+    });
+
+    test('host controls act on the given call', () => {
+        const {api} = createCallsAPI(store, join);
+        api.host.mute('s3', 'other-channel');
+        expect(hostMute).toHaveBeenCalledWith('other-channel', 's3');
+    });
+
+    test('unmuting is refused while muted by a moderator', () => {
+        state = makeState({localCall: {channelID, sessionID: 's1', state: 'connected'}, modMuted: {[channelID]: {[currentUserID]: 'admin'}}});
+        const {api, clientCreated} = createCallsAPI(store, join);
+        const client = new FakeClient();
+        clientCreated(client as unknown as CallsClient);
+        const onError = jest.fn();
+        api.on('error', onError);
+
+        api.setMuted(false);
+        expect(client.unmute).not.toHaveBeenCalled();
+        expect(onError).toHaveBeenCalledWith({kind: 'mod-muted'});
+    });
+
+    test('moderation requests go to the host controls and reject with the status', async () => {
+        const fetch = RestClient.fetch as jest.Mock;
+        const {api} = createCallsAPI(store, join);
+
+        await api.moderation.setModMuted(channelID, 'u2', true);
+        expect(fetch).toHaveBeenLastCalledWith(expect.stringMatching(`/calls/${channelID}/host/mod-mute$`), {method: 'post', body: JSON.stringify({user_id: 'u2', muted: true})});
+
+        await api.moderation.askToUnmute(channelID, 's2');
+        expect(fetch).toHaveBeenLastCalledWith(expect.stringMatching(`/calls/${channelID}/host/ask-unmute$`), {method: 'post', body: JSON.stringify({session_id: 's2'})});
+
+        fetch.mockImplementationOnce(() => Promise.reject(Object.assign(new Error('too many requests'), {status_code: 429})));
+        await expect(api.moderation.askToUnmute(channelID, 's2')).rejects.toMatchObject({status: 429});
+    });
+
+    test('stopRinging stops the ring of an incoming call', () => {
+        const {api} = createCallsAPI(store, join);
+        api.stopRinging('call-id');
+        expect(stopRingingForCall).toHaveBeenCalledWith('call-id');
+        expect(store.dispatch).toHaveBeenCalledWith({type: 'stop-ringing'});
+    });
+
+    test('unmute requests reach the listeners', () => {
+        const {api, unmuteRequested} = createCallsAPI(store, join);
+        const onRequest = jest.fn();
+        const off = api.on('unmute-request', onRequest);
+        const request = {channelId: channelID, sessionId: 's1', byUserId: 'owner'};
+        unmuteRequested(request);
+        expect(onRequest).toHaveBeenCalledWith(request);
+        off();
+        unmuteRequested(request);
+        expect(onRequest).toHaveBeenCalledTimes(1);
     });
 });
