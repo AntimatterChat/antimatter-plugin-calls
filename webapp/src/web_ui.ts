@@ -7,6 +7,12 @@
 
 export type WebUI = 'classic' | 'fusion';
 
+declare global {
+    interface Window {
+        antimatterWebUI?: WebUI;
+    }
+}
+
 // isFusionUI returns whether the Fusion web UI is running.
 export function isFusionUI(): boolean {
     return window.antimatterWebUI === 'fusion' || document.documentElement.dataset.amWebUi === 'fusion';

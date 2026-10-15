@@ -189,7 +189,7 @@ import {
     sendDesktopEvent,
     setCallsGlobalCSSVars,
 } from './utils';
-import {isFusionUI, WebUI} from './web_ui';
+import {isFusionUI} from './web_ui';
 import {
     handleAskUnmute,
     handleCallEnd,
@@ -1308,7 +1308,6 @@ declare global {
         registerPlugin(id: string, plugin: Plugin): void,
 
         callsClient?: CallsClient,
-        antimatterWebUI?: WebUI,
         webkitAudioContext: AudioContext,
         basename: string,
 
