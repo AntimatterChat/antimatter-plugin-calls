@@ -4,6 +4,7 @@
 /* eslint-disable max-lines */
 import {CallJobState, CallsConfig, CallState, CallsVersionInfo} from '@mattermost/calls-common/lib/types';
 import {Channel} from '@mattermost/types/channels';
+import {GlobalState} from '@mattermost/types/store';
 import {UserTypes} from 'mattermost-redux/action_types';
 import {getChannel as loadChannel} from 'mattermost-redux/actions/channels';
 import {bindClientFunc} from 'mattermost-redux/actions/helpers';
@@ -296,6 +297,17 @@ export const displayGenericErrorModal = (title: MessageDescriptor, message: Mess
     };
 };
 
+// isSilencedCall returns whether a call should not ring: its caller is ignored or blocked (Antimatter's user_block
+// preference), or its direct message is a pending or dismissed message request.
+export function isSilencedCall(state: GlobalState, channelID: string, callerID: string) {
+    const prefs = state.entities.preferences?.myPreferences || {};
+    if (prefs[`user_block--${callerID}`]?.value) {
+        return true;
+    }
+    const request = (state.entities.channels?.myMembers?.[channelID]?.notify_props as Record<string, string> | undefined)?.dm_request;
+    return request === 'pending' || request === 'dismissed';
+}
+
 export function incomingCallOnChannel(channelID: string, callID: string, callerID: string, startAt: number) {
     return async (dispatch: DispatchFunc, getState: GetStateFunc) => {
         let channel: Channel | undefined = getChannel(getState(), channelID);
@@ -320,6 +332,12 @@ export function incomingCallOnChannel(channelID: string, callID: string, callerI
         const currentUserID = getCurrentUserId(getState());
         const currentCallID = idForCurrentCall(getState());
         if (currentUserID === callerID || currentCallID === callID) {
+            return;
+        }
+
+        // Antimatter's ignore, block and message requests: no ring from someone the user ignores or blocked, nor in a
+        // direct message that is still a request (the server already keeps such calls out of push notifications).
+        if (isSilencedCall(getState(), channelID, callerID)) {
             return;
         }
 
