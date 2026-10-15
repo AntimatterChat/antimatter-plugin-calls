@@ -953,10 +953,14 @@ export default class CallsClient extends EventEmitter {
             return;
         }
 
-        logDebug('replacing track to peer', null);
+        // Antimatter: a voice track not yet added (muted since joining, e.g. muted again by a moderator on rejoin)
+        // has no sender to replace.
+        if (this.voiceTrackAdded) {
+            logDebug('replacing track to peer', null);
 
-        // @ts-ignore: we actually mean (and need) to pass null here
-        this.peer.replaceTrack(this.audioTrack.id, null);
+            // @ts-ignore: we actually mean (and need) to pass null here
+            this.peer.replaceTrack(this.audioTrack.id, null);
+        }
 
         this.audioTrack.enabled = false;
 
