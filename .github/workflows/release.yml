@@ -6,7 +6,7 @@
 #
 # Calls: `make dist` (with CI=true, as on GitHub) builds the server for linux amd64/arm64,
 # freebsd-amd64 and openbsd-amd64, the web app and the standalone apps (call widget and
-# recording page) into one bundle. Go is pinned by .go-version.
+# recording page) into one bundle.
 
 name: Release
 
@@ -35,5 +35,4 @@ jobs:
     uses: AntimatterChat/.github/.github/workflows/app-release.yml@main
     with:
       draft-prerelease: ${{ inputs.draft_prerelease || false }}
-      go-version-file: .go-version
     secrets: inherit
