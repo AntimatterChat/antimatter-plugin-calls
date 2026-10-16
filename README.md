@@ -12,13 +12,13 @@ Calls enables voice calling and screen sharing functionality in Antimatter chann
 
 ## Requirements
 
-This plugin demands some network configuration changes to allow audio/video communication between clients, such as opening network ports. Please refer to the [documentation](https://docs.antimatter.example/configure/calls-deployment.html#network) for more details.
+This plugin demands some network configuration changes to allow audio/video communication between clients, such as opening network ports. Please refer to the [documentation](https://antimatter.chat/docs/admins/calls.html#network) for more details.
 
 ## Documentation
 
-[End-user documentation](https://docs.antimatter.example/channels/make-calls.html)
-[Calls self-hosted deployment](https://docs.antimatter.example/configure/calls-deployment.html)
-[Configuration settings](https://docs.antimatter.example/configure/plugins-configuration-settings.html#calls)
+[End-user documentation](https://antimatter.chat/docs/users/calls.html)
+[Calls self-hosted deployment](https://antimatter.chat/docs/admins/calls.html)
+[Configuration settings](https://antimatter.chat/docs/admins/calls.html#general)
 
 ### Environment variables
 
@@ -48,7 +48,7 @@ Without this flag, the build only produces binaries for Linux, FreeBSD, and Open
 
 *Note:* If the upload fails with a file size error, increase the maximum file size in *System Console → Environment → File Storage → Maximum File Size* (e.g. 256 MB).
 
-For more details on how to develop a plugin refer to the official [documentation](https://docs.antimatter.example/extend/plugins/).
+For more details on how to develop a plugin refer to the official [documentation](https://antimatter.chat/docs/developers/apps.html).
 
 ## How to Release
 
