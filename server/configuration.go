@@ -12,6 +12,7 @@ import (
 	"net/http"
 	"net/url"
 	"reflect"
+	"slices"
 	"strconv"
 	"strings"
 
@@ -786,16 +787,43 @@ func (c *configuration) getICEServers(forClient bool) ICEServersConfigs {
 		if forClient && cfg.IsTURN() && cfg.Username == "" && cfg.Credential == "" {
 			continue
 		}
+		cfg.URLs = replaceMattermostSTUN(cfg.URLs)
 		iceServers = append(iceServers, cfg)
 	}
 
 	if len(c.ICEServers) > 0 {
 		iceServers = append(iceServers, rtc.ICEServerConfig{
-			URLs: c.ICEServers,
+			URLs: replaceMattermostSTUN(c.ICEServers),
 		})
 	}
 
 	return iceServers
+}
+
+// defaultSTUNServer is the STUN server Calls uses by default: Cloudflare's public one.
+const defaultSTUNServer = "stun:stun.cloudflare.com:3478"
+
+// replaceMattermostSTUN swaps Mattermost, Inc.'s STUN servers, the former default that an older
+// configuration may still have saved, for the default one: Antimatter never contacts Mattermost.
+func replaceMattermostSTUN(urls []string) []string {
+	out := make([]string, 0, len(urls))
+	for _, u := range urls {
+		host := strings.ToLower(u)
+		if i := strings.Index(host, ":"); i >= 0 {
+			host = host[i+1:]
+		}
+		host = strings.TrimPrefix(host, "//")
+		if i := strings.IndexAny(host, ":?/"); i >= 0 {
+			host = host[:i]
+		}
+		if host == "mattermost.com" || strings.HasSuffix(host, ".mattermost.com") {
+			u = defaultSTUNServer
+		}
+		if !slices.Contains(out, u) {
+			out = append(out, u)
+		}
+	}
+	return out
 }
 
 func (cfgs ICEServersConfigs) getTURNConfigsForCredentials() []rtc.ICEServerConfig {

@@ -184,7 +184,7 @@
             "type": "longtext",
             "secret": true,
             "help_text": "(Optional) A list of ICE servers (STUN/TURN) configurations to use. This field should contain a valid JSON array.",
-            "default": "[{\"urls\":[\"stun:stun.global.calls.mattermost.com:3478\"]}]",
+            "default": "[{\"urls\":[\"stun:stun.cloudflare.com:3478\"]}]",
             "placeholder": "[{\n \"urls\":[\"turn:turnserver.example.org:3478\"],\n \"username\": \"webrtc\",\n \"credential\": \"turnpassword\"\n}]",
             "hosting": "on-prem"
           },

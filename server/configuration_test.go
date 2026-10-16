@@ -329,3 +329,16 @@ func TestConfigurationWillBeSaved(t *testing.T) {
 		require.Contains(t, appErr.Message, "UDPServerPort is not valid")
 	})
 }
+
+func TestReplaceMattermostSTUN(t *testing.T) {
+	require.Equal(t, []string{"stun:stun.cloudflare.com:3478"},
+		replaceMattermostSTUN([]string{"stun:stun.global.calls.mattermost.com:3478"}))
+	require.Equal(t, []string{"stun:stun.cloudflare.com:3478", "turn:turn.example.com:3478"},
+		replaceMattermostSTUN([]string{"stun:stun.global.calls.mattermost.com:3478", "turn:turn.example.com:3478", "stun:stun.cloudflare.com:3478"}))
+	require.Equal(t, []string{"stun:stun.example.com:3478"}, replaceMattermostSTUN([]string{"stun:stun.example.com:3478"}))
+
+	var cfg configuration
+	cfg.ICEServersConfigs = ICEServersConfigs{{URLs: []string{"stun:stun.global.calls.mattermost.com:3478"}}}
+	require.Equal(t, []string{"stun:stun.cloudflare.com:3478"}, cfg.getICEServers(true)[0].URLs)
+	require.Equal(t, []string{"stun:stun.global.calls.mattermost.com:3478"}, cfg.ICEServersConfigs[0].URLs, "the saved setting is not rewritten")
+}
