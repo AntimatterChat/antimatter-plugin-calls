@@ -1,0 +1,39 @@
+# Builds the app bundle and publishes it as a GitHub release when a v* tag is pushed (tags with a
+# "-", e.g. v1.2.0-rc.1, become prereleases). A manual run builds the bundle as a workflow
+# artifact, and optionally as a draft prerelease. The build, signing (Antimatter plugin signing
+# key) and release steps live in the organisation's shared workflow:
+# https://github.com/AntimatterChat/.github/blob/main/.github/workflows/app-release.yml
+#
+# Calls: `make dist` (with CI=true, as on GitHub) builds the server for linux amd64/arm64,
+# freebsd-amd64 and openbsd-amd64, the web app and the standalone apps (call widget and
+# recording page) into one bundle. Go is pinned by .go-version.
+
+name: Release
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+    inputs:
+      draft_prerelease:
+        description: Also create a draft prerelease with the build
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  release:
+    name: Build and release
+    permissions:
+      contents: write
+    uses: AntimatterChat/.github/.github/workflows/app-release.yml@main
+    with:
+      draft-prerelease: ${{ inputs.draft_prerelease || false }}
+      go-version-file: .go-version
+    secrets: inherit
