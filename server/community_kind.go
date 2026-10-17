@@ -119,7 +119,9 @@ func (p *Plugin) callsEnabledInChannel(callsChannel *public.CallsChannel, channe
 
 // defaultDisabledChannels lists, as disabled, the channels of the user's communities (not workplaces) that have no Calls
 // setting of their own, for the clients that read the channels' settings (GET /channels). Clients don't know the
-// kind of communities: to them, these channels have calls turned off.
+// kind of communities: to them, these channels have calls turned off. The server lists the user's direct and group
+// messages among a community's channels too: they aren't the community's, and follow the server's default (test
+// mode), as callsDefaultForChannel says.
 func (p *Plugin) defaultDisabledChannels(userID string, stored []*public.CallsChannel) []*public.CallsChannel {
 	teams, appErr := p.API.GetTeamsForUser(userID)
 	if appErr != nil {
@@ -153,7 +155,7 @@ func (p *Plugin) defaultDisabledChannels(userID string, stored []*public.CallsCh
 			continue
 		}
 		for _, channel := range channels {
-			if channel == nil || hasSetting[channel.Id] {
+			if channel == nil || channel.TeamId == "" || channel.IsGroupOrDirect() || hasSetting[channel.Id] {
 				continue
 			}
 			hasSetting[channel.Id] = true

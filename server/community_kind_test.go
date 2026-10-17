@@ -112,7 +112,7 @@ func TestUserCanStartOrJoinByCommunityKind(t *testing.T) {
 func TestDefaultDisabledChannels(t *testing.T) {
 	communityTeam, workplaceTeam, archivedTeam := model.NewId(), model.NewId(), model.NewId()
 	userID := model.NewId()
-	plain, enabled, other := model.NewId(), model.NewId(), model.NewId()
+	plain, enabled, other, dm, gm := model.NewId(), model.NewId(), model.NewId(), model.NewId(), model.NewId()
 
 	mockAPI := &pluginMocks.MockAPI{}
 	defer mockAPI.AssertExpectations(t)
@@ -121,16 +121,20 @@ func TestDefaultDisabledChannels(t *testing.T) {
 		{Id: workplaceTeam},
 		{Id: archivedTeam, DeleteAt: 1},
 	}, nil).Once()
+	// The server lists the user's direct and group messages with every community's channels.
 	mockAPI.On("GetChannelsForTeamForUser", communityTeam, userID, false).Return([]*model.Channel{
-		{Id: plain, TeamId: communityTeam},
-		{Id: enabled, TeamId: communityTeam},
+		{Id: plain, TeamId: communityTeam, Type: model.ChannelTypeOpen},
+		{Id: enabled, TeamId: communityTeam, Type: model.ChannelTypeOpen},
+		{Id: dm, Type: model.ChannelTypeDirect},
+		{Id: gm, Type: model.ChannelTypeGroup},
 	}, nil).Once()
 
 	p := &Plugin{MattermostPlugin: plugin.MattermostPlugin{API: mockAPI}}
 	setTeamKinds(p, map[string]bool{communityTeam: true, workplaceTeam: false, archivedTeam: true})
 
 	stored := []*public.CallsChannel{{ChannelID: enabled, Enabled: true}, {ChannelID: other, Enabled: false}}
-	require.Equal(t, []*public.CallsChannel{{ChannelID: plain, Enabled: false}}, p.defaultDisabledChannels(userID, stored))
+	require.Equal(t, []*public.CallsChannel{{ChannelID: plain, Enabled: false}}, p.defaultDisabledChannels(userID, stored),
+		"only the community's own channels, not the member's direct and group messages")
 }
 
 // The clients learn the channels with calls off from GET /channels and GET /{channel_id}, from the community's
@@ -140,7 +144,7 @@ func TestHandleChannelStatesByCommunityKind(t *testing.T) {
 
 	communityTeam, workplaceTeam := model.NewId(), model.NewId()
 	userID := model.NewId()
-	communityChannel, enabledChannel, workplaceChannel, dmChannel := model.NewId(), model.NewId(), model.NewId(), model.NewId()
+	communityChannel, enabledChannel, workplaceChannel, dmChannel, gmChannel := model.NewId(), model.NewId(), model.NewId(), model.NewId(), model.NewId()
 
 	// The server writes the kind of every community; a community without a row (from before the kinds) is a community.
 	_, err := p.store.WriterDB().Exec(`INSERT INTO systems (name, value) VALUES ($1, 'workplace')`, db.TeamKindKeyPrefix+workplaceTeam)
@@ -157,6 +161,7 @@ func TestHandleChannelStatesByCommunityKind(t *testing.T) {
 		enabledChannel:   {Id: enabledChannel, TeamId: communityTeam, Type: model.ChannelTypeOpen},
 		workplaceChannel: {Id: workplaceChannel, TeamId: workplaceTeam, Type: model.ChannelTypeOpen},
 		dmChannel:        {Id: dmChannel, Type: model.ChannelTypeDirect},
+		gmChannel:        {Id: gmChannel, Type: model.ChannelTypeGroup},
 	}
 	var members []*model.ChannelMember
 	for id, ch := range channels {
@@ -167,7 +172,8 @@ func TestHandleChannelStatesByCommunityKind(t *testing.T) {
 	mockAPI.On("GetChannelMembersForUser", "", userID, 0, 200).Return(members, nil)
 	mockAPI.On("RolesGrantPermission", mock.Anything, model.PermissionReadChannel.Id).Return(true)
 	mockAPI.On("GetTeamsForUser", userID).Return([]*model.Team{{Id: communityTeam}, {Id: workplaceTeam}}, nil)
-	mockAPI.On("GetChannelsForTeamForUser", communityTeam, userID, false).Return([]*model.Channel{channels[communityChannel], channels[enabledChannel]}, nil)
+	// As the server does, the member's direct and group messages come with the community's channels.
+	mockAPI.On("GetChannelsForTeamForUser", communityTeam, userID, false).Return([]*model.Channel{channels[communityChannel], channels[enabledChannel], channels[dmChannel], channels[gmChannel]}, nil)
 
 	mockMetricsForRouter(t, p)
 	router := p.newAPIRouter()
@@ -202,7 +208,7 @@ func TestHandleChannelStatesByCommunityKind(t *testing.T) {
 		require.Equal(t, true, data["enabled"])
 		require.NotContains(t, data, "server_default")
 
-		for _, id := range []string{workplaceChannel, dmChannel} {
+		for _, id := range []string{workplaceChannel, dmChannel, gmChannel} {
 			data = nil
 			require.NoError(t, json.Unmarshal(get(fmt.Sprintf("/%s", id)).Body.Bytes(), &data))
 			require.Equal(t, true, data["enabled"], "test mode is off by default")
