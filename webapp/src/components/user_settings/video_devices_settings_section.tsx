@@ -8,6 +8,7 @@ import {DefaultVideoTrackOptions} from 'src/client';
 import {
     Description, type DevicesSelectionHandle, type DevicesSelectionProps, Fieldset,
     SelectionWrapper, SelectLabel, type SelectOption, StyledReactSelect} from 'src/components/user_settings/common';
+import {FusionSelect, FusionSettingsSection, FusionSwitchRow, useFusionSettings} from 'src/components/user_settings/fusion_section';
 import {
     STORAGE_CALLS_DEFAULT_VIDEO_INPUT_KEY,
     STORAGE_CALLS_MIRROR_VIDEO_KEY,
@@ -18,7 +19,7 @@ import Segmenter from 'src/segmenter';
 import {getCallsClient, untranslatable} from 'src/utils';
 import styled, {css} from 'styled-components';
 
-const VideoDevicesSelection = forwardRef<DevicesSelectionHandle, DevicesSelectionProps>(({devices, onSelectionChange}: DevicesSelectionProps, ref) => {
+const VideoDevicesSelection = forwardRef<DevicesSelectionHandle, DevicesSelectionProps & {fusion?: boolean}>(({devices, onSelectionChange, fusion}, ref) => {
     const {formatMessage} = useIntl();
     const [selectedOption, setSelectedOption] = useState<SelectOption|null>(null);
     const [initalSet, setInitialSet] = useState(false);
@@ -83,6 +84,20 @@ const VideoDevicesSelection = forwardRef<DevicesSelectionHandle, DevicesSelectio
             getOption,
         };
     }, [devices, selectedOption]);
+
+    if (fusion) {
+        return (
+            <FusionSelect
+                label={label}
+                options={options}
+                value={getOption()}
+                onChange={(opt) => {
+                    onSelectionChange?.(opt);
+                    setSelectedOption(opt);
+                }}
+            />
+        );
+    }
 
     return (
         <SelectionWrapper>
@@ -255,6 +270,7 @@ export default function VideoDevicesSettingsSection() {
     const editLabel = formatMessage({defaultMessage: 'Edit'});
 
     const videoInputsRef = useRef<DevicesSelectionHandle>(null);
+    const [sectionRef, fusion] = useFusionSettings();
 
     const handleSave = () => {
         if (videoInputsRef.current) {
@@ -313,9 +329,88 @@ export default function VideoDevicesSettingsSection() {
         };
     }, [active]);
 
+    const onSelectionChange = async (opt: SelectOption) => {
+        previewStream?.getVideoTracks()[0].stop();
+
+        const videoOpts = {
+            ...DefaultVideoTrackOptions,
+        };
+
+        if (opt.value !== '') {
+            videoOpts.deviceId = {
+                exact: opt.value,
+            };
+        }
+
+        const stream = await navigator.mediaDevices.getUserMedia({
+            video: videoOpts,
+            audio: false,
+        });
+
+        setPreviewStream(stream);
+    };
+
+    const mirrorLabel = formatMessage({defaultMessage: 'Mirror video'});
+    const blurLabel = formatMessage({defaultMessage: 'Blur background'});
+    const intensityLabel = formatMessage({defaultMessage: 'Blur intensity'});
+
+    if (fusion) {
+        return (
+            <FusionSettingsSection
+                sectionRef={sectionRef}
+                title={title}
+                description={description}
+                active={active}
+                onEdit={() => setActive(true)}
+                onSave={handleSave}
+                onCancel={() => setActive(false)}
+            >
+                <VideoDevicesSelection
+                    deviceType='videoinput'
+                    devices={devices.filter((device) => device.kind === 'videoinput')}
+                    onSelectionChange={onSelectionChange}
+                    ref={videoInputsRef}
+                    fusion={true}
+                />
+                <VideoPreview
+                    stream={previewStream}
+                    mirror={mirrorVideo}
+                    blurBackground={blurBackground}
+                    blurIntensity={blurIntensity}
+                />
+                <FusionSwitchRow
+                    title={mirrorLabel}
+                    checked={mirrorVideo}
+                    onChange={setMirrorVideo}
+                />
+                {!isFirefox() && (
+                    <FusionSwitchRow
+                        title={blurLabel}
+                        checked={blurBackground}
+                        onChange={setBlurBackground}
+                    />
+                )}
+                {blurBackground && (
+                    <label className='amcalls-range'>
+                        <span>{intensityLabel}</span>
+                        <input
+                            type='range'
+                            min='1'
+                            max='20'
+                            value={blurIntensity}
+                            onChange={(e) => setBlurIntensity(parseInt(e.target.value, 10))}
+                        />
+                        <output>{untranslatable(`${blurIntensity}px`)}</output>
+                    </label>
+                )}
+            </FusionSettingsSection>
+        );
+    }
+
     if (!active) {
         return (
             <div
+                ref={sectionRef}
                 className='section-min'
                 onClick={() => setActive(!active)}
             >
@@ -343,7 +438,10 @@ export default function VideoDevicesSettingsSection() {
     }
 
     return (
-        <section className='section-max form-horizontal'>
+        <section
+            ref={sectionRef}
+            className='section-max form-horizontal'
+        >
             <h4 className='col-sm-12 section-title'>
                 <span>{title}</span>
             </h4>
@@ -357,26 +455,7 @@ export default function VideoDevicesSettingsSection() {
                             <VideoDevicesSelection
                                 deviceType='videoinput'
                                 devices={devices.filter((device) => device.kind === 'videoinput')}
-                                onSelectionChange={async (opt) => {
-                                    previewStream?.getVideoTracks()[0].stop();
-
-                                    const videoOpts = {
-                                        ...DefaultVideoTrackOptions,
-                                    };
-
-                                    if (opt.value !== '') {
-                                        videoOpts.deviceId = {
-                                            exact: opt.value,
-                                        };
-                                    }
-
-                                    const stream = await navigator.mediaDevices.getUserMedia({
-                                        video: videoOpts,
-                                        audio: false,
-                                    });
-
-                                    setPreviewStream(stream);
-                                }}
+                                onSelectionChange={onSelectionChange}
                                 ref={videoInputsRef}
                             />
                             <VideoPreview
@@ -393,7 +472,7 @@ export default function VideoDevicesSettingsSection() {
                                     checked={mirrorVideo}
                                     onChange={e => setMirrorVideo(e.target.checked)}
                                 />
-                                <label htmlFor='mirror'>{formatMessage({defaultMessage: 'Mirror video'})}</label>
+                                <label htmlFor='mirror'>{mirrorLabel}</label>
                             </CheckBoxContainer>
                             {!isFirefox() &&
                             <CheckBoxContainer>
@@ -404,12 +483,12 @@ export default function VideoDevicesSettingsSection() {
                                     checked={blurBackground}
                                     onChange={e => setBlurBackground(e.target.checked)}
                                 />
-                                <label htmlFor='blur-background'>{formatMessage({defaultMessage: 'Blur background'})}</label>
+                                <label htmlFor='blur-background'>{blurLabel}</label>
                             </CheckBoxContainer>
                             }
                             {blurBackground && (
                                 <SliderContainer>
-                                    <label htmlFor='blur-intensity'>{formatMessage({defaultMessage: 'Blur intensity'})}</label>
+                                    <label htmlFor='blur-intensity'>{intensityLabel}</label>
                                     <input
                                         type='range'
                                         id='blur-intensity'

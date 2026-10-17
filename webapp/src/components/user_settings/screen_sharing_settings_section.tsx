@@ -3,6 +3,7 @@
 
 import React, {useState} from 'react';
 import {useIntl} from 'react-intl';
+import {FusionSwitchRow, useFusionSettings} from 'src/components/user_settings/fusion_section';
 import {STORAGE_CALLS_SHARE_AUDIO_WITH_SCREEN} from 'src/constants';
 import {untranslatable} from 'src/utils';
 
@@ -25,14 +26,34 @@ export default function ScreenSharingSettingsSection() {
         setActive(false);
     };
 
-    const handleShareAudioChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        setShareAudio(e.target.value);
-        window.localStorage.setItem(STORAGE_CALLS_SHARE_AUDIO_WITH_SCREEN, e.target.value);
+    const saveShareAudio = (value: string) => {
+        setShareAudio(value);
+        window.localStorage.setItem(STORAGE_CALLS_SHARE_AUDIO_WITH_SCREEN, value);
     };
+
+    const handleShareAudioChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        saveShareAudio(e.target.value);
+    };
+
+    const [sectionRef, fusion] = useFusionSettings();
+
+    // Under Fusion, the setting is one switch, saved when turned on or off, as Fusion's own settings.
+    if (fusion) {
+        return (
+            <FusionSwitchRow
+                rowRef={sectionRef}
+                title={shareAudioSettingTitle}
+                text={shareAudioSettingHelpText}
+                checked={shareAudio === 'on'}
+                onChange={(on) => saveShareAudio(on ? 'on' : 'off')}
+            />
+        );
+    }
 
     if (!active) {
         return (
             <div
+                ref={sectionRef}
                 className='section-min'
                 onClick={() => setActive(!active)}
             >
@@ -60,7 +81,10 @@ export default function ScreenSharingSettingsSection() {
     }
 
     return (
-        <section className='section-max form-horizontal'>
+        <section
+            ref={sectionRef}
+            className='section-max form-horizontal'
+        >
             <h4
                 id='settingTitle'
                 className='col-sm-12 section-title'

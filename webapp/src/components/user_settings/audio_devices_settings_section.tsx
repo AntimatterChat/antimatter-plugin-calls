@@ -6,13 +6,14 @@ import {useIntl} from 'react-intl';
 import {
     Description, type DevicesSelectionHandle, type DevicesSelectionProps, Fieldset,
     SelectionWrapper, SelectLabel, type SelectOption, StyledReactSelect} from 'src/components/user_settings/common';
+import {FusionSelect, FusionSettingsSection, useFusionSettings} from 'src/components/user_settings/fusion_section';
 import {
     STORAGE_CALLS_DEFAULT_AUDIO_INPUT_KEY,
     STORAGE_CALLS_DEFAULT_AUDIO_OUTPUT_KEY,
 } from 'src/constants';
 import {logErr} from 'src/log';
 
-const AudioDevicesSelection = forwardRef<DevicesSelectionHandle, DevicesSelectionProps>(({deviceType, devices}: DevicesSelectionProps, ref) => {
+const AudioDevicesSelection = forwardRef<DevicesSelectionHandle, DevicesSelectionProps & {fusion?: boolean}>(({deviceType, devices, fusion}, ref) => {
     const {formatMessage} = useIntl();
     const [selectedOption, setSelectedOption] = useState<SelectOption|null>(null);
 
@@ -77,6 +78,17 @@ const AudioDevicesSelection = forwardRef<DevicesSelectionHandle, DevicesSelectio
         };
     }, [devices, selectedOption]);
 
+    if (fusion) {
+        return (
+            <FusionSelect
+                label={label}
+                options={options}
+                value={getOption()}
+                onChange={setSelectedOption}
+            />
+        );
+    }
+
     return (
         <SelectionWrapper>
             <SelectLabel
@@ -112,6 +124,7 @@ export default function AudioDevicesSettingsSection() {
 
     const audioInputsRef = useRef<DevicesSelectionHandle>(null);
     const audioOutputsRef = useRef<DevicesSelectionHandle>(null);
+    const [sectionRef, fusion] = useFusionSettings();
 
     const handleSave = () => {
         if (audioInputsRef.current) {
@@ -162,9 +175,37 @@ export default function AudioDevicesSettingsSection() {
         };
     }, [active]);
 
+    if (fusion) {
+        return (
+            <FusionSettingsSection
+                sectionRef={sectionRef}
+                title={title}
+                description={description}
+                active={active}
+                onEdit={() => setActive(true)}
+                onSave={handleSave}
+                onCancel={() => setActive(false)}
+            >
+                <AudioDevicesSelection
+                    deviceType='inputs'
+                    devices={devices.filter((device) => device.kind === 'audioinput')}
+                    ref={audioInputsRef}
+                    fusion={true}
+                />
+                <AudioDevicesSelection
+                    deviceType='outputs'
+                    devices={devices.filter((device) => device.kind === 'audiooutput')}
+                    ref={audioOutputsRef}
+                    fusion={true}
+                />
+            </FusionSettingsSection>
+        );
+    }
+
     if (!active) {
         return (
             <div
+                ref={sectionRef}
                 className='section-min'
                 onClick={() => setActive(!active)}
             >
@@ -192,7 +233,10 @@ export default function AudioDevicesSettingsSection() {
     }
 
     return (
-        <section className='section-max form-horizontal'>
+        <section
+            ref={sectionRef}
+            className='section-max form-horizontal'
+        >
             <h4 className='col-sm-12 section-title'>
                 <span>{title}</span>
             </h4>
