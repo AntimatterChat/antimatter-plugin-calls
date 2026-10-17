@@ -19,8 +19,8 @@ type ChannelStateResponse = {
 };
 
 // Antimatter: the Calls settings of the user's channels are loaded with the plugin, but a channel created or joined
-// since has none here, though calls may be off in it (in public communities, calls are off unless enabled in the
-// channel). The fetcher asks the server, once per channel, when the user opens such a channel.
+// since has none here, though calls may be off in it (outside corporate communities, calls are off unless enabled
+// in the channel). The fetcher asks the server, once per channel, when the user opens such a channel.
 export function makeChannelStateFetcher(store: Store) {
     const asked = new Set<string>();
     return async (channelID: string) => {

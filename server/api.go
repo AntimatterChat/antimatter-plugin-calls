@@ -215,7 +215,7 @@ func (p *Plugin) handleGetAllCallChannelStates(w http.ResponseWriter, r *http.Re
 		return
 	}
 
-	// Antimatter: the channels of the user's public communities without a setting of their own have calls off.
+	// Antimatter: the channels of the user's communities (not corporate) without a setting of their own have calls off.
 	channels = append(channels, p.defaultDisabledChannels(userID, channels)...)
 
 	calls, err := p.store.GetAllActiveCalls(db.GetCallOpts{})

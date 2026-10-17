@@ -83,7 +83,7 @@ type Plugin struct {
 	// Cached moderator mutes of channels, see getModMutes.
 	modMuteCache modMuteCache
 
-	// Cached kinds of communities, see isAllChannelsTeam.
+	// Cached kinds of communities, see isCommunityTeam.
 	teamKinds teamKindCache
 
 	// Batchers
