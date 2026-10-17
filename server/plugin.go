@@ -83,6 +83,9 @@ type Plugin struct {
 	// Cached moderator mutes of channels, see getModMutes.
 	modMuteCache modMuteCache
 
+	// Cached kinds of communities, see isAllChannelsTeam.
+	teamKinds teamKindCache
+
 	// Batchers
 	addSessionsBatchers    map[string]*batching.Batcher
 	removeSessionsBatchers map[string]*batching.Batcher

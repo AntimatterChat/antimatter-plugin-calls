@@ -70,6 +70,13 @@ CREATE TABLE public.posts (
     remoteid character varying(26)
 );`)
 	require.NoError(t, err)
+
+	_, err = store.WriterDB().Exec(`
+CREATE TABLE IF NOT EXISTS systems (
+    name character varying(64) NOT NULL PRIMARY KEY,
+    value character varying(1024)
+);`)
+	require.NoError(t, err)
 }
 
 func NewTestStore(t *testing.T) (*db.Store, func()) {

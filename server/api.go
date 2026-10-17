@@ -70,11 +70,26 @@ func (p *Plugin) handleGetCallChannelState(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
+	// Antimatter: a channel without a Calls setting of its own has its community's default, or else the server's
+	// (test mode), which clients are told with server_default: calls are then enabled in it for everyone, or for
+	// system admins only.
+	serverDefault := false
 	if channel == nil {
-		cfg := p.getConfiguration()
-		channel = &public.CallsChannel{
-			ChannelID: channelID,
-			Enabled:   cfg.DefaultEnabled != nil && *cfg.DefaultEnabled,
+		var mmChannel *model.Channel
+		if ch, appErr := p.API.GetChannel(channelID); appErr == nil {
+			mmChannel = ch
+		} else {
+			p.LogWarn("failed to get channel", "channelID", channelID, "err", appErr.Error())
+		}
+		if enabled := p.callsDefaultForChannel(mmChannel); enabled != nil {
+			channel = &public.CallsChannel{ChannelID: channelID, Enabled: *enabled}
+		} else {
+			cfg := p.getConfiguration()
+			channel = &public.CallsChannel{
+				ChannelID: channelID,
+				Enabled:   cfg.DefaultEnabled != nil && *cfg.DefaultEnabled,
+			}
+			serverDefault = true
 		}
 	}
 
@@ -87,8 +102,18 @@ func (p *Plugin) handleGetCallChannelState(w http.ResponseWriter, r *http.Reques
 
 	// No call ongoing, we send the channel info only.
 	if call == nil {
+		data := map[string]any{
+			"channel_id": channel.ChannelID,
+			"enabled":    channel.Enabled,
+		}
+		if len(channel.Props) > 0 {
+			data["props"] = channel.Props
+		}
+		if serverDefault {
+			data["server_default"] = true
+		}
 		w.Header().Set("Content-Type", "application/json")
-		if err := json.NewEncoder(w).Encode(channel); err != nil {
+		if err := json.NewEncoder(w).Encode(data); err != nil {
 			p.LogError(err.Error())
 		}
 		return
@@ -108,6 +133,9 @@ func (p *Plugin) handleGetCallChannelState(w http.ResponseWriter, r *http.Reques
 	data["enabled"] = channel.Enabled
 	data["props"] = channel.Props
 	data["call"] = p.getClientStateFor(cs, userID)
+	if serverDefault {
+		data["server_default"] = true
+	}
 
 	w.Header().Set("Content-Type", "application/json")
 	if err := json.NewEncoder(w).Encode(data); err != nil {
@@ -186,6 +214,9 @@ func (p *Plugin) handleGetAllCallChannelStates(w http.ResponseWriter, r *http.Re
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
+
+	// Antimatter: the channels of the user's public communities without a setting of their own have calls off.
+	channels = append(channels, p.defaultDisabledChannels(userID, channels)...)
 
 	calls, err := p.store.GetAllActiveCalls(db.GetCallOpts{})
 	if err != nil {

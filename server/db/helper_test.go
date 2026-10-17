@@ -61,6 +61,14 @@ CREATE TABLE IF NOT EXISTS channels (
 );
 `)
 	require.NoError(t, err)
+
+	_, err = store.wDB.Exec(`
+CREATE TABLE IF NOT EXISTS systems (
+    name character varying(64) NOT NULL PRIMARY KEY,
+    value character varying(1024)
+);
+`)
+	require.NoError(t, err)
 }
 
 func newPostgresStore(t *testing.T, binaryParams bool) (*Store, func()) {
@@ -121,6 +129,8 @@ func resetStore(t *testing.T, store *Store) {
 	_, err = store.wDB.Exec(`TRUNCATE TABLE calls_sessions`)
 	require.NoError(t, err)
 	_, err = store.wDB.Exec(`TRUNCATE TABLE channels`)
+	require.NoError(t, err)
+	_, err = store.wDB.Exec(`TRUNCATE TABLE systems`)
 	require.NoError(t, err)
 }
 

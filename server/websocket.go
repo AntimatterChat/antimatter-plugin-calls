@@ -784,10 +784,8 @@ func (p *Plugin) handleJoin(userID, connID, authSessionID string, joinData calls
 	if err != nil && !errors.Is(err, db.ErrNotFound) {
 		return fmt.Errorf("failed to get call channel: %w", err)
 	}
-	var callsEnabled *bool
-	if callsChannel != nil {
-		callsEnabled = model.NewPointer(callsChannel.Enabled)
-	}
+	// The channel's own setting, else its community's default (off in public communities).
+	callsEnabled := p.callsEnabledInChannel(callsChannel, channel)
 
 	addSessionToCall := func(state *callState) *callState {
 		var err error

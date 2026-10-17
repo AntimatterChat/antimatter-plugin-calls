@@ -128,6 +128,7 @@ import {
     USER_VIDEO_ON,
     USERS_STATES,
 } from './action_types';
+import {makeChannelStateFetcher} from './channel_state';
 import CallsClient from './client';
 import CallWidget from './components/call_widget';
 import ChannelCallToast from './components/channel_call_toast';
@@ -1265,6 +1266,9 @@ export default class Plugin {
         document.addEventListener('click', handleSameChannelLinkClick, true);
         this.unsubscribers.push(() => document.removeEventListener('click', handleSameChannelLinkClick, true));
 
+        // Antimatter: channels created or joined since the plugin loaded have no Calls settings here yet.
+        const fetchChannelStateIfUnknown = makeChannelStateFetcher(store);
+
         this.unsubscribers.push(store.subscribe(() => {
             const currentChannelId = getCurrentChannelId(store.getState());
 
@@ -1275,6 +1279,8 @@ export default class Plugin {
                 currChannelId = currentChannelId;
                 if (firstLoad) {
                     registerHeaderMenuComponentIfNeeded(currentChannelId);
+                } else {
+                    fetchChannelStateIfUnknown(currentChannelId);
                 }
             }
         }));
