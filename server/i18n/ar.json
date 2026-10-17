@@ -1,7 +1,7 @@
 [
     {
         "id": "app.admin.concurrent_sessions_warning.rtcd",
-        "translation": "نوصي بشدة [بنشر خدمة RTCD] (https://docs.antimatter.example/pl/calls-deployment-the-rtcd-service) لإلغاء تحميل معالجة المكالمات إلى مثيل منفصل من أجل الحفاظ على أداء خادم Antimatter الرئيسي وقابلية التوسع والموثوقية."
+        "translation": "نوصي بشدة [بنشر خدمة RTCD] (https://antimatter.chat/docs/admins/calls.html#rtcd) لإلغاء تحميل معالجة المكالمات إلى مثيل منفصل من أجل الحفاظ على أداء خادم Antimatter الرئيسي وقابلية التوسع والموثوقية."
     },
     {
         "id": "app.admin.concurrent_sessions_warning.intro",

@@ -41,6 +41,6 @@
     },
     {
         "id": "app.admin.concurrent_sessions_warning.rtcd",
-        "translation": "Мы настоятельно рекомендуем [развернуть службу RTCD](https://docs.antimatter.example/pl/calls-deployment-the-rtcd-service), чтобы разгрузить обработку вызовов на отдельный экземпляр, чтобы сохранить производительность, масштабируемость и надежность вашего основного сервера Antimatter."
+        "translation": "Мы настоятельно рекомендуем [развернуть службу RTCD](https://antimatter.chat/docs/admins/calls.html#rtcd), чтобы разгрузить обработку вызовов на отдельный экземпляр, чтобы сохранить производительность, масштабируемость и надежность вашего основного сервера Antimatter."
     }
 ]

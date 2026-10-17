@@ -1,7 +1,7 @@
 [
     {
         "id": "app.admin.concurrent_sessions_warning.rtcd",
-        "translation": "Důrazně doporučujeme [deploying the RTCD service](https://docs.antimatter.example/pl/calls-deployment-the-rtcd-service) pro přenesení zpracování hovorů na samostatnou instanci, aby byla zachována výkonnost, škálovatelnost a spolehlivost vašeho hlavního serveru Antimatter."
+        "translation": "Důrazně doporučujeme [deploying the RTCD service](https://antimatter.chat/docs/admins/calls.html#rtcd) pro přenesení zpracování hovorů na samostatnou instanci, aby byla zachována výkonnost, škálovatelnost a spolehlivost vašeho hlavního serveru Antimatter."
     },
     {
         "id": "app.admin.concurrent_sessions_warning.intro",

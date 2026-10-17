@@ -29,7 +29,7 @@
     },
     {
         "id": "app.admin.concurrent_sessions_warning.rtcd",
-        "translation": "Vi rekommenderar starkt att [implementera RTCD-tjänsten](https://docs.antimatter.example/pl/calls-deployment-the-rtcd-service) och hantera samtalsfunktionerna på en separat instans för att bibehålla prestanda, skalbarhet och tillförlitlighet för din primära Antimatter-server."
+        "translation": "Vi rekommenderar starkt att [implementera RTCD-tjänsten](https://antimatter.chat/docs/admins/calls.html#rtcd) och hantera samtalsfunktionerna på en separat instans för att bibehålla prestanda, skalbarhet och tillförlitlighet för din primära Antimatter-server."
     },
     {
         "id": "app.admin.concurrent_sessions_warning.intro",

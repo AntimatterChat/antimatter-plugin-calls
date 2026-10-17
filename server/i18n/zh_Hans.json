@@ -37,7 +37,7 @@
     },
     {
         "id": "app.admin.concurrent_sessions_warning.rtcd",
-        "translation": "我们非常推荐[部署 RTCD 服务](https://docs.antimatter.example/pl/calls-deployment-the-rtcd-service)以将通话处理分载到一个独立的实例上，以保持您的主 Antimatter 服务器的性能、可扩展性，和可靠性。"
+        "translation": "我们非常推荐[部署 RTCD 服务](https://antimatter.chat/docs/admins/calls.html#rtcd)以将通话处理分载到一个独立的实例上，以保持您的主 Antimatter 服务器的性能、可扩展性，和可靠性。"
     },
     {
         "id": "app.push_notification.inviting_message",

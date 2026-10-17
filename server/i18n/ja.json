@@ -1,7 +1,7 @@
 [
     {
         "id": "app.admin.concurrent_sessions_warning.rtcd",
-        "translation": "Antimatterサーバー自体のパフォーマンス、スケーラビリティ、信頼性を維持するために、通話処理を別のインスタンスにオフロード可能な[RTCDサービス](https://docs.antimatter.example/pl/calls-deployment-the-rtcd-service)をデプロイすることを強く推奨します。"
+        "translation": "Antimatterサーバー自体のパフォーマンス、スケーラビリティ、信頼性を維持するために、通話処理を別のインスタンスにオフロード可能な[RTCDサービス](https://antimatter.chat/docs/admins/calls.html#rtcd)をデプロイすることを強く推奨します。"
     },
     {
         "id": "app.admin.concurrent_sessions_warning.intro",

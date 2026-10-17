@@ -1,7 +1,7 @@
 [
     {
         "id": "app.admin.concurrent_sessions_warning.rtcd",
-        "translation": "É altamente recomendável que você [implemente o serviço RTCD] (https://docs.antimatter.example/pl/calls-deployment-the-rtcd-service) para descarregar o processamento de chamadas em uma instância separada, a fim de manter o desempenho, a escalabilidade e a confiabilidade do seu servidor Antimatter principal."
+        "translation": "É altamente recomendável que você [implemente o serviço RTCD] (https://antimatter.chat/docs/admins/calls.html#rtcd) para descarregar o processamento de chamadas em uma instância separada, a fim de manter o desempenho, a escalabilidade e a confiabilidade do seu servidor Antimatter principal."
     },
     {
         "id": "app.admin.concurrent_sessions_warning.intro",

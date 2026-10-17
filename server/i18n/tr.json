@@ -1,7 +1,7 @@
 [
     {
         "id": "app.admin.concurrent_sessions_warning.rtcd",
-        "translation": "Ana Antimatter sunucunuzun performansını, ölçeklenebilirliğini ve güvenilirliğini korumak amacıyla çağrı işlemeyi ayrı bir örneğe boşaltmak için [RTCD hizmetini dağıtmanızı] (https://docs.antimatter.example/pl/calls-deployment-the-rtcd-service) önemle tavsiye ederiz."
+        "translation": "Ana Antimatter sunucunuzun performansını, ölçeklenebilirliğini ve güvenilirliğini korumak amacıyla çağrı işlemeyi ayrı bir örneğe boşaltmak için [RTCD hizmetini dağıtmanızı] (https://antimatter.chat/docs/admins/calls.html#rtcd) önemle tavsiye ederiz."
     },
     {
         "id": "app.admin.concurrent_sessions_warning.intro",

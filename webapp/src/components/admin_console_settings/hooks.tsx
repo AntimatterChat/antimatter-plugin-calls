@@ -19,7 +19,7 @@ export const useHelptext = (propsHelpText: string | JSX.Element | null) => {
 
     // @ts-ignore
     const disabledPostfix = formatMessage({defaultMessage: 'Not applicable when the <link>RTCD service URL</link> field is in use.'},
-        {link: (text: React.ReactNode) => <a href={'https://docs.antimatter.example/pl/calls-configuration-settings-rtcd-service-url?utm_source=antimatter&utm_medium=in-product&utm_content=calls_admin_settings'}>{text}</a>});
+        {link: (text: React.ReactNode) => <a href={'https://antimatter.chat/docs/admins/calls.html#rtcd'}>{text}</a>});
 
     return (
         <>
