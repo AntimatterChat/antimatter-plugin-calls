@@ -268,10 +268,8 @@ func (p *Plugin) hostEnd(requesterID, channelID string) error {
 		return ErrNoCallOngoing
 	}
 
-	if requesterID != state.Call.GetHostID() {
-		if isAdmin := p.API.HasPermissionTo(requesterID, model.PermissionManageSystem); !isAdmin {
-			return ErrNoPermissions
-		}
+	if !p.canEndCall(requesterID, channelID, state) {
+		return ErrNoPermissions
 	}
 
 	// Ask clients to disconnect themselves. The last to disconnect will cause the call to end, as usual.
@@ -311,4 +309,18 @@ func (p *Plugin) hostEnd(requesterID, channelID string) error {
 	}()
 
 	return nil
+}
+
+// canEndCall tells whether someone may end the call of a channel for everyone. Antimatter: its moderators (see
+// canModerateCall: its host, system admins, the channel's and the community's admins, and in voice channels the
+// community's moderators), and outside voice channels whoever started it, also once they left it: leaving passes
+// the host on, and the call's card then offers them to end it for everyone.
+func (p *Plugin) canEndCall(requesterID, channelID string, state *callState) bool {
+	if requesterID == "" || state == nil {
+		return false
+	}
+	if requesterID == state.Call.OwnerID && !p.isVoiceRoom(channelID) {
+		return true
+	}
+	return p.canModerateCall(requesterID, channelID, state)
 }
