@@ -1,0 +1,25 @@
+/* Copyright (c) 2020-present Mattermost, Inc. All Rights Reserved. See LICENSE.txt for license information. */
+
+/* Calls' dialogs and settings in the Fusion UI, on top of Fusion's own classes (.am-modal, .am-pane, .am-btn,
+   .am-field, .am-toggle-row, .am-src...). Fusion-only: every rule is scoped to Fusion's app and layer, which only
+   the Fusion UI has, and uses its tokens (see fusion_styles.test.ts). The classic UI keeps Calls' classic styles. */
+
+/* Message dialogs (fusion_dialog.tsx): what they say, under the title, and room for the close button. */
+:is(.am-app, .am-layer) .amcalls-dialog .am-pane h2 { padding-inline-end: 36px; }
+:is(.am-app, .am-layer) .amcalls-dialog-text { margin: 0 0 18px; color: var(--am-muted); font: 14px/1.5 var(--am-font-ui); max-width: 60ch; }
+:is(.am-app, .am-layer) .amcalls-dialog-text b { color: var(--am-text-2); font-weight: 600; }
+:is(.am-app, .am-layer) .amcalls-dialog-text a { color: var(--am-anti); text-decoration: underline; text-underline-offset: 2px; }
+:is(.am-app, .am-layer) .amcalls-dialog-text a:hover { color: var(--am-text); }
+:is(.am-app, .am-layer) .amcalls-dialog-text > * + * { margin-top: 8px; }
+
+/* The settings of Calls in Fusion's settings dialog (user_settings). */
+:is(.am-app, .am-layer) .amcalls-set { padding: 4px 0 14px; border-bottom: 1px solid var(--am-line); }
+:is(.am-app, .am-layer) .amcalls-set .am-set-section { margin-top: 14px; }
+:is(.am-app, .am-layer) .amcalls-set-lead { margin: 4px 0 14px; color: var(--am-muted); font-size: 13px; }
+:is(.am-app, .am-layer) .amcalls-set .am-field select { width: 100%; }
+:is(.am-app, .am-layer) .amcalls-set .am-toggle-row:last-of-type { border-bottom: 0; }
+:is(.am-app, .am-layer) .amcalls-set .am-modal-actions { margin-top: 12px; }
+:is(.am-app, .am-layer) .amcalls-range { display: grid; gap: 6px; padding: 10px 0 4px; }
+:is(.am-app, .am-layer) .amcalls-range > span { color: var(--am-muted); font: 700 11px var(--am-font-ui); letter-spacing: .07em; text-transform: uppercase; }
+:is(.am-app, .am-layer) .amcalls-range input[type="range"] { width: min(100%, 260px); accent-color: var(--am-matter); }
+:is(.am-app, .am-layer) .amcalls-range output { color: var(--am-muted); font-size: 12.5px; font-variant-numeric: tabular-nums; }

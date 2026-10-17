@@ -18,9 +18,7 @@ import {
     StyledGenericModal,
 } from 'src/components/generic_error_modal';
 import GenericModal from 'src/components/generic_modal';
-import LaptopAlertSVG from 'src/components/icons/laptop_alert_svg';
 import {untranslatable} from 'src/utils';
-import styled from 'styled-components';
 
 type CustomProps = {
     channelID?: string,
@@ -146,15 +144,7 @@ export const CallErrorModal = (props: Props) => {
         break;
     case insecureContextErr.message:
         headerMsg = (
-            <ColumnContainer>
-                <LaptopAlertSVGContainer>
-                    <LaptopAlertSVG
-                        width={150}
-                        height={150}
-                    />
-                </LaptopAlertSVGContainer>
-                <span>{formatMessage({defaultMessage: 'Calls can\'t be initiated in an insecure context'})}</span>
-            </ColumnContainer>
+            <span>{formatMessage({defaultMessage: 'Calls can\'t be initiated in an insecure context'})}</span>
         );
         msg = (
             <span>
@@ -216,7 +206,3 @@ export const CallErrorModal = (props: Props) => {
         </StyledGenericModal>
     );
 };
-
-const LaptopAlertSVGContainer = styled.div`
-    align-self: center;
-`;

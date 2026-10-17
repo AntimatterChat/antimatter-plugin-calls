@@ -280,6 +280,7 @@
   "p/C72L": "Total Active Calls",
   "p0+4B8": "<b>You're unmuted.</b> Select {muteIcon} to mute.",
   "p7D2e3": "In this channel",
+  "pD040r": "Close",
   "pSlsHG": "Set up audio devices to be used for Antimatter calls",
   "paBpxN": "Ignore",
   "pkW7OA": "The number of threads per live-captions transcriber. The product of LiveCaptionsNumTranscribers * LiveCaptionsNumThreadsPerTranscriber must be in the range [1, numCPUs].",
