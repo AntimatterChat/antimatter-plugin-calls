@@ -23,8 +23,9 @@ const TestMode = (props: CustomComponentProps) => {
     if (overridden) {
         checked = !config.DefaultEnabled;
     } else {
+        // Antimatter: a setting never saved is off, the default (everyone can start calls).
         // @ts-ignore val is a boolean, but the signature says 'string'. (being defensive here, just in case)
-        checked = !props.value || props.value === 'false' || props.value === false;
+        checked = props.value === 'false' || props.value === false;
     }
 
     const handleChange = (e: ChangeEvent<HTMLInputElement>) => {

@@ -104,9 +104,9 @@ describe('TestMode', () => {
         // eslint-disable-next-line no-undefined
         renderComponent({value: undefined});
 
-        // Should default to test mode on (DefaultEnabled = false) when undefined
-        expect(screen.getByTestId('DefaultEnabled_on')).toBeChecked();
-        expect(screen.getByTestId('DefaultEnabled_off')).not.toBeChecked();
+        // Antimatter: test mode is off by default (DefaultEnabled = true), so a setting never saved shows off.
+        expect(screen.getByTestId('DefaultEnabled_on')).not.toBeChecked();
+        expect(screen.getByTestId('DefaultEnabled_off')).toBeChecked();
     });
 
     it('should call onChange when radio button is clicked', async () => {

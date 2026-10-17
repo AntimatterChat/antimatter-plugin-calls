@@ -25,6 +25,7 @@ export const TRANSCRIBE_API_OPENAI = 'openai' as TranscribeAPI;
 
 // Calls channel props (see server/public/calls_channel.go).
 export const CHANNEL_PROP_ENABLE_VIDEO = 'enable_video';
+export const CHANNEL_PROP_BROADCAST_SESSION_STATE = 'broadcast_session_state';
 
 export const LIVE_CAPTION_TIMEOUT = 5000;
 export const HOST_CONTROL_NOTICE_TIMEOUT = 5000;

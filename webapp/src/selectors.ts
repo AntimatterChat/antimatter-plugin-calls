@@ -26,7 +26,7 @@ import {
 } from 'mattermost-redux/utils/channel_utils';
 import {displayUsername} from 'mattermost-redux/utils/user_utils';
 import {createSelector} from 'reselect';
-import {CHANNEL_PROP_ENABLE_VIDEO} from 'src/constants';
+import {CHANNEL_PROP_BROADCAST_SESSION_STATE, CHANNEL_PROP_ENABLE_VIDEO} from 'src/constants';
 import {
     callsJobState,
     callState,
@@ -607,12 +607,21 @@ export const channelPropEnabled = (state: GlobalState, channelId: string, prop: 
 };
 
 // videoEnabledInChannel returns whether participants of calls in the channel may turn on their
-// camera: video must be enabled and the channel be a DM or have the enable_video prop.
+// camera. Antimatter: with video enabled, wherever calls are, unless the channel's enable_video
+// prop is false; voice channels (broadcast_session_state) need the prop set to true, as the voice
+// channels app sets it when it allows video. DMs always have video.
 export const videoEnabledInChannel = (state: GlobalState, channel?: Channel): boolean => {
     if (!callsConfig(state).EnableVideo || !channel) {
         return false;
     }
-    return isDMChannel(channel) || channelPropEnabled(state, channel.id, CHANNEL_PROP_ENABLE_VIDEO);
+    if (isDMChannel(channel)) {
+        return true;
+    }
+    const value = channelState(state, channel.id)?.props?.[CHANNEL_PROP_ENABLE_VIDEO];
+    if (typeof value !== 'undefined') {
+        return value === true || value === 'true';
+    }
+    return !channelPropEnabled(state, channel.id, CHANNEL_PROP_BROADCAST_SESSION_STATE);
 };
 
 export const callsExplicitlyEnabled = (state: GlobalState, channelId: string): boolean =>

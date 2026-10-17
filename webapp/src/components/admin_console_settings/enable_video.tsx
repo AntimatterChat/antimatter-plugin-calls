@@ -3,18 +3,32 @@
 
 import React, {ChangeEvent} from 'react';
 import {useIntl} from 'react-intl';
+import {useSelector} from 'react-redux';
 import {leftCol, RadioInput, RadioInputLabel, rightCol} from 'src/components/admin_console_settings/common';
+import {callsConfig, callsConfigEnvOverrides} from 'src/selectors';
 import {CustomComponentProps} from 'src/types/antimatter-webapp';
 
+// EnableVideo lets participants turn on their camera wherever calls are enabled (Antimatter: on by default).
 export default function EnableVideo(props: CustomComponentProps) {
     const {formatMessage} = useIntl();
+    const config = useSelector(callsConfig);
+    const overrides = useSelector(callsConfigEnvOverrides);
+    const overridden = 'EnableVideo' in overrides;
 
     const handleChange = (e: ChangeEvent<HTMLInputElement>) => {
         props.onChange(props.id, e.target.value === 'true');
     };
 
-    // @ts-ignore val is a boolean, but the signature says 'string'. (being defensive here, just in case)
-    const checked = props.value === 'true' || props.value === true;
+    // Use the value from config if it's overridden by environment variable; a setting never saved is on, the default.
+    let checked;
+    if (overridden) {
+        checked = Boolean(config.EnableVideo);
+    } else {
+        // @ts-ignore val is a boolean, but the signature says 'string'. (being defensive here, just in case)
+        checked = props.value !== 'false' && props.value !== false;
+    }
+
+    const disabled = props.disabled || overridden;
 
     return (
         <div
@@ -22,10 +36,10 @@ export default function EnableVideo(props: CustomComponentProps) {
             className='form-group'
         >
             <label className={'control-label ' + leftCol}>
-                {formatMessage({defaultMessage: 'Enable video calls in DMs (Experimental)'})}
+                {formatMessage({defaultMessage: 'Enable video'})}
             </label>
             <div className={rightCol}>
-                <RadioInputLabel $disabled={props.disabled}>
+                <RadioInputLabel $disabled={disabled}>
                     <RadioInput
                         data-testid={props.id + 'true'}
                         type='radio'
@@ -34,11 +48,11 @@ export default function EnableVideo(props: CustomComponentProps) {
                         name={props.id + 'true'}
                         checked={checked}
                         onChange={handleChange}
-                        disabled={props.disabled}
+                        disabled={disabled}
                     />
                     {formatMessage({defaultMessage: 'True'})}
                 </RadioInputLabel>
-                <RadioInputLabel $disabled={props.disabled}>
+                <RadioInputLabel $disabled={disabled}>
                     <RadioInput
                         data-testid={props.id + 'false'}
                         type='radio'
@@ -47,7 +61,7 @@ export default function EnableVideo(props: CustomComponentProps) {
                         name={props.id + 'false'}
                         checked={!checked}
                         onChange={handleChange}
-                        disabled={props.disabled}
+                        disabled={disabled}
                     />
                     {formatMessage({defaultMessage: 'False'})}
                 </RadioInputLabel>
@@ -55,8 +69,14 @@ export default function EnableVideo(props: CustomComponentProps) {
                     data-testid={props.id + 'help-text'}
                     className='help-text'
                 >
-                    {formatMessage({defaultMessage: 'When set to true, video calls are enabled in direct message channels.'})}
+                    {formatMessage({defaultMessage: 'When set to true, participants can turn on their camera in calls, wherever calls are enabled. In voice channels, the Voice Channels app\'s Allow video in voice channels setting decides.'})}
                 </div>
+
+                {overridden &&
+                <div className='alert alert-warning'>
+                    {formatMessage({defaultMessage: 'This setting has been set through an environment variable. It cannot be changed through the System Console.'})}
+                </div>
+                }
             </div>
         </div>
     );

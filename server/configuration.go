@@ -116,6 +116,8 @@ type ClientConfig struct {
 	// TestMode="off" -> DefaultEnabled=true
 	// TestMode="on" -> DefaultEnabled=false
 	// When TestMode is set to off (DefaultEnabled=true), calls will be possible in all channels where they are not explicitly disabled.
+	// Antimatter: test mode is off by default, so that everyone can call; the channels of public communities (those
+	// with everyone in every channel) have calls off unless enabled in them (see callsDefaultForChannel).
 	DefaultEnabled *bool
 	// The maximum number of participants that can join a call. The zero value
 	// means unlimited.
@@ -147,7 +149,9 @@ type ClientConfig struct {
 	GroupCallsAllowed bool
 	// When set to true it enables experimental support for using the data channel for signaling.
 	EnableDCSignaling *bool
-	// When set to true it enables video calls in direct message channels.
+	// When set to true, participants can turn on their camera wherever calls are enabled (on by default in
+	// Antimatter). A channel can turn it off with the enable_video prop set to false; voice channels allow video only
+	// with the prop set to true (see ChannelPropEnableVideo).
 	EnableVideo *bool
 }
 
@@ -210,7 +214,8 @@ func (c *configuration) SetDefaults() {
 	c.AllowEnableCalls = model.NewPointer(true)
 
 	if c.DefaultEnabled == nil {
-		c.DefaultEnabled = model.NewPointer(false)
+		// Antimatter: test mode off, so that everyone can start calls.
+		c.DefaultEnabled = model.NewPointer(true)
 	}
 	if c.MaxCallParticipants == nil {
 		c.MaxCallParticipants = model.NewPointer(0) // unlimited
@@ -276,7 +281,8 @@ func (c *configuration) SetDefaults() {
 		c.EnableDCSignaling = model.NewPointer(false)
 	}
 	if c.EnableVideo == nil {
-		c.EnableVideo = model.NewPointer(false)
+		// Antimatter: where calls are enabled, so is video.
+		c.EnableVideo = model.NewPointer(true)
 	}
 }
 

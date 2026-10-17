@@ -33,6 +33,7 @@
             "display_name": "Test mode",
             "type": "custom",
             "help_text": "When test mode is enabled, only system admins are able to start calls in channels. This allows testing to confirm calls are working as expected.",
+            "default": true,
             "hosting": "on-prem"
           },
           {
@@ -80,10 +81,10 @@
           },
           {
             "key": "EnableVideo",
-            "display_name": "Enable video calls in DMs (Experimental)",
+            "display_name": "Enable video",
             "type": "bool",
-            "default": false,
-            "help_text": "When set to true, video calls are enabled in direct message channels."
+            "default": true,
+            "help_text": "When set to true, participants can turn on their camera in calls, wherever calls are enabled. In voice channels, the Voice Channels app's Allow video in voice channels setting decides."
           }
         ]
       },

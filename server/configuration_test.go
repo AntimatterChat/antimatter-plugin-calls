@@ -229,13 +229,16 @@ func TestGetClientConfig(t *testing.T) {
 	// defaults
 	require.Equal(t, model.NewPointer(true), clientCfg.AllowEnableCalls)
 	require.Equal(t, p.getConfiguration().AllowEnableCalls, clientCfg.AllowEnableCalls)
-	require.Equal(t, model.NewPointer(false), clientCfg.DefaultEnabled)
+	// Antimatter: test mode is off (everyone can call) and video is on by default.
+	require.Equal(t, model.NewPointer(true), clientCfg.DefaultEnabled)
 	require.Equal(t, p.getConfiguration().DefaultEnabled, clientCfg.DefaultEnabled)
+	require.Equal(t, model.NewPointer(true), clientCfg.EnableVideo)
 
 	*p.configuration.AllowEnableCalls = false
-	*p.configuration.DefaultEnabled = true
+	*p.configuration.DefaultEnabled = false
 	clientCfg = p.getClientConfig(p.getConfiguration())
 	require.Equal(t, true, *clientCfg.AllowEnableCalls)
+	require.Equal(t, model.NewPointer(false), clientCfg.DefaultEnabled)
 	require.Equal(t, p.getConfiguration().DefaultEnabled, clientCfg.DefaultEnabled)
 
 	// Host controls and group calls are always allowed
@@ -341,4 +344,19 @@ func TestReplaceMattermostSTUN(t *testing.T) {
 	cfg.ICEServersConfigs = ICEServersConfigs{{URLs: []string{"stun:stun.global.calls.mattermost.com:3478"}}}
 	require.Equal(t, []string{"stun:stun.cloudflare.com:3478"}, cfg.getICEServers(true)[0].URLs)
 	require.Equal(t, []string{"stun:stun.global.calls.mattermost.com:3478"}, cfg.ICEServersConfigs[0].URLs, "the saved setting is not rewritten")
+}
+
+// Antimatter: calls work for everyone out of the box (test mode off), with video; an admin's own choice is kept.
+func TestConfigurationDefaultsCallsAndVideo(t *testing.T) {
+	var cfg configuration
+	cfg.SetDefaults()
+	require.True(t, *cfg.DefaultEnabled, "test mode should be off by default")
+	require.True(t, *cfg.EnableVideo, "video should be on by default")
+
+	chosen := configuration{}
+	chosen.DefaultEnabled = model.NewPointer(false)
+	chosen.EnableVideo = model.NewPointer(false)
+	chosen.SetDefaults()
+	require.False(t, *chosen.DefaultEnabled, "an admin's test mode should be kept")
+	require.False(t, *chosen.EnableVideo, "an admin's video setting should be kept")
 }

@@ -125,12 +125,19 @@ describe('videoEnabledInChannel', () => {
         expect(videoEnabledInChannel(videoState(true), dmChannel)).toBe(true);
     });
 
-    test('other channels need the enable_video prop', () => {
-        expect(videoEnabledInChannel(videoState(true), openChannel)).toBe(false);
-        expect(videoEnabledInChannel(videoState(true), gmChannel)).toBe(false);
+    // Antimatter: where calls are enabled, so is video.
+    test('other channels have video unless their enable_video prop is false', () => {
+        expect(videoEnabledInChannel(videoState(true), openChannel)).toBe(true);
+        expect(videoEnabledInChannel(videoState(true), gmChannel)).toBe(true);
         expect(videoEnabledInChannel(videoState(true, {enable_video: false}), openChannel)).toBe(false);
+        expect(videoEnabledInChannel(videoState(true, {enable_video: 'false'}), gmChannel)).toBe(false);
         expect(videoEnabledInChannel(videoState(true, {enable_video: true}), openChannel)).toBe(true);
         expect(videoEnabledInChannel(videoState(true, {enable_video: 'true'}), openChannel)).toBe(true);
+    });
+
+    test('voice channels need the enable_video prop, which the voice channels app sets when it allows video', () => {
+        expect(videoEnabledInChannel(videoState(true, {broadcast_session_state: true}), openChannel)).toBe(false);
+        expect(videoEnabledInChannel(videoState(true, {broadcast_session_state: true, enable_video: true}), openChannel)).toBe(true);
     });
 
     test('no channel', () => {
