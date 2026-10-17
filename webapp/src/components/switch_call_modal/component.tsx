@@ -7,6 +7,8 @@ import {Channel} from '@mattermost/types/channels';
 import {UserProfile} from '@mattermost/types/users';
 import React, {CSSProperties} from 'react';
 import {IntlShape} from 'react-intl';
+import {FusionDialog, FusionDialogPane} from 'src/components/fusion/fusion_dialog';
+import {fusionLayer} from 'src/components/fusion/fusion_ui';
 import CompassIcon from 'src/components/icons/compassIcon';
 import {getCallsWindow, getUserDisplayName, isDMChannel, isGMChannel, untranslatable} from 'src/utils';
 
@@ -81,14 +83,18 @@ export default class SwitchCallModal extends React.PureComponent<Props> {
         this.node = React.createRef();
     }
 
+    // The classic dialog closes on Escape and on a click outside it; Fusion's dialog has its own (FusionDialog).
     private keyboardClose = (e: KeyboardEvent) => {
+        if (fusionLayer()) {
+            return;
+        }
         if (this.props.show && e.key === 'Escape') {
             this.props.hideSwitchCallModal();
         }
     };
 
     private closeOnBlur = (e: Event) => {
-        if (!this.props.show) {
+        if (!this.props.show || fusionLayer()) {
             return;
         }
         if (this.node?.current && e.target && this.node.current.contains(e.target as Node)) {
@@ -167,6 +173,49 @@ export default class SwitchCallModal extends React.PureComponent<Props> {
             </React.Fragment>);
         }
 
+        const title = formatMessage({defaultMessage: 'You\'re already in a call'});
+        const cancel = formatMessage({defaultMessage: 'Cancel'});
+        const join = formatMessage({defaultMessage: 'Leave and join new call'});
+
+        if (fusionLayer()) {
+            return (
+                <FusionDialog
+                    id='calls-switch-call-modal'
+                    className='am-small amcalls-dialog'
+                    labelledBy='calls-switch-call-title'
+                    describedBy='calls-switch-call-text'
+                    onClose={this.props.hideSwitchCallModal}
+                >
+                    <FusionDialogPane
+                        titleId='calls-switch-call-title'
+                        textId='calls-switch-call-text'
+                        title={title}
+                        onClose={this.props.hideSwitchCallModal}
+                        actions={(
+                            <>
+                                <button
+                                    type='button'
+                                    className='am-btn'
+                                    onClick={this.props.hideSwitchCallModal}
+                                >{cancel}</button>
+                                <button
+                                    type='button'
+                                    className='am-btn am-primary'
+                                    onClick={this.joinCall}
+                                >{join}</button>
+                            </>
+                        )}
+                    >
+                        <p>
+                            {message1}
+                            {untranslatable(' ')}
+                            {message2}
+                        </p>
+                    </FusionDialogPane>
+                </FusionDialog>
+            );
+        }
+
         return (
             <div style={this.style.main as CSSProperties}>
                 <div
@@ -182,7 +231,7 @@ export default class SwitchCallModal extends React.PureComponent<Props> {
                     </button>
                     <div style={this.style.header as CSSProperties}>
                         <span style={this.style.title}>
-                            {formatMessage({defaultMessage: 'You\'re already in a call'})}
+                            {title}
                         </span>
                     </div>
                     <div style={this.style.body as CSSProperties}>
@@ -194,11 +243,11 @@ export default class SwitchCallModal extends React.PureComponent<Props> {
                         <button
                             className='style--none switch-call-modal-cancel'
                             onClick={this.props.hideSwitchCallModal}
-                        >{formatMessage({defaultMessage: 'Cancel'})}</button>
+                        >{cancel}</button>
                         <button
                             className='style--none switch-call-modal-join'
                             onClick={this.joinCall}
-                        >{formatMessage({defaultMessage: 'Leave and join new call'})}</button>
+                        >{join}</button>
                     </div>
                 </div>
             </div>
