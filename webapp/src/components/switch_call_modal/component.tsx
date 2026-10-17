@@ -61,7 +61,7 @@ export default class SwitchCallModal extends React.PureComponent<Props> {
         },
         title: {
             fontWeight: 600,
-            fontFamily: 'Metropolis',
+            fontFamily: 'var(--am-font-display, Metropolis)',
             fontSize: '22px',
             lineHeight: '28px',
         },
