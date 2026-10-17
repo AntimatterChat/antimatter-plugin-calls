@@ -39,9 +39,9 @@ describe('Mattermost artwork', () => {
     });
 
     test('no module imports them, nor any image', () => {
-        const offenders = code.flatMap((file) => importsOf(file).
-            filter((spec) => OLD_ARTWORK.some((art) => spec.endsWith(art) || spec.endsWith(path.basename(art))) || (/\.(png|jpe?g|gif|webp|svg)$/).test(spec)).
-            map((spec) => `${path.relative(SRC, file)} imports ${spec}`));
+        const offenders = code.flatMap((file) => importsOf(file)
+            .filter((spec) => OLD_ARTWORK.some((art) => spec.endsWith(art) || spec.endsWith(path.basename(art))) || (/\.(png|jpe?g|gif|webp|svg)$/).test(spec))
+            .map((spec) => `${path.relative(SRC, file)} imports ${spec}`));
         expect(offenders).toEqual([]);
     });
 
@@ -52,9 +52,9 @@ describe('Mattermost artwork', () => {
     test('no component draws an illustration inline: its SVGs are icons, 48 units at most', () => {
         const drawings = code.filter((f) => (/\.tsx$/).test(f)).flatMap((file) => {
             const text = fs.readFileSync(file, 'utf8');
-            return [...text.matchAll(/viewBox=['"{`]+\s*([\d.-]+)[\s,]+([\d.-]+)[\s,]+([\d.]+)[\s,]+([\d.]+)/g)].
-                filter((m) => Number(m[3]) > 48 || Number(m[4]) > 48).
-                map((m) => `${path.relative(SRC, file)}: viewBox ${m[1]} ${m[2]} ${m[3]} ${m[4]}`);
+            return [...text.matchAll(/viewBox=['"{`]+\s*([\d.-]+)[\s,]+([\d.-]+)[\s,]+([\d.]+)[\s,]+([\d.]+)/g)]
+                .filter((m) => Number(m[3]) > 48 || Number(m[4]) > 48)
+                .map((m) => `${path.relative(SRC, file)}: viewBox ${m[1]} ${m[2]} ${m[3]} ${m[4]}`);
         });
         expect(drawings).toEqual([]);
     });

@@ -4,7 +4,7 @@
 import {Channel} from '@mattermost/types/channels';
 import {fireEvent, render, screen} from '@testing-library/react';
 import React from 'react';
-import {createIntl} from 'react-intl';
+import {createIntl, IntlProvider} from 'react-intl';
 import {FUSION_LAYER_ID} from 'src/components/fusion/fusion_ui';
 
 import SwitchCallModal from './component';
@@ -35,7 +35,16 @@ const renderModal = () => {
         hideSwitchCallModal: jest.fn(),
         dismissIncomingCallNotification: jest.fn(),
     };
-    render(<SwitchCallModal {...props}/>);
+
+    // In the app, the modal is drawn inside the webapp's IntlProvider (registered with injectIntl).
+    render(
+        <IntlProvider
+            locale='en'
+            onError={() => null}
+        >
+            <SwitchCallModal {...props}/>
+        </IntlProvider>,
+    );
     return props;
 };
 

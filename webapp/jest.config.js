@@ -19,6 +19,10 @@ const config = {
         'lcov',
     ],
     moduleNameMapper: {
+        // React itself: with '' in moduleDirectories, a bare 'react' required from node_modules/@emotion/react
+        // resolves to @emotion/react (the "react" folder next to it), which breaks react-select.
+        '^react$': '<rootDir>/node_modules/react',
+        '^react/(.*)$': '<rootDir>/node_modules/react/$1',
         '^.+\\.(jpg|jpeg|png|gif|eot|otf|webp|svg|ttf|woff|woff2|mp4|webm|wav|mp3|m4a|aac|oga)$': 'identity-obj-proxy',
         '^.+\\.(css|less|scss)$': 'identity-obj-proxy',
         '^.*i18n.*\\.(json)$': '<rootDir>/tests/i18n_mock.json',
