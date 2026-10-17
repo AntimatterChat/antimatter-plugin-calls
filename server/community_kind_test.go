@@ -24,7 +24,7 @@ import (
 )
 
 // setTeamKinds caches the kind of communities, as read from the server's settings: true for a community, false
-// for a corporate one.
+// for a workplace one.
 func setTeamKinds(p *Plugin, kinds map[string]bool) {
 	for id, community := range kinds {
 		p.teamKinds.set(id, community, time.Now())
@@ -32,13 +32,13 @@ func setTeamKinds(p *Plugin, kinds map[string]bool) {
 }
 
 func TestCallsDefaultForChannel(t *testing.T) {
-	communityTeam, corporateTeam := model.NewId(), model.NewId()
+	communityTeam, workplaceTeam := model.NewId(), model.NewId()
 
 	p := &Plugin{MattermostPlugin: plugin.MattermostPlugin{API: &pluginMocks.MockAPI{}}}
-	setTeamKinds(p, map[string]bool{communityTeam: true, corporateTeam: false})
+	setTeamKinds(p, map[string]bool{communityTeam: true, workplaceTeam: false})
 
 	communityChannel := &model.Channel{Id: model.NewId(), TeamId: communityTeam, Type: model.ChannelTypeOpen}
-	corporateChannel := &model.Channel{Id: model.NewId(), TeamId: corporateTeam, Type: model.ChannelTypeOpen}
+	workplaceChannel := &model.Channel{Id: model.NewId(), TeamId: workplaceTeam, Type: model.ChannelTypeOpen}
 	dm := &model.Channel{Id: model.NewId(), Type: model.ChannelTypeDirect}
 	gm := &model.Channel{Id: model.NewId(), Type: model.ChannelTypeGroup}
 
@@ -46,8 +46,8 @@ func TestCallsDefaultForChannel(t *testing.T) {
 		require.Equal(t, model.NewPointer(false), p.callsDefaultForChannel(communityChannel))
 	})
 
-	t.Run("corporate communities, direct and group messages follow the server's default", func(t *testing.T) {
-		require.Nil(t, p.callsDefaultForChannel(corporateChannel))
+	t.Run("workplace communities, direct and group messages follow the server's default", func(t *testing.T) {
+		require.Nil(t, p.callsDefaultForChannel(workplaceChannel))
 		require.Nil(t, p.callsDefaultForChannel(dm))
 		require.Nil(t, p.callsDefaultForChannel(gm))
 		require.Nil(t, p.callsDefaultForChannel(nil))
@@ -55,9 +55,9 @@ func TestCallsDefaultForChannel(t *testing.T) {
 
 	t.Run("a channel's own setting wins", func(t *testing.T) {
 		require.Equal(t, model.NewPointer(true), p.callsEnabledInChannel(&public.CallsChannel{ChannelID: communityChannel.Id, Enabled: true}, communityChannel))
-		require.Equal(t, model.NewPointer(false), p.callsEnabledInChannel(&public.CallsChannel{ChannelID: corporateChannel.Id, Enabled: false}, corporateChannel))
+		require.Equal(t, model.NewPointer(false), p.callsEnabledInChannel(&public.CallsChannel{ChannelID: workplaceChannel.Id, Enabled: false}, workplaceChannel))
 		require.Equal(t, model.NewPointer(false), p.callsEnabledInChannel(nil, communityChannel))
-		require.Nil(t, p.callsEnabledInChannel(nil, corporateChannel))
+		require.Nil(t, p.callsEnabledInChannel(nil, workplaceChannel))
 	})
 
 	t.Run("a community whose kind can't be read follows the server's default", func(t *testing.T) {
@@ -68,7 +68,7 @@ func TestCallsDefaultForChannel(t *testing.T) {
 
 // Starting a call: who may, by the channel's setting, its community's kind and test mode.
 func TestUserCanStartOrJoinByCommunityKind(t *testing.T) {
-	communityTeam, corporateTeam := model.NewId(), model.NewId()
+	communityTeam, workplaceTeam := model.NewId(), model.NewId()
 	const admin, member = "admin", "member"
 
 	mockAPI := &pluginMocks.MockAPI{}
@@ -76,10 +76,10 @@ func TestUserCanStartOrJoinByCommunityKind(t *testing.T) {
 	mockAPI.On("HasPermissionTo", member, model.PermissionManageSystem).Return(false)
 
 	p := &Plugin{MattermostPlugin: plugin.MattermostPlugin{API: mockAPI}}
-	setTeamKinds(p, map[string]bool{communityTeam: true, corporateTeam: false})
+	setTeamKinds(p, map[string]bool{communityTeam: true, workplaceTeam: false})
 
 	communityChannel := &model.Channel{Id: model.NewId(), TeamId: communityTeam, Type: model.ChannelTypeOpen}
-	corporateChannel := &model.Channel{Id: model.NewId(), TeamId: corporateTeam, Type: model.ChannelTypeOpen}
+	workplaceChannel := &model.Channel{Id: model.NewId(), TeamId: workplaceTeam, Type: model.ChannelTypeOpen}
 	dm := &model.Channel{Id: model.NewId(), Type: model.ChannelTypeDirect}
 
 	canStart := func(userID string, stored *public.CallsChannel, channel *model.Channel) error {
@@ -88,7 +88,7 @@ func TestUserCanStartOrJoinByCommunityKind(t *testing.T) {
 
 	t.Run("with the defaults (test mode off)", func(t *testing.T) {
 		p.configuration = nil
-		require.NoError(t, canStart(member, nil, corporateChannel), "members call in corporate channels")
+		require.NoError(t, canStart(member, nil, workplaceChannel), "members call in workplace channels")
 		require.NoError(t, canStart(member, nil, dm), "members call in direct messages")
 		require.EqualError(t, canStart(member, nil, communityChannel), "calls are disabled in the channel")
 		require.EqualError(t, canStart(admin, nil, communityChannel), "calls are disabled in the channel")
@@ -96,21 +96,21 @@ func TestUserCanStartOrJoinByCommunityKind(t *testing.T) {
 		// Enabled in the channel by its admins.
 		require.NoError(t, canStart(member, &public.CallsChannel{ChannelID: communityChannel.Id, Enabled: true}, communityChannel))
 
-		// Disabled in a corporate channel.
-		require.EqualError(t, canStart(member, &public.CallsChannel{ChannelID: corporateChannel.Id, Enabled: false}, corporateChannel), "calls are disabled in the channel")
+		// Disabled in a workplace channel.
+		require.EqualError(t, canStart(member, &public.CallsChannel{ChannelID: workplaceChannel.Id, Enabled: false}, workplaceChannel), "calls are disabled in the channel")
 	})
 
 	t.Run("in test mode, only system admins start calls where they aren't enabled", func(t *testing.T) {
 		p.configuration = &configuration{ClientConfig: ClientConfig{DefaultEnabled: model.NewPointer(false)}}
-		require.EqualError(t, canStart(member, nil, corporateChannel), "insufficient permissions")
-		require.NoError(t, canStart(admin, nil, corporateChannel))
+		require.EqualError(t, canStart(member, nil, workplaceChannel), "insufficient permissions")
+		require.NoError(t, canStart(admin, nil, workplaceChannel))
 		require.EqualError(t, canStart(admin, nil, communityChannel), "calls are disabled in the channel")
 		require.NoError(t, canStart(member, &public.CallsChannel{ChannelID: communityChannel.Id, Enabled: true}, communityChannel))
 	})
 }
 
 func TestDefaultDisabledChannels(t *testing.T) {
-	communityTeam, corporateTeam, archivedTeam := model.NewId(), model.NewId(), model.NewId()
+	communityTeam, workplaceTeam, archivedTeam := model.NewId(), model.NewId(), model.NewId()
 	userID := model.NewId()
 	plain, enabled, other := model.NewId(), model.NewId(), model.NewId()
 
@@ -118,7 +118,7 @@ func TestDefaultDisabledChannels(t *testing.T) {
 	defer mockAPI.AssertExpectations(t)
 	mockAPI.On("GetTeamsForUser", userID).Return([]*model.Team{
 		{Id: communityTeam},
-		{Id: corporateTeam},
+		{Id: workplaceTeam},
 		{Id: archivedTeam, DeleteAt: 1},
 	}, nil).Once()
 	mockAPI.On("GetChannelsForTeamForUser", communityTeam, userID, false).Return([]*model.Channel{
@@ -127,7 +127,7 @@ func TestDefaultDisabledChannels(t *testing.T) {
 	}, nil).Once()
 
 	p := &Plugin{MattermostPlugin: plugin.MattermostPlugin{API: mockAPI}}
-	setTeamKinds(p, map[string]bool{communityTeam: true, corporateTeam: false, archivedTeam: true})
+	setTeamKinds(p, map[string]bool{communityTeam: true, workplaceTeam: false, archivedTeam: true})
 
 	stored := []*public.CallsChannel{{ChannelID: enabled, Enabled: true}, {ChannelID: other, Enabled: false}}
 	require.Equal(t, []*public.CallsChannel{{ChannelID: plain, Enabled: false}}, p.defaultDisabledChannels(userID, stored))
@@ -138,12 +138,12 @@ func TestDefaultDisabledChannels(t *testing.T) {
 func TestHandleChannelStatesByCommunityKind(t *testing.T) {
 	p, mockAPI, _ := newAPITestPlugin(t)
 
-	communityTeam, corporateTeam := model.NewId(), model.NewId()
+	communityTeam, workplaceTeam := model.NewId(), model.NewId()
 	userID := model.NewId()
-	communityChannel, enabledChannel, corporateChannel, dmChannel := model.NewId(), model.NewId(), model.NewId(), model.NewId()
+	communityChannel, enabledChannel, workplaceChannel, dmChannel := model.NewId(), model.NewId(), model.NewId(), model.NewId()
 
-	// As the server keeps the kind: a row for a corporate community only; no row is a community.
-	_, err := p.store.WriterDB().Exec(`INSERT INTO systems (name, value) VALUES ($1, 'corporate')`, db.TeamKindKeyPrefix+corporateTeam)
+	// The server writes the kind of every community; a community without a row (from before the kinds) is a community.
+	_, err := p.store.WriterDB().Exec(`INSERT INTO systems (name, value) VALUES ($1, 'workplace')`, db.TeamKindKeyPrefix+workplaceTeam)
 	require.NoError(t, err)
 	t.Cleanup(func() {
 		_, err := p.store.WriterDB().Exec(`DELETE FROM systems`)
@@ -155,7 +155,7 @@ func TestHandleChannelStatesByCommunityKind(t *testing.T) {
 	channels := map[string]*model.Channel{
 		communityChannel: {Id: communityChannel, TeamId: communityTeam, Type: model.ChannelTypeOpen},
 		enabledChannel:   {Id: enabledChannel, TeamId: communityTeam, Type: model.ChannelTypeOpen},
-		corporateChannel: {Id: corporateChannel, TeamId: corporateTeam, Type: model.ChannelTypeOpen},
+		workplaceChannel: {Id: workplaceChannel, TeamId: workplaceTeam, Type: model.ChannelTypeOpen},
 		dmChannel:        {Id: dmChannel, Type: model.ChannelTypeDirect},
 	}
 	var members []*model.ChannelMember
@@ -166,7 +166,7 @@ func TestHandleChannelStatesByCommunityKind(t *testing.T) {
 	}
 	mockAPI.On("GetChannelMembersForUser", "", userID, 0, 200).Return(members, nil)
 	mockAPI.On("RolesGrantPermission", mock.Anything, model.PermissionReadChannel.Id).Return(true)
-	mockAPI.On("GetTeamsForUser", userID).Return([]*model.Team{{Id: communityTeam}, {Id: corporateTeam}}, nil)
+	mockAPI.On("GetTeamsForUser", userID).Return([]*model.Team{{Id: communityTeam}, {Id: workplaceTeam}}, nil)
 	mockAPI.On("GetChannelsForTeamForUser", communityTeam, userID, false).Return([]*model.Channel{channels[communityChannel], channels[enabledChannel]}, nil)
 
 	mockMetricsForRouter(t, p)
@@ -202,7 +202,7 @@ func TestHandleChannelStatesByCommunityKind(t *testing.T) {
 		require.Equal(t, true, data["enabled"])
 		require.NotContains(t, data, "server_default")
 
-		for _, id := range []string{corporateChannel, dmChannel} {
+		for _, id := range []string{workplaceChannel, dmChannel} {
 			data = nil
 			require.NoError(t, json.Unmarshal(get(fmt.Sprintf("/%s", id)).Body.Bytes(), &data))
 			require.Equal(t, true, data["enabled"], "test mode is off by default")

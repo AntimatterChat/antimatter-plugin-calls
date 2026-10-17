@@ -13,20 +13,20 @@ import (
 )
 
 // TeamKindKeyPrefix names the Systems row in which the Antimatter server keeps the kind of a community
-// (Team.Kind): "corporate" for a company's community. The row is only written when the kind isn't the default:
-// no row, or any other value, is a (public) community. The server's model.Team has the field, but the plugin API's
-// copy of it doesn't, so it is read from there.
+// (Team.Kind): "workplace" for a company's community, "community" for the others. The server writes it for every
+// community; a missing row, or any other value, is a community. The server's model.Team has the field, but the
+// plugin API's copy of it doesn't, so it is read from there.
 const TeamKindKeyPrefix = "AmTeamKind_"
 
-// TeamKindCorporate is the kind of a company's community.
-const TeamKindCorporate = "corporate"
+// TeamKindWorkplace is the kind of a company's community.
+const TeamKindWorkplace = "workplace"
 
-// GetCorporateTeams tells which of the given communities are a company's (corporate kind); the others are
+// GetWorkplaceTeams tells which of the given communities are a company's (workplace kind); the others are
 // communities.
-func (s *Store) GetCorporateTeams(teamIDs []string) (map[string]bool, error) {
-	s.metrics.IncStoreOp("GetCorporateTeams")
+func (s *Store) GetWorkplaceTeams(teamIDs []string) (map[string]bool, error) {
+	s.metrics.IncStoreOp("GetWorkplaceTeams")
 	defer func(start time.Time) {
-		s.metrics.ObserveStoreMethodsTime("GetCorporateTeams", time.Since(start).Seconds())
+		s.metrics.ObserveStoreMethodsTime("GetWorkplaceTeams", time.Since(start).Seconds())
 	}(time.Now())
 
 	result := make(map[string]bool, len(teamIDs))
@@ -44,7 +44,7 @@ func (s *Store) GetCorporateTeams(teamIDs []string) (map[string]bool, error) {
 		Select("Name").
 		From("Systems").
 		Where(sq.Eq{"Name": names}).
-		Where(sq.Eq{"Value": TeamKindCorporate})
+		Where(sq.Eq{"Value": TeamKindWorkplace})
 	q, args, err := qb.ToSql()
 	if err != nil {
 		return nil, fmt.Errorf("failed to prepare query: %w", err)

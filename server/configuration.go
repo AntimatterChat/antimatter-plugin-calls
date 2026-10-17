@@ -117,7 +117,7 @@ type ClientConfig struct {
 	// TestMode="on" -> DefaultEnabled=false
 	// When TestMode is set to off (DefaultEnabled=true), calls will be possible in all channels where they are not explicitly disabled.
 	// Antimatter: test mode is off by default, so that everyone can call; the channels of communities that aren't
-	// corporate have calls off unless enabled in them (see callsDefaultForChannel).
+	// workplace have calls off unless enabled in them (see callsDefaultForChannel).
 	DefaultEnabled *bool
 	// The maximum number of participants that can join a call. The zero value
 	// means unlimited.
