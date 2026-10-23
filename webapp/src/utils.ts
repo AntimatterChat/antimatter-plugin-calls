@@ -28,7 +28,7 @@ import {notificationSounds} from 'src/webapp_globals';
 
 import {logDebug, logErr, logWarn} from './log';
 import {pluginId} from './manifest';
-import {threadIDForCallInChannel} from './selectors';
+import {channelHasCall, threadIDForCallInChannel} from './selectors';
 import JoinSelfSound from './sounds/join_self.mp3';
 import JoinUserSound from './sounds/join_user.mp3';
 import LeaveSelfSound from './sounds/leave_self.mp3';
@@ -478,12 +478,17 @@ export async function followThread(store: Store, channelID: string, teamID?: str
         logDebug('followThread: no team for channel');
         return;
     }
-    const threadID = threadIDForCallInChannel(store.getState(), channelID);
-    if (threadID) {
-        store.dispatch(setThreadFollow(getCurrentUserId(store.getState()), teamID, threadID, true));
-    } else {
+    if (!channelHasCall(store.getState(), channelID)) {
         logErr('Unable to follow call\'s thread, not registered in store');
+        return;
     }
+    const threadID = threadIDForCallInChannel(store.getState(), channelID);
+    if (!threadID) {
+        // Some calls have no thread to follow: voice-channel calls, and any other call whose
+        // channel has the call-started post disabled, never get one.
+        return;
+    }
+    store.dispatch(setThreadFollow(getCurrentUserId(store.getState()), teamID, threadID, true));
 }
 
 export function shouldRenderDesktopWidget() {
