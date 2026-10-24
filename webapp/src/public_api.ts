@@ -53,6 +53,7 @@ import type {
     CallsEvent,
     CallsIncomingCall,
     CallsJoinOptions,
+    CallsLastingMute,
     CallsModMute,
     CallsMoveRequest,
     CallsParticipant,
@@ -390,6 +391,29 @@ export type CallsAPIHandle = {
     moveRequested(request: CallsMoveRequest): Promise<void>;
 };
 
+// The moderator mutes of a channel as the server lists them.
+type LastingMuteData = {
+    user_id: string;
+    muted_by?: string;
+    muted_at?: number;
+    deafened_by?: string;
+    deafened_at?: number;
+    can_lift_mute: boolean;
+    can_lift_deafen: boolean;
+};
+
+function lastingMute(d: LastingMuteData): CallsLastingMute {
+    return {
+        userId: d.user_id,
+        mutedBy: d.muted_by || '',
+        mutedAt: d.muted_at || 0,
+        deafenedBy: d.deafened_by || '',
+        deafenedAt: d.deafened_at || 0,
+        canLiftMute: Boolean(d.can_lift_mute),
+        canLiftDeafen: Boolean(d.can_lift_deafen),
+    };
+}
+
 // createCallsAPI creates window.antimatterCalls. Joins go through joinCall, so that they get the
 // same checks as Calls' own UI.
 export function createCallsAPI(store: Store, joinCall: JoinCall): CallsAPIHandle {
@@ -720,6 +744,16 @@ export function createCallsAPI(store: Store, joinCall: JoinCall): CallsAPIHandle
             askToUnmute: (channelId, sessionId) => moderationRequest(channelId, 'ask-unmute', {session_id: sessionId}),
             setModDeafened: (channelId, userId, deafened) => moderationRequest(channelId, 'mod-deafen', {user_id: userId, deafened}),
             move: (channelId, sessionId, toChannelId) => moderationRequest(channelId, 'move', {session_id: sessionId, channel_id: toChannelId}),
+            listModMutes: async (channelId) => {
+                let list: LastingMuteData[];
+                try {
+                    list = await RestClient.fetch<LastingMuteData[]>(`${getPluginPath()}/calls/${channelId}/host/mod-mutes`, {method: 'get'});
+                } catch (err) {
+                    const status = (err as {status_code?: number})?.status_code || 0;
+                    throw Object.assign(new Error((err as Error)?.message || String(err)), {status});
+                }
+                return (list || []).map(lastingMute);
+            },
         },
 
         startTranscription: () => transcriptionAction('start'),

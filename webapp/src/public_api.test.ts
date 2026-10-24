@@ -237,7 +237,7 @@ describe('createCallsAPI', () => {
             'isVideoAllowed',
         ]);
         expect(Object.keys(api.host).sort()).toEqual(['lowerHand', 'mute', 'remove', 'stopScreen']);
-        expect(Object.keys(api.moderation).sort()).toEqual(['askToUnmute', 'move', 'setModDeafened', 'setModMuted']);
+        expect(Object.keys(api.moderation).sort()).toEqual(['askToUnmute', 'listModMutes', 'move', 'setModDeafened', 'setModMuted']);
     });
 
     test('join goes through the given join function', async () => {
@@ -485,6 +485,24 @@ describe('createCallsAPI', () => {
 
         fetch.mockImplementationOnce(() => Promise.reject(Object.assign(new Error('they can\'t join that channel'), {status_code: 400})));
         await expect(api.moderation.move!(channelID, 's2', 'voice2')).rejects.toMatchObject({status: 400});
+    });
+
+    test('moderators list the lasting mutes and deafens of a channel', async () => {
+        const fetch = RestClient.fetch as jest.Mock;
+        const {api} = createCallsAPI(store, join);
+
+        fetch.mockImplementationOnce(() => Promise.resolve([
+            {user_id: 'u2', deafened_by: 'admin', deafened_at: 20, can_lift_mute: false, can_lift_deafen: false},
+            {user_id: 'u3', muted_by: 'mod', muted_at: 10, can_lift_mute: true, can_lift_deafen: false},
+        ]));
+        await expect(api.moderation.listModMutes!(channelID)).resolves.toEqual([
+            {userId: 'u2', mutedBy: '', mutedAt: 0, deafenedBy: 'admin', deafenedAt: 20, canLiftMute: false, canLiftDeafen: false},
+            {userId: 'u3', mutedBy: 'mod', mutedAt: 10, deafenedBy: '', deafenedAt: 0, canLiftMute: true, canLiftDeafen: false},
+        ]);
+        expect(fetch).toHaveBeenLastCalledWith(expect.stringMatching(`/calls/${channelID}/host/mod-mutes$`), {method: 'get'});
+
+        fetch.mockImplementationOnce(() => Promise.reject(Object.assign(new Error('no permissions'), {status_code: 403})));
+        await expect(api.moderation.listModMutes!(channelID)).rejects.toMatchObject({status: 403});
     });
 
     test('unmuting is refused while deafened by a moderator', () => {
