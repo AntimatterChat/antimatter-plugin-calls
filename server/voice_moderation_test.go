@@ -583,4 +583,16 @@ func TestVoiceModeration(t *testing.T) {
 		require.Equal(t, http.StatusForbidden, post(users[2], "mod-deafen", `{"user_id":"`+users[1]+`","deafened":false}`))
 		require.Equal(t, modID, modMutesOf(t, c.from)[users[1]].DeafBy)
 	})
+
+	t.Run("only those who may moderate the call disconnect people from it", func(t *testing.T) {
+		defer ResetTestStore(t, p.store)
+		c := newChannels()
+		sessions := setupCall(t, c.from)
+
+		require.ErrorIs(t, p.hostRemoveSession(users[2], c.from, sessions[1]), ErrNoPermissions)
+		require.ErrorIs(t, p.hostRemoveSession(model.NewId(), c.from, sessions[1]), ErrNoPermissions)
+		require.NoError(t, p.hostRemoveSession(modID, c.from, sessions[1]))
+		require.NoError(t, p.hostRemoveSession(hostID, c.from, sessions[2]))
+		require.ErrorIs(t, p.hostRemoveSession(modID, c.from, model.NewId()), ErrNotInCall)
+	})
 }
