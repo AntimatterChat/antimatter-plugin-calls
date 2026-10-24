@@ -1,3 +1,14 @@
+# rtcd for Antimatter
+
+This is [rtcd](https://github.com/mattermost/rtcd) v1.2.6 with Antimatter's changes, used by the Calls app through a
+`replace` in its go.mod (both as the app's embedded RTC server and when building an rtcd service). Upstream's tests
+and test files are left out. The changes, each marked "Antimatter":
+
+- Deafening a session (`service/rtc/deafen.go`, the `DeafenMessage` and `UndeafenMessage` messages, and the
+  `deafened` session property): a deafened session receives no audio, for the moderators' server deafen.
+
+To move to a newer rtcd, copy it over this folder (without its tests and test files) and apply the changes again.
+
 # `rtcd`
 
 `rtcd` (**r**eal-**t**ime **c**ommunication **d**aemon) is a service built to offload WebRTC and media processing tasks from [Mattermost Calls](https://github.com/mattermost/mattermost-plugin-calls) in order to efficiently support scalable and secure deployments of the plugin on both on-prem and cloud environments.

@@ -315,6 +315,15 @@ func (s *Server) msgReader() {
 			session.mut.Lock()
 			session.outVoiceTrackEnabled = enabled
 			session.mut.Unlock()
+		case DeafenMessage, UndeafenMessage:
+			// Antimatter: see deafen.go.
+			deafened := msg.Type == DeafenMessage
+			s.log.Debug("setting deafened state",
+				mlog.Bool("deafened", deafened),
+				mlog.String("sessionID", session.cfg.SessionID))
+			if err := session.setDeafened(deafened); err != nil {
+				s.log.Error("failed to set deafened state", mlog.Err(err), mlog.String("sessionID", session.cfg.SessionID))
+			}
 		default:
 			s.log.Error("received unexpected message type", mlog.Int("msgType", int(msg.Type)))
 		}

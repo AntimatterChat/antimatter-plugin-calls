@@ -25,6 +25,13 @@ const (
 	VideoOffMessage
 )
 
+// Antimatter: deafening a session (see deafen.go). Numbered apart from upstream's types, so that new upstream types
+// don't collide with them; an upstream rtcd logs them as unexpected and ignores them.
+const (
+	DeafenMessage MessageType = iota + 101
+	UndeafenMessage
+)
+
 type Message struct {
 	GroupID   string      `msgpack:"group_id"`
 	UserID    string      `msgpack:"user_id"`

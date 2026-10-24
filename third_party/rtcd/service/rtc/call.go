@@ -61,6 +61,8 @@ func (c *call) addSession(cfg SessionConfig, rtcConn *webrtc.PeerConnection, clo
 		log:                log,
 		call:               c,
 		rxTracks:           make(map[string]webrtc.TrackLocal),
+		deafened:           cfg.Props.Deafened(),
+		silenced:           make(map[*webrtc.RTPSender]webrtc.TrackLocal),
 	}
 
 	c.sessions[cfg.SessionID] = s

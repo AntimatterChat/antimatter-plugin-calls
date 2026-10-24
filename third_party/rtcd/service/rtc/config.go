@@ -131,6 +131,12 @@ func (p SessionProps) DCSignaling() bool {
 	return val
 }
 
+// Deafened tells whether the session starts deafened (Antimatter, see deafen.go).
+func (p SessionProps) Deafened() bool {
+	val, _ := p["deafened"].(bool)
+	return val
+}
+
 func (c SessionConfig) IsValid() error {
 	if c.GroupID == "" {
 		return fmt.Errorf("invalid GroupID value: should not be empty")
@@ -167,6 +173,7 @@ func (c *SessionConfig) FromMap(m map[string]any) error {
 		"channelID":   m["channelID"],
 		"av1Support":  m["av1Support"],
 		"dcSignaling": m["dcSignaling"],
+		"deafened":    m["deafened"],
 	}
 
 	return nil

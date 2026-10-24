@@ -81,6 +81,11 @@ type session struct {
 	screenTrackSender *webrtc.RTPSender
 	rxTracks          map[string]webrtc.TrackLocal
 
+	// Antimatter: a deafened session receives no audio; the senders of the audio tracks it would receive send a
+	// silent twin instead of their track, which silenced keeps (see deafen.go).
+	deafened bool
+	silenced map[*webrtc.RTPSender]webrtc.TrackLocal
+
 	closeCh chan struct{}
 	closeCb func() error
 	doneCh  chan struct{}
@@ -417,7 +422,7 @@ func (s *session) addTrack(sdpOutCh chan<- Message, localTrack webrtc.TrackLocal
 
 	s.mut.Lock()
 	for _, sender := range s.rtcConn.GetSenders() {
-		if sender.Track() == localTrack {
+		if s.senderTrack(sender) == localTrack {
 			s.mut.Unlock()
 			return fmt.Errorf("sender for track already exists")
 		}
@@ -434,6 +439,14 @@ func (s *session) addTrack(sdpOutCh chan<- Message, localTrack webrtc.TrackLocal
 		return fmt.Errorf("failed to add track %s: %w", localTrack.ID(), err)
 	}
 	s.call.metrics.IncRTPTracks(s.cfg.GroupID, "out", getTrackMimeType(localTrack))
+
+	// Antimatter: a deafened session gets the audio track's silent twin from the start (before negotiating, so
+	// that not a packet of it goes out).
+	if s.deafened {
+		if err := s.silenceSender(sender, localTrack); err != nil {
+			s.log.Error("failed to silence track for deafened session", mlog.Err(err), mlog.String("trackID", localTrack.ID()))
+		}
+	}
 	s.mut.Unlock()
 
 	defer func() {
@@ -442,6 +455,7 @@ func (s *session) addTrack(sdpOutCh chan<- Message, localTrack webrtc.TrackLocal
 		}
 
 		s.mut.Lock()
+		delete(s.silenced, sender)
 		if err := sender.ReplaceTrack(nil); err != nil {
 			s.log.Error("failed to replace track",
 				mlog.String("trackID", localTrack.ID()))
@@ -495,7 +509,7 @@ func (s *session) removeTrack(sdpOutCh chan<- Message, track webrtc.TrackLocal) 
 
 	s.mut.Lock()
 	for _, snd := range s.rtcConn.GetSenders() {
-		if snd.Track() == track {
+		if s.senderTrack(snd) == track {
 			sender = snd
 			break
 		}
@@ -512,6 +526,7 @@ func (s *session) removeTrack(sdpOutCh chan<- Message, track webrtc.TrackLocal) 
 	}
 	s.call.metrics.DecRTPTracks(s.cfg.GroupID, "out", getTrackMimeType(track))
 	delete(s.rxTracks, track.ID())
+	delete(s.silenced, sender)
 	if s.screenTrackSender == sender {
 		s.screenTrackSender = nil
 	}
