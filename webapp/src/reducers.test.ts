@@ -8,6 +8,7 @@ import {
     CALL_STATE,
     DM_CALLEE_ANSWERED_AT,
     LOCAL_CALL_STATE,
+    MOD_DEAFEN_CHANGED,
     MOD_MUTE_CHANGED,
     MOD_MUTED_STATE,
     REMOVE_INCOMING_CALL,
@@ -169,5 +170,30 @@ describe('modMuted', () => {
 
     it('should drop the channel\'s mutes as its call ends', () => {
         expect(apply(changed('u1', true), callEnd(callID)).modMuted).toEqual({});
+    });
+});
+
+describe('modDeafened', () => {
+    const deafened = (userID: string, on: boolean, by = 'admin') => ({type: MOD_DEAFEN_CHANGED, data: {channelID, userID, deafened: on, by}});
+
+    it('should load the moderator deafens of the call state, apart from the mutes', () => {
+        const state = apply({type: MOD_MUTED_STATE, data: {channelID, modMuted: {u1: 'host'}, modDeafened: {u2: 'admin'}}});
+        expect(state.modDeafened).toEqual({[channelID]: {u2: 'admin'}});
+        expect(state.modMuted).toEqual({[channelID]: {u1: 'host'}});
+        expect(apply(
+            {type: MOD_MUTED_STATE, data: {channelID, modDeafened: {u2: 'admin'}}},
+            {type: MOD_MUTED_STATE, data: {channelID}},
+        ).modDeafened).toEqual({});
+    });
+
+    it('should follow the mod_deafen events only', () => {
+        expect(apply(deafened('u1', true)).modDeafened).toEqual({[channelID]: {u1: 'admin'}});
+        expect(apply(deafened('u1', true)).modMuted).toEqual({});
+        expect(apply(deafened('u1', true), deafened('u1', false)).modDeafened).toEqual({});
+        expect(apply({type: MOD_MUTE_CHANGED, data: {channelID, userID: 'u1', muted: true, by: 'admin'}}).modDeafened).toEqual({});
+    });
+
+    it('should drop the channel\'s deafens as its call ends', () => {
+        expect(apply(deafened('u1', true), callEnd(callID)).modDeafened).toEqual({});
     });
 });

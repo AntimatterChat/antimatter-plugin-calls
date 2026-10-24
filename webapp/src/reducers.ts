@@ -42,6 +42,7 @@ import {
     LIVE_CAPTIONS_ENABLED,
     LOCAL_CALL_STATE,
     LOCAL_SESSION_CLOSE,
+    MOD_DEAFEN_CHANGED,
     MOD_MUTE_CHANGED,
     MOD_MUTED_STATE,
     RECEIVED_CALLS_CONFIG,
@@ -1152,7 +1153,8 @@ const hostControlNotices = (state: hostControlNoticeState = {},
 };
 
 // The moderator-muted people of each channel: user ID -> who muted them (Antimatter). Kept from the call state and
-// the mod_mute events, and dropped as the call ends (the next call's state brings them back).
+// the mod_mute events, and dropped as the call ends (the next call's state brings them back). The moderator-deafened
+// people are kept the same way, from the mod_deafen events.
 export type ModMutedState = {[channelID: string]: {[userID: string]: string}};
 
 type ModMutedAction = {
@@ -1160,60 +1162,68 @@ type ModMutedAction = {
     data: {
         channelID: string;
         modMuted?: {[userID: string]: string};
+        modDeafened?: {[userID: string]: string};
         userID?: string;
         muted?: boolean;
+        deafened?: boolean;
         by?: string;
     };
 };
 
-const modMuted = (state: ModMutedState = {}, action: ModMutedAction) => {
-    switch (action.type) {
-    case UNINIT:
-        return {};
-    case MOD_MUTED_STATE: {
-        const next = {...state};
-        if (action.data.modMuted && Object.keys(action.data.modMuted).length) {
-            next[action.data.channelID] = {...action.data.modMuted};
-        } else if (state[action.data.channelID]) {
+function modUsersReducer(stateKey: 'modMuted' | 'modDeafened', changedType: string, flag: 'muted' | 'deafened') {
+    return (state: ModMutedState = {}, action: ModMutedAction) => {
+        switch (action.type) {
+        case UNINIT:
+            return {};
+        case MOD_MUTED_STATE: {
+            const users = action.data[stateKey];
+            const next = {...state};
+            if (users && Object.keys(users).length) {
+                next[action.data.channelID] = {...users};
+            } else if (state[action.data.channelID]) {
+                delete next[action.data.channelID];
+            } else {
+                return state;
+            }
+            return next;
+        }
+        case changedType: {
+            const {channelID, userID, by} = action.data;
+            if (!userID) {
+                return state;
+            }
+            const users = {...state[channelID]};
+            if (action.data[flag]) {
+                users[userID] = by || '';
+            } else if (userID in users) {
+                delete users[userID];
+            } else {
+                return state;
+            }
+            const next = {...state};
+            if (Object.keys(users).length) {
+                next[channelID] = users;
+            } else {
+                delete next[channelID];
+            }
+            return next;
+        }
+        case CALL_END: {
+            if (!state[action.data.channelID]) {
+                return state;
+            }
+            const next = {...state};
             delete next[action.data.channelID];
-        } else {
+            return next;
+        }
+        default:
             return state;
         }
-        return next;
-    }
-    case MOD_MUTE_CHANGED: {
-        const {channelID, userID, muted, by} = action.data;
-        if (!userID) {
-            return state;
-        }
-        const users = {...state[channelID]};
-        if (muted) {
-            users[userID] = by || '';
-        } else if (userID in users) {
-            delete users[userID];
-        } else {
-            return state;
-        }
-        const next = {...state};
-        if (Object.keys(users).length) {
-            next[channelID] = users;
-        } else {
-            delete next[channelID];
-        }
-        return next;
-    }
-    case CALL_END: {
-        if (!state[action.data.channelID]) {
-            return state;
-        }
-        const next = {...state};
-        delete next[action.data.channelID];
-        return next;
-    }
-    default:
-        return state;
-    }
-};
+    };
+}
+
+const modMuted = modUsersReducer('modMuted', MOD_MUTE_CHANGED, 'muted');
+const modDeafened = modUsersReducer('modDeafened', MOD_DEAFEN_CHANGED, 'deafened');
 
 export default combineReducers({
     channels,
@@ -1246,4 +1256,5 @@ export default combineReducers({
     clientConnecting,
     hostControlNotices,
     modMuted,
+    modDeafened,
 });

@@ -7,7 +7,7 @@ import {getCurrentUserId, getUser} from 'mattermost-redux/selectors/entities/use
 import {loadProfilesByIdsIfMissing, removeIncomingCallNotification, setDMCalleeAnsweredAt, userLeft} from 'src/actions';
 import {Store} from 'src/types/antimatter-webapp';
 
-import {CALL_HOST, HOST_CONTROL_NOTICE, MOD_MUTE_CHANGED, USER_JOINED} from './action_types';
+import {CALL_HOST, HOST_CONTROL_NOTICE, MOD_DEAFEN_CHANGED, MOD_MUTE_CHANGED, USER_JOINED} from './action_types';
 import {
     calls,
     dmCalleeAnsweredAtForCurrentCall,
@@ -26,7 +26,7 @@ import {
     notificationsStopRinging,
     playSound,
 } from './utils';
-import {handleAskUnmute, handleCallHostChanged, handleModMute, handleUserJoined, handleUserLeft} from './websocket_handlers';
+import {handleAskUnmute, handleCallHostChanged, handleHostMove, handleModDeafen, handleModMute, handleUserJoined, handleUserLeft} from './websocket_handlers';
 
 jest.mock('mattermost-redux/selectors/entities/channels', () => ({
     getChannel: jest.fn(() => ({id: 'channel-id', type: 'D'})),
@@ -356,7 +356,7 @@ describe('handleUserLeft', () => {
 
 describe('moderator mutes', () => {
     const makeStore = () => ({dispatch: jest.fn(), getState: jest.fn(() => ({}))}) as unknown as Store;
-    const fakeClient = (extra = {}) => ({channelID, modMuted: false, mute: jest.fn(), getSessionID: () => 'my-session', ...extra});
+    const fakeClient = (extra = {}) => ({channelID, modMuted: false, modDeafened: false, mute: jest.fn(), getSessionID: () => 'my-session', ...extra});
 
     beforeEach(() => {
         jest.clearAllMocks();
@@ -408,6 +408,41 @@ describe('moderator mutes', () => {
         handleAskUnmute(store, ev, onRequest);
         (getCallsClient as jest.Mock).mockReturnValue(fakeClient({getSessionID: () => 'other-session'}));
         handleAskUnmute(store, ev, onRequest);
+        (getCallsClient as jest.Mock).mockReturnValue(fakeClient({modDeafened: true}));
+        handleAskUnmute(store, ev, onRequest);
         expect(onRequest).not.toHaveBeenCalled();
+    });
+
+    test('handleModDeafen records the change, and deafened, the user is muted and can\'t unmute', () => {
+        const store = makeStore();
+        const client = fakeClient();
+        (getCallsClient as jest.Mock).mockReturnValue(client);
+
+        handleModDeafen(store, {data: {channel_id: channelID, user_id: currentUserID, deafened: true, by: otherUserID}} as WebSocketMessage<any>);
+        expect(store.dispatch).toHaveBeenCalledWith({type: MOD_DEAFEN_CHANGED, data: {channelID, userID: currentUserID, deafened: true, by: otherUserID}});
+        expect(client.modDeafened).toBe(true);
+        expect(client.modMuted).toBe(false);
+        expect(client.mute).toHaveBeenCalled();
+
+        // Lifting it leaves them muted.
+        handleModDeafen(store, {data: {channel_id: channelID, user_id: currentUserID, deafened: false, by: otherUserID}} as WebSocketMessage<any>);
+        expect(client.modDeafened).toBe(false);
+        expect(client.mute).toHaveBeenCalledTimes(1);
+
+        // Others' deafens, and other calls, leave the client alone.
+        handleModDeafen(store, {data: {channel_id: channelID, user_id: otherUserID, deafened: true, by: currentUserID}} as WebSocketMessage<any>);
+        handleModDeafen(store, {data: {channel_id: 'other', user_id: currentUserID, deafened: true, by: otherUserID}} as WebSocketMessage<any>);
+        expect(client.modDeafened).toBe(false);
+        expect(store.dispatch).toHaveBeenCalledTimes(4);
+    });
+
+    test('handleHostMove passes on moves', () => {
+        const onMove = jest.fn();
+        handleHostMove({data: {channel_id: channelID, session_id: 'my-session', to_channel_id: 'voice2', by: otherUserID}} as WebSocketMessage<any>, onMove);
+        expect(onMove).toHaveBeenCalledWith({channelId: channelID, sessionId: 'my-session', toChannelId: 'voice2', byUserId: otherUserID});
+
+        onMove.mockClear();
+        handleHostMove({data: {channel_id: channelID, session_id: 'my-session'}} as WebSocketMessage<any>, onMove);
+        expect(onMove).not.toHaveBeenCalled();
     });
 });

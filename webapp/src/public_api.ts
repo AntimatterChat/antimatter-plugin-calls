@@ -35,7 +35,9 @@ import {
     channelIDForCurrentCall,
     defaultEnabled,
     isJobRunning,
+    isModDeafened,
     isModMuted,
+    modDeafenedInChannel,
     modMutedInChannel,
     pluginState,
     ringingForCall,
@@ -52,6 +54,7 @@ import type {
     CallsIncomingCall,
     CallsJoinOptions,
     CallsModMute,
+    CallsMoveRequest,
     CallsParticipant,
     CallsReaction,
     CallsTranscription,
@@ -125,6 +128,7 @@ function getCall(state: GlobalState, channelId: string): CallsCall | null {
 type ParticipantsCacheEntry = {
     sessions: unknown;
     modMuted: unknown;
+    modDeafened: unknown;
     screenSharingId: string;
     hostId: string;
     mySessionId: string;
@@ -142,9 +146,11 @@ function getParticipants(state: GlobalState, channelId: string): CallsParticipan
     const me = myCall(state);
     const mySessionId = me?.channelID === channelId ? me.sessionID : '';
     const modMuted = modMutedInChannel(state, channelId);
+    const modDeafened = modDeafenedInChannel(state, channelId);
 
     const cached = participantsCache.get(channelId);
-    if (cached && cached.sessions === sessions && cached.modMuted === modMuted && cached.screenSharingId === screenSharingId &&
+    if (cached && cached.sessions === sessions && cached.modMuted === modMuted && cached.modDeafened === modDeafened &&
+        cached.screenSharingId === screenSharingId &&
         cached.hostId === hostId && cached.mySessionId === mySessionId) {
         return cached.result;
     }
@@ -163,9 +169,10 @@ function getParticipants(state: GlobalState, channelId: string): CallsParticipan
             isHost: Boolean(hostId) && session.user_id === hostId,
             isMe: Boolean(mySessionId) && session.session_id === mySessionId,
             modMuted: Object.hasOwn(modMuted, session.user_id),
+            modDeafened: Object.hasOwn(modDeafened, session.user_id),
         }));
     }
-    participantsCache.set(channelId, {sessions, modMuted, screenSharingId, hostId, mySessionId, result});
+    participantsCache.set(channelId, {sessions, modMuted, modDeafened, screenSharingId, hostId, mySessionId, result});
     return result;
 }
 
@@ -286,20 +293,26 @@ function getLiveCaptions(state: GlobalState, channelId: string): CallsCaption[] 
     return result;
 }
 
-const modMutesCache = new Map<string, {modMuted: unknown; result: CallsModMute[]}>();
 const noModMutes: CallsModMute[] = [];
 
-function getModMutes(state: GlobalState, channelId: string): CallsModMute[] {
-    const modMuted = modMutedInChannel(state, channelId);
-    const cached = modMutesCache.get(channelId);
-    if (cached && cached.modMuted === modMuted) {
-        return cached.result;
-    }
-    const entries = Object.entries(modMuted);
-    const result = entries.length ? entries.map(([userId, byUserId]) => ({userId, byUserId})) : noModMutes;
-    modMutesCache.set(channelId, {modMuted, result});
-    return result;
+// modListSelector lists the people of a channel that a moderator muted (or deafened), from who -> by whom.
+function modListSelector(byChannel: (state: GlobalState, channelId: string) => Record<string, string>) {
+    const cache = new Map<string, {users: unknown; result: CallsModMute[]}>();
+    return (state: GlobalState, channelId: string): CallsModMute[] => {
+        const users = byChannel(state, channelId);
+        const cached = cache.get(channelId);
+        if (cached && cached.users === users) {
+            return cached.result;
+        }
+        const entries = Object.entries(users);
+        const result = entries.length ? entries.map(([userId, byUserId]) => ({userId, byUserId})) : noModMutes;
+        cache.set(channelId, {users, result});
+        return result;
+    };
 }
+
+const getModMutes = modListSelector(modMutedInChannel);
+const getModDeafens = modListSelector(modDeafenedInChannel);
 
 export const selectors = {
     isCallsEnabled,
@@ -316,6 +329,7 @@ export const selectors = {
     getTranscription,
     getLiveCaptions,
     getModMutes,
+    getModDeafens,
 } as AntimatterCallsAPI['selectors'];
 
 //
@@ -371,6 +385,9 @@ export type CallsAPIHandle = {
 
     // To be called when a moderator asks the user to unmute in the call of this window.
     unmuteRequested(request: CallsUnmuteRequest): void;
+
+    // To be called when a moderator moves the user to another voice channel (any window of theirs).
+    moveRequested(request: CallsMoveRequest): Promise<void>;
 };
 
 // createCallsAPI creates window.antimatterCalls. Joins go through joinCall, so that they get the
@@ -380,6 +397,7 @@ export function createCallsAPI(store: Store, joinCall: JoinCall): CallsAPIHandle
         change: new Set(),
         error: new Set(),
         'unmute-request': new Set(),
+        move: new Set(),
     };
 
     const emit = (event: CallsEvent, ...args: unknown[]) => {
@@ -565,6 +583,8 @@ export function createCallsAPI(store: Store, joinCall: JoinCall): CallsAPIHandle
             }
             if (muted) {
                 client.mute();
+            } else if (client.modDeafened || isModDeafened(store.getState(), client.channelID, getCurrentUserId(store.getState()))) {
+                emit('error', {kind: 'mod-deafened'});
             } else if (client.modMuted || isModMuted(store.getState(), client.channelID, getCurrentUserId(store.getState()))) {
                 emit('error', {kind: 'mod-muted'});
             } else {
@@ -698,6 +718,8 @@ export function createCallsAPI(store: Store, joinCall: JoinCall): CallsAPIHandle
         moderation: {
             setModMuted: (channelId, userId, muted) => moderationRequest(channelId, 'mod-mute', {user_id: userId, muted}),
             askToUnmute: (channelId, sessionId) => moderationRequest(channelId, 'ask-unmute', {session_id: sessionId}),
+            setModDeafened: (channelId, userId, deafened) => moderationRequest(channelId, 'mod-deafen', {user_id: userId, deafened}),
+            move: (channelId, sessionId, toChannelId) => moderationRequest(channelId, 'move', {session_id: sessionId, channel_id: toChannelId}),
         },
 
         startTranscription: () => transcriptionAction('start'),
@@ -718,5 +740,20 @@ export function createCallsAPI(store: Store, joinCall: JoinCall): CallsAPIHandle
 
     const unmuteRequested = (request: CallsUnmuteRequest) => emit('unmute-request', request);
 
-    return {api, clientCreated, clientClosed, unmuteRequested};
+    // A move is for the window that has the call (or, with the desktop app, the main window): it switches to the
+    // other channel's call, and the UI follows. The server disconnects the session from the first call otherwise.
+    const moveRequested = async (request: CallsMoveRequest) => {
+        const local = getLocalCall(store.getState());
+        if (!local || local.channelId !== request.channelId || local.sessionId !== request.sessionId || local.channelId === request.toChannelId) {
+            return;
+        }
+        emit('move', request);
+        try {
+            await joinCall(request.toChannelId, {switchCall: true});
+        } catch (err) {
+            logErr('failed to join the call moved to', err);
+        }
+    };
+
+    return {api, clientCreated, clientClosed, unmuteRequested, moveRequested};
 }

@@ -164,6 +164,7 @@ import {
     iceServers,
     incomingCalls,
     isLimitRestricted,
+    isModDeafened,
     isModMuted,
     needsTURNCredentials,
     ringingEnabled,
@@ -200,9 +201,11 @@ import {
     handleCallState,
     handleCaption,
     handleHostLowerHand,
+    handleHostMove,
     handleHostMute,
     handleHostRemoved,
     handleHostScreenOff,
+    handleModDeafen,
     handleModMute,
     handleUserDismissedNotification,
     handleUserJoined,
@@ -332,6 +335,10 @@ export default class Plugin {
 
         registry.registerWebSocketEventHandler(`custom_${pluginId}_mod_mute`, (ev) => {
             handleModMute(store, ev);
+        });
+
+        registry.registerWebSocketEventHandler(`custom_${pluginId}_mod_deafen`, (ev) => {
+            handleModDeafen(store, ev);
         });
 
         registry.registerWebSocketEventHandler(`custom_${pluginId}_host_screen_off`, (ev) => {
@@ -758,6 +765,7 @@ export default class Plugin {
                     enableVideo: videoEnabledInChannel(state, channel),
                 });
                 window.callsClient.modMuted = isModMuted(state, channelID, getCurrentUserId(state));
+                window.callsClient.modDeafened = isModDeafened(state, channelID, getCurrentUserId(state));
                 window.currentCallData = {...CurrentCallDataDefault};
                 store.dispatch(setLocalCall({channelID, sessionID: '', state: 'connecting'}));
                 callsAPI.clientCreated(window.callsClient);
@@ -950,6 +958,11 @@ export default class Plugin {
             handleAskUnmute(store, ev, (req) => callsAPI.unmuteRequested(req));
         });
 
+        // A moderator moving the user to another voice channel: Calls switches calls, the UI follows.
+        registry.registerWebSocketEventHandler(`custom_${pluginId}_host_move`, (ev) => {
+            handleHostMove(ev, (req) => callsAPI.moveRequested(req));
+        });
+
         const windowEventHandler = (ev: MessageEvent) => {
             if (ev.origin !== window.origin) {
                 return;
@@ -1050,6 +1063,7 @@ export default class Plugin {
                         data: {
                             channelID: data[i].channel_id,
                             modMuted: (call as typeof call & {mod_muted?: Record<string, string>}).mod_muted,
+                            modDeafened: (call as typeof call & {mod_deafened?: Record<string, string>}).mod_deafened,
                         },
                     });
 

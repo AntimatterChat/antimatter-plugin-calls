@@ -66,6 +66,7 @@ import {
     HOST_CONTROL_NOTICE_TIMEOUT_EVENT,
     LIVE_CAPTION,
     LIVE_CAPTION_TIMEOUT_EVENT,
+    MOD_DEAFEN_CHANGED,
     MOD_MUTE_CHANGED,
     USER_JOINED,
     USER_JOINED_TIMEOUT,
@@ -744,6 +745,59 @@ export function handleModMute(store: Store, ev: WebSocketMessage<ModMuteData>) {
     }
 }
 
+type ModDeafenData = {
+    channel_id: string;
+    user_id: string;
+    deafened: boolean;
+    by: string;
+};
+
+// handleModDeafen follows the moderator deafens of a voice channel (Antimatter). Someone moderator-deafened hears
+// nothing (the server sends them no audio), is muted, and can't unmute until it's lifted; lifting it leaves them
+// muted.
+export function handleModDeafen(store: Store, ev: WebSocketMessage<ModDeafenData>) {
+    const {channel_id: channelID, user_id: userID, deafened, by} = ev.data;
+    store.dispatch({
+        type: MOD_DEAFEN_CHANGED,
+        data: {channelID, userID, deafened, by},
+    });
+
+    if (userID !== getCurrentUserId(store.getState())) {
+        return;
+    }
+    const client = getCallsClient();
+    if (!client || client.channelID !== channelID) {
+        return;
+    }
+    client.modDeafened = deafened;
+    if (deafened) {
+        client.mute();
+    }
+}
+
+type HostMoveData = {
+    channel_id: string;
+    session_id: string;
+    to_channel_id: string;
+    by: string;
+};
+
+// handleHostMove passes on a moderator's move of the user to another voice channel (Antimatter).
+export function handleHostMove(ev: WebSocketMessage<HostMoveData>, onMove: (req: MoveRequest) => void) {
+    const {channel_id: channelId, session_id: sessionId, to_channel_id: toChannelId, by: byUserId} = ev.data;
+    if (!channelId || !sessionId || !toChannelId) {
+        return;
+    }
+    onMove({channelId, sessionId, toChannelId, byUserId});
+}
+
+export type MoveRequest = {
+    channelId: string;
+    sessionId: string;
+    toChannelId: string;
+    byUserId: string;
+};
+
 type AskUnmuteData = {
     channel_id: string;
     session_id: string;
@@ -760,7 +814,7 @@ export type UnmuteRequest = {
 // muted (and not by a moderator).
 export function handleAskUnmute(store: Store, ev: WebSocketMessage<AskUnmuteData>, onRequest: (req: UnmuteRequest) => void) {
     const client = getCallsClient();
-    if (!client || client.channelID !== ev.data.channel_id || client.getSessionID() !== ev.data.session_id || client.modMuted) {
+    if (!client || client.channelID !== ev.data.channel_id || client.getSessionID() !== ev.data.session_id || client.modMuted || client.modDeafened) {
         return;
     }
     const session = sessionsInCurrentCall(store.getState()).find((s) => s.session_id === ev.data.session_id);

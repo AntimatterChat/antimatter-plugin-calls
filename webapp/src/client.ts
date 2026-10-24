@@ -87,6 +87,10 @@ export default class CallsClient extends EventEmitter {
 
     // Antimatter: a moderator muted the user in this call; unmuting does nothing until they lift it.
     public modMuted = false;
+
+    // Antimatter: a moderator deafened the user in this call (a voice channel's): they hear nothing (the server sends
+    // no audio) and unmuting does nothing until it's lifted.
+    public modDeafened = false;
     private readonly config: CallsClientConfig;
     private peer: RTCPeer | null;
     public ws: WebSocketClient | null;
@@ -976,8 +980,8 @@ export default class CallsClient extends EventEmitter {
             return;
         }
 
-        if (this.modMuted) {
-            logDebug('not unmuting: muted by a moderator');
+        if (this.modMuted || this.modDeafened) {
+            logDebug('not unmuting: muted or deafened by a moderator');
             return;
         }
 

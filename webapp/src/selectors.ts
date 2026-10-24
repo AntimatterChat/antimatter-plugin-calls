@@ -741,3 +741,12 @@ export const modMutedInChannel = (state: GlobalState, channelID: string): {[user
 // isModMuted tells whether someone is moderator-muted in a channel: they can't unmute until it's lifted.
 export const isModMuted = (state: GlobalState, channelID: string, userID: string): boolean =>
     Boolean(channelID && userID && Object.hasOwn(modMutedInChannel(state, channelID), userID));
+
+// modDeafenedInChannel gives the moderator-deafened people of a channel: user ID -> who deafened them (Antimatter).
+export const modDeafenedInChannel = (state: GlobalState, channelID: string): {[userID: string]: string} =>
+    pluginState(state).modDeafened?.[channelID] || noModMuted;
+
+// isModDeafened tells whether someone is moderator-deafened in a channel: they hear nothing, and can't unmute,
+// until it's lifted.
+export const isModDeafened = (state: GlobalState, channelID: string, userID: string): boolean =>
+    Boolean(channelID && userID && Object.hasOwn(modDeafenedInChannel(state, channelID), userID));

@@ -69,3 +69,4 @@ export const LOCAL_CALL_STATE = pluginId + '_local_call_state';
 // Antimatter: the moderator mutes of a channel (all of them, or one changed).
 export const MOD_MUTED_STATE = pluginId + '_mod_muted_state';
 export const MOD_MUTE_CHANGED = pluginId + '_mod_mute_changed';
+export const MOD_DEAFEN_CHANGED = pluginId + '_mod_deafen_changed';

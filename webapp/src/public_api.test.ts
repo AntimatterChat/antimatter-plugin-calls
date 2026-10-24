@@ -41,6 +41,7 @@ type StateOpts = {
     incomingCalls?: unknown[];
     ringingForCalls?: Record<string, boolean>;
     modMuted?: Record<string, Record<string, string>>;
+    modDeafened?: Record<string, Record<string, string>>;
     callsConfig?: Record<string, unknown>;
 };
 
@@ -57,6 +58,7 @@ const makeState = (opts: StateOpts = {}) => ({
         incomingCalls: opts.incomingCalls || [],
         ringingForCalls: opts.ringingForCalls || {},
         modMuted: opts.modMuted || {},
+        modDeafened: opts.modDeafened || {},
         callsConfig: {AllowScreenSharing: true, DefaultEnabled: true, ...opts.callsConfig},
     },
     entities: {
@@ -76,8 +78,8 @@ describe('selectors', () => {
 
         const participants = selectors.getParticipants(state, channelID);
         expect(participants).toEqual([
-            {sessionId: 's1', userId: 'owner', muted: false, video: false, screenSharing: true, speaking: true, raisedHand: false, raisedHandAt: 0, isHost: true, isMe: false, modMuted: false},
-            {sessionId: 's2', userId: currentUserID, muted: true, video: true, screenSharing: false, speaking: false, raisedHand: true, raisedHandAt: 5, isHost: false, isMe: true, modMuted: false},
+            {sessionId: 's1', userId: 'owner', muted: false, video: false, screenSharing: true, speaking: true, raisedHand: false, raisedHandAt: 0, isHost: true, isMe: false, modMuted: false, modDeafened: false},
+            {sessionId: 's2', userId: currentUserID, muted: true, video: true, screenSharing: false, speaking: false, raisedHand: true, raisedHandAt: 5, isHost: false, isMe: true, modMuted: false, modDeafened: false},
         ]);
 
         // Another state with the same call slices gives the same array
@@ -141,6 +143,20 @@ describe('selectors', () => {
         expect(mutes).toEqual([{userId: 'owner', byUserId: 'admin'}]);
         expect(selectors.getModMutes(makeState({modMuted}), channelID)).toBe(mutes);
         expect(selectors.getParticipants(state, channelID).map((p) => p.modMuted)).toEqual([true, false]);
+    });
+
+    test('getModDeafens and the participants\' modDeafened flag follow the moderator deafens', () => {
+        expect(selectors.getModDeafens!(makeState(), channelID)).toEqual([]);
+        const modDeafened = {[channelID]: {[currentUserID]: 'owner'}};
+        const sessions = {s1: session('s1', 'owner'), s2: session('s2', currentUserID)};
+        const state = makeState({sessions, modDeafened});
+        const deafens = selectors.getModDeafens!(state, channelID);
+        expect(deafens).toEqual([{userId: currentUserID, byUserId: 'owner'}]);
+        expect(selectors.getModDeafens!(makeState({modDeafened}), channelID)).toBe(deafens);
+        expect(selectors.getModMutes(state, channelID)).toEqual([]);
+        const participants = selectors.getParticipants(state, channelID);
+        expect(participants.map((p) => p.modDeafened)).toEqual([false, true]);
+        expect(participants.map((p) => p.modMuted)).toEqual([false, false]);
     });
 
     test('getReactions maps the call\'s reactions and keeps the result while unchanged', () => {
@@ -216,12 +232,12 @@ describe('createCallsAPI', () => {
             'startScreenShare', 'startTranscription', 'stopRinging', 'stopScreenShare', 'stopTranscription', 'version',
         ]);
         expect(Object.keys(api.selectors).sort()).toEqual([
-            'getCall', 'getIncomingCalls', 'getLiveCaptions', 'getLocalCall', 'getModMutes', 'getMyMuted', 'getParticipants', 'getReactions',
+            'getCall', 'getIncomingCalls', 'getLiveCaptions', 'getLocalCall', 'getModDeafens', 'getModMutes', 'getMyMuted', 'getParticipants', 'getReactions',
             'getScreenSharingSessionId', 'getTranscription', 'isCallsEnabled', 'isScreenSharingAllowed', 'isTranscriptionAvailable',
             'isVideoAllowed',
         ]);
         expect(Object.keys(api.host).sort()).toEqual(['lowerHand', 'mute', 'remove', 'stopScreen']);
-        expect(Object.keys(api.moderation).sort()).toEqual(['askToUnmute', 'setModMuted']);
+        expect(Object.keys(api.moderation).sort()).toEqual(['askToUnmute', 'move', 'setModDeafened', 'setModMuted']);
     });
 
     test('join goes through the given join function', async () => {
@@ -460,6 +476,55 @@ describe('createCallsAPI', () => {
 
         fetch.mockImplementationOnce(() => Promise.reject(Object.assign(new Error('too many requests'), {status_code: 429})));
         await expect(api.moderation.askToUnmute(channelID, 's2')).rejects.toMatchObject({status: 429});
+
+        await api.moderation.setModDeafened!(channelID, 'u2', true);
+        expect(fetch).toHaveBeenLastCalledWith(expect.stringMatching(`/calls/${channelID}/host/mod-deafen$`), {method: 'post', body: JSON.stringify({user_id: 'u2', deafened: true})});
+
+        await api.moderation.move!(channelID, 's2', 'voice2');
+        expect(fetch).toHaveBeenLastCalledWith(expect.stringMatching(`/calls/${channelID}/host/move$`), {method: 'post', body: JSON.stringify({session_id: 's2', channel_id: 'voice2'})});
+
+        fetch.mockImplementationOnce(() => Promise.reject(Object.assign(new Error('they can\'t join that channel'), {status_code: 400})));
+        await expect(api.moderation.move!(channelID, 's2', 'voice2')).rejects.toMatchObject({status: 400});
+    });
+
+    test('unmuting is refused while deafened by a moderator', () => {
+        state = makeState({localCall: {channelID, sessionID: 's1', state: 'connected'}, modDeafened: {[channelID]: {[currentUserID]: 'admin'}}});
+        const {api, clientCreated} = createCallsAPI(store, join);
+        const client = new FakeClient();
+        clientCreated(client as unknown as CallsClient);
+        const onError = jest.fn();
+        api.on('error', onError);
+
+        api.setMuted(false);
+        expect(client.unmute).not.toHaveBeenCalled();
+        expect(onError).toHaveBeenCalledWith({kind: 'mod-deafened'});
+    });
+
+    test('a move switches the call of this window to the other channel, and tells the listeners', async () => {
+        state = makeState({localCall: {channelID, sessionID: 's1', state: 'connected'}});
+        const {api, moveRequested} = createCallsAPI(store, join);
+        const onMove = jest.fn();
+        api.on('move', onMove);
+        const request = {channelId: channelID, sessionId: 's1', toChannelId: 'voice2', byUserId: 'owner'};
+
+        await moveRequested(request);
+        expect(onMove).toHaveBeenCalledWith(request);
+        expect(join).toHaveBeenCalledWith('voice2', {switchCall: true});
+
+        // Not for another session or call: another tab of the user's, say.
+        onMove.mockClear();
+        (join as jest.Mock).mockClear();
+        await moveRequested({...request, sessionId: 's9'});
+        await moveRequested({...request, channelId: 'other'});
+        state = makeState();
+        await moveRequested(request);
+        expect(onMove).not.toHaveBeenCalled();
+        expect(join).not.toHaveBeenCalled();
+
+        // The desktop app's main window switches the call of its call window.
+        state = makeState({clientStateReducer: {channelID, sessionID: 's1'}});
+        await moveRequested(request);
+        expect(join).toHaveBeenCalledWith('voice2', {switchCall: true});
     });
 
     test('stopRinging stops the ring of an incoming call', () => {

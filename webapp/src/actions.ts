@@ -564,6 +564,7 @@ export const loadCallState = (channelID: string, call: CallState) => (dispatch: 
         data: {
             channelID,
             modMuted: (call as CallState & {mod_muted?: Record<string, string>}).mod_muted,
+            modDeafened: (call as CallState & {mod_deafened?: Record<string, string>}).mod_deafened,
         },
     });
 
