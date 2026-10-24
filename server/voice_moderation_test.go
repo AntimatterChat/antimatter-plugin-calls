@@ -665,4 +665,75 @@ func TestVoiceModeration(t *testing.T) {
 		require.NotContains(t, state.sessions, sessions[1])
 		require.Contains(t, state.sessions, sessions[2])
 	})
+
+	// hostMuted tells whether the host mute of a session was sent to its owner.
+	hostMuted := func(channelID, sessionID string) bool {
+		return mockAPI.AssertCalled(&quietT{}, "PublishWebSocketEvent", wsEventHostMute, map[string]interface{}{
+			"channel_id": channelID,
+			"session_id": sessionID,
+		}, mock.Anything)
+	}
+
+	t.Run("nobody host-mutes someone at or above their rank", func(t *testing.T) {
+		defer ResetTestStore(t, p.store)
+		c := newChannels()
+		sessions := setupCall(t, c.from)
+		in := map[string]string{}
+		for _, userID := range []string{adminID, admin2ID, teamAdminID, teamAdmin2ID, modID, mod2ID} {
+			in[userID] = joinCall(t, c.from, userID)
+		}
+
+		// The host ranks below the system admins, the community admins and the moderators.
+		for _, userID := range []string{adminID, teamAdminID, modID} {
+			require.ErrorIs(t, p.muteSession(hostID, c.from, in[userID]), ErrOutranked, userID)
+		}
+		// A community moderator ranks below the admins, a community admin below the system admins.
+		require.ErrorIs(t, p.muteSession(modID, c.from, in[adminID]), ErrOutranked)
+		require.ErrorIs(t, p.muteSession(modID, c.from, in[teamAdminID]), ErrOutranked)
+		require.ErrorIs(t, p.muteSession(teamAdminID, c.from, in[adminID]), ErrOutranked)
+		// Nobody mutes someone of the same rank.
+		require.ErrorIs(t, p.muteSession(modID, c.from, in[mod2ID]), ErrOutranked)
+		require.ErrorIs(t, p.muteSession(teamAdminID, c.from, in[teamAdmin2ID]), ErrOutranked)
+		require.ErrorIs(t, p.muteSession(adminID, c.from, in[admin2ID]), ErrOutranked)
+		// Members mute nobody.
+		require.ErrorIs(t, p.muteSession(users[1], c.from, sessions[2]), ErrNoPermissions)
+
+		// Through the API the refusal is a 403 that says why.
+		router := p.newAPIRouter()
+		r := httptest.NewRequest(http.MethodPost, "/calls/"+c.from+"/host/mute", strings.NewReader(`{"session_id":"`+in[adminID]+`"}`))
+		r.Header.Set("Mattermost-User-Id", hostID)
+		w := httptest.NewRecorder()
+		router.ServeHTTP(w, r)
+		require.Equal(t, http.StatusForbidden, w.Code)
+		require.Contains(t, w.Body.String(), ErrOutranked.Error())
+
+		// Nobody was asked to mute.
+		for _, sessionID := range in {
+			require.False(t, hostMuted(c.from, sessionID), sessionID)
+		}
+
+		// Those above may: an admin mutes a member, a community admin a moderator, the host a member.
+		require.NoError(t, p.muteSession(adminID, c.from, sessions[1]))
+		require.True(t, hostMuted(c.from, sessions[1]))
+		require.NoError(t, p.muteSession(teamAdminID, c.from, in[modID]))
+		require.True(t, hostMuted(c.from, in[modID]))
+		require.NoError(t, p.muteSession(hostID, c.from, sessions[2]))
+		require.True(t, hostMuted(c.from, sessions[2]))
+	})
+
+	t.Run("anyone who may moderate may still mute themselves", func(t *testing.T) {
+		defer ResetTestStore(t, p.store)
+		c := newChannels()
+		sessions := setupCall(t, c.from)
+		adminSession := joinCall(t, c.from, adminID)
+		modSession := joinCall(t, c.from, modID)
+
+		// The rank check leaves people's own sessions alone.
+		require.NoError(t, p.muteSession(hostID, c.from, sessions[0]))
+		require.True(t, hostMuted(c.from, sessions[0]))
+		require.NoError(t, p.muteSession(adminID, c.from, adminSession))
+		require.True(t, hostMuted(c.from, adminSession))
+		require.NoError(t, p.muteSession(modID, c.from, modSession))
+		require.True(t, hostMuted(c.from, modSession))
+	})
 }
