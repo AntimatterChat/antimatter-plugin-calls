@@ -220,6 +220,11 @@ func TestStage(t *testing.T) {
 
 	router := p.newAPIRouter()
 	serve := func(method, userID, path, body string) int {
+		// The API's rate limits aren't what is tested here.
+		p.apiLimitersMut.Lock()
+		p.apiLimiters = map[string]*rate.Limiter{}
+		p.apiLimitersMut.Unlock()
+
 		r := httptest.NewRequest(method, path, strings.NewReader(body))
 		if userID != "" {
 			r.Header.Set("Mattermost-User-Id", userID)
