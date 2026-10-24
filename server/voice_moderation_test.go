@@ -314,9 +314,9 @@ func TestVoiceModeration(t *testing.T) {
 		require.ErrorIs(t, p.setModDeafened(users[1], c.from, users[2], true), ErrNoPermissions)
 		require.ErrorIs(t, p.setModDeafened(modID, model.NewId(), users[1], true), ErrNoCallOngoing)
 
-		// The community's moderators moderate its voice channels only.
-		require.ErrorIs(t, p.setModDeafened(modID, c.text, users[1], true), ErrNoPermissions)
-		require.NoError(t, p.setModDeafened(hostID, c.text, users[1], true))
+		// Deafening is for voice channels.
+		require.ErrorIs(t, p.setModDeafened(hostID, c.text, users[1], true), ErrNotAllowed)
+		require.ErrorIs(t, p.setModDeafened(adminID, c.text, users[1], true), ErrNotAllowed)
 
 		// Lifting a deafen nobody gave does nothing.
 		require.NoError(t, p.setModDeafened(users[2], c.from, users[1], false))

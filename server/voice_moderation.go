@@ -16,11 +16,11 @@ import (
 // Antimatter: the voice moderation that goes with the moderator mute (see moderation.go), as Discord's server deafen
 // and move.
 //
-// A moderator deafen keeps someone from hearing and from speaking until it's lifted. It's kept with the moderator
-// mutes of the channel, and lasts as long (in voice channels, until lifted). The Calls server enforces it: rtcd
-// forwards no audio to the person's sessions (Antimatter's rtcd, see third_party/rtcd/service/rtc/deafen.go), and
-// they're muted as by a moderator mute. Lifting it gives them the call's audio back, and leaves them muted (and
-// moderator-muted, if they were also muted).
+// A moderator deafen keeps someone in a voice channel from hearing and from speaking until it's lifted (deafening is
+// a voice channel thing: other calls have none). It's kept with the moderator mutes of the channel, and lasts as
+// long: until lifted. The Calls server enforces it: rtcd forwards no audio to the person's sessions (Antimatter's
+// rtcd, see third_party/rtcd/service/rtc/deafen.go), and they're muted as by a moderator mute. Lifting it gives them
+// the call's audio back, and leaves them muted (and moderator-muted, if they were also muted).
 //
 // Moving someone from the call of a voice channel to another voice channel of the community asks their app to switch
 // calls; whoever is still in the first call after moveDisconnectDelay is disconnected from it.
@@ -90,7 +90,7 @@ func (p *Plugin) checkCanLift(requesterID, userID, channelID, by string, state *
 	return nil
 }
 
-// setModDeafened moderator-deafens someone in the call of a channel, or lifts their moderator deafen.
+// setModDeafened moderator-deafens someone in the call of a voice channel, or lifts their moderator deafen.
 func (p *Plugin) setModDeafened(requesterID, channelID, userID string, deafened bool) error {
 	if !deafened {
 		return p.liftModDeafen(requesterID, channelID, userID)
@@ -104,6 +104,9 @@ func (p *Plugin) setModDeafened(requesterID, channelID, userID string, deafened 
 
 	if state == nil {
 		return ErrNoCallOngoing
+	}
+	if !p.isVoiceRoom(channelID) {
+		return fmt.Errorf("%w: only in voice channels", ErrNotAllowed)
 	}
 	if !state.isUserIDInCall(userID) {
 		return ErrNotInCall
