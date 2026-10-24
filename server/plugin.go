@@ -278,6 +278,10 @@ func (p *Plugin) handleEvent(ev model.PluginClusterEvent) error {
 			msgType = rtc.VideoOnMessage
 		case clientMessageTypeVideoOff:
 			msgType = rtc.VideoOffMessage
+		case clusterUserStateDeafen:
+			msgType = rtc.DeafenMessage
+		case clusterUserStateUndeafen:
+			msgType = rtc.UndeafenMessage
 		default:
 			return fmt.Errorf("unexpected client message type %q", msg.ClientMessage.Type)
 		}

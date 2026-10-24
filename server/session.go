@@ -57,6 +57,9 @@ type session struct {
 
 	// rate limiter for incoming WebSocket messages.
 	wsMsgLimiter *rate.Limiter
+
+	// Antimatter: whether this node deafened the session in rtcd, for a moderator deafen (see voice_moderation.go).
+	rtcDeafened atomic.Bool
 }
 
 func newUserSession(userID, channelID, connID, callID string, rtc bool) *session {

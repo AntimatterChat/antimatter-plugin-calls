@@ -226,6 +226,68 @@ func (p *Plugin) handleAskUnmute(w http.ResponseWriter, r *http.Request) {
 	res.Msg = "success"
 }
 
+func (p *Plugin) handleModDeafen(w http.ResponseWriter, r *http.Request) {
+	var res httpResponse
+	defer p.httpAudit("handleModDeafen", &res, w, r)
+
+	userID := r.Header.Get("Mattermost-User-Id")
+	callID := mux.Vars(r)["call_id"]
+
+	var payload struct {
+		UserID   string `json:"user_id"`
+		Deafened bool   `json:"deafened"`
+	}
+	if err := json.NewDecoder(http.MaxBytesReader(w, r.Body, requestBodyMaxSizeBytes)).Decode(&payload); err != nil {
+		res.Err = err.Error()
+		res.Code = http.StatusBadRequest
+		return
+	}
+	if !model.IsValidId(payload.UserID) {
+		res.Err = "invalid user_id"
+		res.Code = http.StatusBadRequest
+		return
+	}
+
+	if err := p.setModDeafened(userID, callID, payload.UserID, payload.Deafened); err != nil {
+		p.handleModerationError(err, &res, "handleModDeafen")
+		return
+	}
+
+	res.Code = http.StatusOK
+	res.Msg = "success"
+}
+
+func (p *Plugin) handleMoveSession(w http.ResponseWriter, r *http.Request) {
+	var res httpResponse
+	defer p.httpAudit("handleMoveSession", &res, w, r)
+
+	userID := r.Header.Get("Mattermost-User-Id")
+	callID := mux.Vars(r)["call_id"]
+
+	var payload struct {
+		SessionID string `json:"session_id"`
+		ChannelID string `json:"channel_id"`
+	}
+	if err := json.NewDecoder(http.MaxBytesReader(w, r.Body, requestBodyMaxSizeBytes)).Decode(&payload); err != nil {
+		res.Err = err.Error()
+		res.Code = http.StatusBadRequest
+		return
+	}
+	if !model.IsValidId(payload.SessionID) || !model.IsValidId(payload.ChannelID) {
+		res.Err = "invalid session_id or channel_id"
+		res.Code = http.StatusBadRequest
+		return
+	}
+
+	if err := p.moveSession(userID, callID, payload.SessionID, payload.ChannelID); err != nil {
+		p.handleModerationError(err, &res, "handleMoveSession")
+		return
+	}
+
+	res.Code = http.StatusOK
+	res.Msg = "success"
+}
+
 // handleModerationError is handleHostControlsError for the moderation controls, which tell refusals (403) and
 // rate limits (429) apart.
 func (p *Plugin) handleModerationError(err error, res *httpResponse, handlerName string) {

@@ -863,6 +863,9 @@ func (p *Plugin) handleJoin(userID, connID, authSessionID string, joinData calls
 		p.sessions[connID] = us
 		p.mut.Unlock()
 
+		// Antimatter: someone moderator-deafened gets no audio from the start (see voice_moderation.go).
+		deafened := !p.isBot(userID) && p.isModDeafened(channelID, userID)
+
 		if p.rtcdManager != nil {
 			msg := rtcd.ClientMessage{
 				Type: rtcd.ClientMessageJoin,
@@ -873,6 +876,7 @@ func (p *Plugin) handleJoin(userID, connID, authSessionID string, joinData calls
 					"channelID":   channelID,
 					"av1Support":  joinData.AV1Support,
 					"dcSignaling": joinData.DCSignaling,
+					"deafened":    deafened,
 				},
 			}
 			if err := p.rtcdManager.Send(msg, state.Call.Props.RTCDHost); err != nil {
@@ -904,6 +908,7 @@ func (p *Plugin) handleJoin(userID, connID, authSessionID string, joinData calls
 						"channelID":   channelID,
 						"av1Support":  joinData.AV1Support,
 						"dcSignaling": joinData.DCSignaling,
+						"deafened":    deafened,
 					},
 				}
 				p.LogDebug("initializing RTC session", "userID", userID, "connID", connID, "channelID", channelID, "callID", us.callID)
@@ -933,6 +938,7 @@ func (p *Plugin) handleJoin(userID, connID, authSessionID string, joinData calls
 						"channelID":   channelID,
 						"av1Support":  joinData.AV1Support,
 						"dcSignaling": joinData.DCSignaling,
+						"deafened":    deafened,
 					},
 				}, clusterMessageTypeConnect, handlerID); err != nil {
 					p.LogError("failed to send connect message", "err", err.Error())

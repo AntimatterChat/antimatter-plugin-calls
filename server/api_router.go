@@ -141,6 +141,8 @@ func (p *Plugin) newAPIRouter() *mux.Router {
 	hostCtrlRouter.HandleFunc("/end", p.handleEnd).Methods("POST")
 	hostCtrlRouter.HandleFunc("/mod-mute", p.handleModMute).Methods("POST")
 	hostCtrlRouter.HandleFunc("/ask-unmute", p.handleAskUnmute).Methods("POST")
+	hostCtrlRouter.HandleFunc("/mod-deafen", p.handleModDeafen).Methods("POST")
+	hostCtrlRouter.HandleFunc("/move", p.handleMoveSession).Methods("POST")
 
 	// Bot
 	botRouter := router.PathPrefix("/bot").Subrouter()

@@ -18,12 +18,14 @@ import (
 
 // Antimatter: moderation of calls, as Discord's voice moderation. The call's host, the channel's and the
 // community's admins, the system admins and, in voice channels, the community's moderators may mute someone for
-// the call (a moderator mute: they can't unmute until it's lifted), or ask someone muted to unmute.
+// the call (a moderator mute: they can't unmute until it's lifted), deafen them (a moderator deafen: they hear
+// nothing and can't speak until it's lifted, see voice_moderation.go), or ask someone muted to unmute.
 //
-// A moderator mute belongs to the channel: it lasts while the person is in the call, and for modMuteGrace after
-// they left it (or the call ended), so that leaving and joining again (even when that restarts the call) doesn't
-// clear it. The Calls server enforces it: unmuting is refused and rtcd is told the session is muted, so it doesn't
-// forward their voice.
+// A moderator mute (or deafen) belongs to the channel. In a voice channel it lasts until a moderator lifts it,
+// however often the person leaves and comes back. In other calls it lasts while the person is in the call, and for
+// modMuteGrace after they left it (or the call ended), so that leaving and joining again (even when that restarts
+// the call) doesn't clear it. The Calls server enforces it: unmuting is refused and rtcd is told the session is
+// muted, so it doesn't forward their voice (and, deafened, it forwards no audio to them).
 
 const (
 	wsEventModMute    = "mod_mute"
@@ -60,17 +62,30 @@ const (
 	modRankSystemAdmin
 )
 
-// modMute is someone's moderator mute in a channel.
+// modMute is someone's moderator mute in a channel, and their moderator deafen: either keeps them from speaking.
 type modMute struct {
-	By string `json:"by"`
-	At int64  `json:"at"`
+	// Who muted them, and when; empty when they're only deafened.
+	By string `json:"by,omitempty"`
+	At int64  `json:"at,omitempty"`
 
-	// When it ends; 0 while the person is in the call.
+	// Who deafened them, and when; empty when they aren't.
+	DeafBy string `json:"deaf_by,omitempty"`
+	DeafAt int64  `json:"deaf_at,omitempty"`
+
+	// When it ends; 0 while the person is in the call, and in voice channels until lifted.
 	Until int64 `json:"until"`
 }
 
 func (m modMute) isActive(now int64) bool {
-	return m.Until == 0 || now < m.Until
+	return (m.By != "" || m.DeafBy != "") && (m.Until == 0 || now < m.Until)
+}
+
+func (m modMute) isMuted() bool {
+	return m.By != ""
+}
+
+func (m modMute) isDeafened() bool {
+	return m.DeafBy != ""
 }
 
 // modMutes are the moderator mutes of a channel, by user.
@@ -176,7 +191,8 @@ func (p *Plugin) getModMutes(channelID string) (modMutes, error) {
 	return mutes, nil
 }
 
-// isModMuted tells whether someone is moderator-muted in a channel (from the cache).
+// isModMuted tells whether someone is moderator-muted (or moderator-deafened) in a channel, so can't speak (from
+// the cache).
 func (p *Plugin) isModMuted(channelID, userID string) bool {
 	mutes, err := p.getModMutes(channelID)
 	if err != nil {
@@ -185,6 +201,24 @@ func (p *Plugin) isModMuted(channelID, userID string) bool {
 	}
 	_, ok := mutes[userID]
 	return ok
+}
+
+// isModDeafened tells whether someone is moderator-deafened in a channel (from the cache).
+func (p *Plugin) isModDeafened(channelID, userID string) bool {
+	mutes, err := p.getModMutes(channelID)
+	if err != nil {
+		p.LogError("failed to get moderator mutes", "channelID", channelID, "err", err.Error())
+		return false
+	}
+	return mutes[userID].isDeafened()
+}
+
+// modMuteTTL is how long the moderator mutes of a channel are kept unchanged: in voice channels, until lifted.
+func (p *Plugin) modMuteTTL(channelID string) int64 {
+	if p.isVoiceRoom(channelID) {
+		return 0
+	}
+	return int64(modMuteKeyTTL.Seconds())
 }
 
 // updateModMutes changes the moderator mutes of a channel atomically; change tells whether it changed anything.
@@ -218,7 +252,7 @@ func (p *Plugin) updateModMutes(channelID string, change func(mutes modMutes, no
 			ok, appErr = p.API.KVSetWithOptions(key, data, model.PluginKVSetOptions{
 				Atomic:          true,
 				OldValue:        old,
-				ExpireInSeconds: int64(modMuteKeyTTL.Seconds()),
+				ExpireInSeconds: p.modMuteTTL(channelID),
 			})
 		}
 		if appErr != nil {
@@ -234,8 +268,11 @@ func (p *Plugin) updateModMutes(channelID string, change func(mutes modMutes, no
 }
 
 // releaseModMutes starts the grace period of the moderator mutes of people who left a channel's call: all of them
-// when userID is empty (the call ended).
+// when userID is empty (the call ended). In voice channels they last until lifted.
 func (p *Plugin) releaseModMutes(channelID, userID string) {
+	if p.isVoiceRoom(channelID) {
+		return
+	}
 	if _, err := p.updateModMutes(channelID, func(mutes modMutes, now int64) bool {
 		changed := false
 		for id, m := range mutes {
@@ -341,13 +378,33 @@ func (p *Plugin) checkCanModMute(requesterID, targetID, channelID string, state 
 	return nil
 }
 
-// sendSessionMute tells rtcd that a session is muted, through the node handling its call's media.
-func (p *Plugin) sendSessionMute(callID, channelID, userID, sessionID, handlerID string) error {
+// The user state messages that only nodes send each other, to deafen a session in rtcd (clients can't send them:
+// they aren't valid client message types).
+const (
+	clusterUserStateDeafen   = "am_deafen"
+	clusterUserStateUndeafen = "am_undeafen"
+)
+
+// sessionRTCMessages are the rtcd messages sendSessionRTC sends, with the user state message that carries them to
+// another node.
+var sessionRTCMessages = map[rtc.MessageType]string{
+	rtc.MuteMessage:     clientMessageTypeMute,
+	rtc.DeafenMessage:   clusterUserStateDeafen,
+	rtc.UndeafenMessage: clusterUserStateUndeafen,
+}
+
+// sendSessionRTC sends rtcd a message about a session (mute, deafen or undeafen), through the node handling its
+// call's media.
+func (p *Plugin) sendSessionRTC(msgType rtc.MessageType, callID, channelID, userID, sessionID, handlerID string) error {
 	if p.rtcdManager != nil || handlerID == p.nodeID {
 		if p.rtcdManager == nil && p.rtcServer == nil {
 			return fmt.Errorf("no RTC server")
 		}
-		return p.sendRTCMessage(rtc.Message{SessionID: sessionID, Type: rtc.MuteMessage}, callID)
+		return p.sendRTCMessage(rtc.Message{SessionID: sessionID, Type: msgType}, callID)
+	}
+	clientType, ok := sessionRTCMessages[msgType]
+	if !ok {
+		return fmt.Errorf("unexpected session message %d", msgType)
 	}
 	return p.sendClusterMessage(clusterMessage{
 		ConnID:        sessionID,
@@ -355,8 +412,13 @@ func (p *Plugin) sendSessionMute(callID, channelID, userID, sessionID, handlerID
 		ChannelID:     channelID,
 		CallID:        callID,
 		SenderID:      p.nodeID,
-		ClientMessage: clientMessage{Type: clientMessageTypeMute},
+		ClientMessage: clientMessage{Type: clientType},
 	}, clusterMessageTypeUserState, handlerID)
+}
+
+// sendSessionMute tells rtcd that a session is muted, through the node handling its call's media.
+func (p *Plugin) sendSessionMute(callID, channelID, userID, sessionID, handlerID string) error {
+	return p.sendSessionRTC(rtc.MuteMessage, callID, channelID, userID, sessionID, handlerID)
 }
 
 // enforceModMute mutes a moderator-muted session in rtcd, now and again a little later.
@@ -417,7 +479,13 @@ func (p *Plugin) onJoinModMuted(state *callState, channelID, userID, sessionID, 
 		return
 	}
 	p.enforceModMute(state.Call.ID, channelID, userID, sessionID, handlerID)
-	p.publishModMute(channelID, userID, m.By, true)
+	if m.isDeafened() {
+		p.enforceModDeafen(state.Call.ID, channelID, userID, sessionID, handlerID, true)
+		p.publishModDeafen(channelID, userID, m.DeafBy, true)
+	}
+	if m.isMuted() {
+		p.publishModMute(channelID, userID, m.By, true)
+	}
 }
 
 // onLeaveModMuted starts the grace period of someone's moderator mute once they left the call.
@@ -451,12 +519,21 @@ func (p *Plugin) setModMuted(requesterID, channelID, userID string, muted bool) 
 	}
 
 	if _, err := p.updateModMutes(channelID, func(mutes modMutes, now int64) bool {
-		mutes[userID] = modMute{By: requesterID, At: now}
+		m := mutes[userID]
+		m.By, m.At, m.Until = requesterID, now, 0
+		mutes[userID] = m
 		return true
 	}); err != nil {
 		return err
 	}
 
+	p.muteUserSessions(state, channelID, userID)
+	p.publishModMute(channelID, userID, requesterID, true)
+	return nil
+}
+
+// muteUserSessions mutes someone's sessions in a call, now and in rtcd, telling their client.
+func (p *Plugin) muteUserSessions(state *callState, channelID, userID string) {
 	for _, session := range state.sessions {
 		if session.UserID != userID {
 			continue
@@ -479,13 +556,10 @@ func (p *Plugin) setModMuted(requesterID, channelID, userID string, muted bool) 
 			"session_id": session.ID,
 		}, &WebSocketBroadcast{UserID: userID, ReliableClusterSend: true})
 	}
-
-	p.publishModMute(channelID, userID, requesterID, true)
-	return nil
 }
 
-// liftModMute lifts someone's moderator mute, in the call or within its grace period: by those who may moderate
-// them, and who rank at least as high as whoever muted them.
+// liftModMute lifts someone's moderator mute, also while they're out of the call: by those who may moderate them,
+// and who rank at least as high as whoever muted them. A moderator deafen stays.
 func (p *Plugin) liftModMute(requesterID, channelID, userID string) error {
 	state, err := p.getCallState(channelID, false)
 	if err != nil {
@@ -498,28 +572,25 @@ func (p *Plugin) liftModMute(requesterID, channelID, userID string) error {
 	}
 	mutes.prune(time.Now().UnixMilli())
 	m, ok := mutes[userID]
-	if !ok {
+	if !ok || !m.isMuted() {
 		return nil
 	}
 
-	if err := p.checkCanModMute(requesterID, userID, channelID, state); err != nil {
+	if err := p.checkCanLift(requesterID, userID, channelID, m.By, state); err != nil {
 		return err
-	}
-	if m.By != requesterID {
-		channel, appErr := p.API.GetChannel(channelID)
-		if appErr != nil {
-			return fmt.Errorf("failed to get channel: %w", appErr)
-		}
-		if p.requesterRank(requesterID, channel, state) < p.moderationRank(m.By, channel) {
-			return ErrOutranked
-		}
 	}
 
 	if _, err := p.updateModMutes(channelID, func(mutes modMutes, _ int64) bool {
-		if _, ok := mutes[userID]; !ok {
+		m, ok := mutes[userID]
+		if !ok || !m.isMuted() {
 			return false
 		}
-		delete(mutes, userID)
+		m.By, m.At = "", 0
+		if m.isDeafened() {
+			mutes[userID] = m
+		} else {
+			delete(mutes, userID)
+		}
 		return true
 	}); err != nil {
 		return err
@@ -579,25 +650,37 @@ func (p *Plugin) askToUnmute(requesterID, channelID, sessionID string) error {
 
 // clientModMuted gives the moderator mutes of a channel as clients see them: who, by whom.
 func (p *Plugin) clientModMuted(channelID string) map[string]string {
+	return p.clientModMutes(channelID, func(m modMute) string { return m.By })
+}
+
+// clientModDeafened gives the moderator deafens of a channel as clients see them: who, by whom.
+func (p *Plugin) clientModDeafened(channelID string) map[string]string {
+	return p.clientModMutes(channelID, func(m modMute) string { return m.DeafBy })
+}
+
+func (p *Plugin) clientModMutes(channelID string, by func(modMute) string) map[string]string {
 	mutes, err := p.getModMutes(channelID)
 	if err != nil {
 		p.LogError("failed to get moderator mutes", "channelID", channelID, "err", err.Error())
 		return nil
 	}
-	if len(mutes) == 0 {
-		return nil
-	}
-	res := make(map[string]string, len(mutes))
+	var res map[string]string
 	for userID, m := range mutes {
-		res[userID] = m.By
+		if id := by(m); id != "" {
+			if res == nil {
+				res = make(map[string]string, len(mutes))
+			}
+			res[userID] = id
+		}
 	}
 	return res
 }
 
-// getClientStateFor is a call's state for a client, with its moderator mutes.
+// getClientStateFor is a call's state for a client, with its moderator mutes and deafens.
 func (p *Plugin) getClientStateFor(cs *callState, userID string) *CallStateClient {
 	st := cs.getClientState(p.getBotID(), userID)
 	st.ModMuted = p.clientModMuted(cs.Call.ChannelID)
+	st.ModDeafened = p.clientModDeafened(cs.Call.ChannelID)
 	return st
 }
 
@@ -632,6 +715,7 @@ func (p *Plugin) enforceModMutes() {
 			continue
 		}
 		seen[us.originalConnID] = true
+		p.enforceModDeafenOf(us)
 		if !p.isModMuted(us.channelID, us.userID) {
 			continue
 		}

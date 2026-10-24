@@ -106,6 +106,9 @@ type CallStateClient struct {
 
 	// The moderator-muted people of the channel: user ID -> who muted them.
 	ModMuted map[string]string `json:"mod_muted,omitempty"`
+
+	// The moderator-deafened people of the channel: user ID -> who deafened them.
+	ModDeafened map[string]string `json:"mod_deafened,omitempty"`
 }
 
 type JobStateClient struct {
