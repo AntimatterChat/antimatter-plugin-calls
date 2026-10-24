@@ -119,12 +119,18 @@ func TestVoiceModeration(t *testing.T) {
 	modID := model.NewId()
 	mod2ID := model.NewId()
 	adminID := model.NewId()
+	admin2ID := model.NewId()
+	teamAdminID := model.NewId()
+	teamAdmin2ID := model.NewId()
 	users := []string{hostID, model.NewId(), model.NewId()}
 	unknownID := model.NewId()
 
 	// The community's moderators moderate its voice channels; users[1] may join the channels moved to, users[2] not.
 	mockAPI.On("HasPermissionTo", adminID, model.PermissionManageSystem).Return(true)
+	mockAPI.On("HasPermissionTo", admin2ID, model.PermissionManageSystem).Return(true)
 	mockAPI.On("HasPermissionTo", mock.Anything, model.PermissionManageSystem).Return(false)
+	mockAPI.On("HasPermissionToTeam", teamAdminID, teamID, model.PermissionManageTeam).Return(true)
+	mockAPI.On("HasPermissionToTeam", teamAdmin2ID, teamID, model.PermissionManageTeam).Return(true)
 	mockAPI.On("HasPermissionToTeam", modID, teamID, model.PermissionRemoveUserFromTeam).Return(true)
 	mockAPI.On("HasPermissionToTeam", mod2ID, teamID, model.PermissionDeleteOthersPosts).Return(true)
 	mockAPI.On("HasPermissionToTeam", mock.Anything, mock.Anything, mock.Anything).Return(false)
@@ -594,5 +600,69 @@ func TestVoiceModeration(t *testing.T) {
 		require.NoError(t, p.hostRemoveSession(modID, c.from, sessions[1]))
 		require.NoError(t, p.hostRemoveSession(hostID, c.from, sessions[2]))
 		require.ErrorIs(t, p.hostRemoveSession(modID, c.from, model.NewId()), ErrNotInCall)
+	})
+
+	t.Run("nobody disconnects someone at or above their rank", func(t *testing.T) {
+		defer ResetTestStore(t, p.store)
+		c := newChannels()
+		sessions := setupCall(t, c.from)
+		in := map[string]string{}
+		for _, userID := range []string{adminID, admin2ID, teamAdminID, teamAdmin2ID, modID, mod2ID} {
+			in[userID] = joinCall(t, c.from, userID)
+		}
+
+		// The host ranks below the system admins, the community admins and the moderators.
+		for _, userID := range []string{adminID, teamAdminID, modID} {
+			require.ErrorIs(t, p.hostRemoveSession(hostID, c.from, in[userID]), ErrOutranked, userID)
+		}
+		// A community moderator ranks below the admins.
+		require.ErrorIs(t, p.hostRemoveSession(modID, c.from, in[adminID]), ErrOutranked)
+		require.ErrorIs(t, p.hostRemoveSession(modID, c.from, in[teamAdminID]), ErrOutranked)
+		require.ErrorIs(t, p.hostRemoveSession(teamAdminID, c.from, in[adminID]), ErrOutranked)
+		// Nobody disconnects someone of the same rank.
+		require.ErrorIs(t, p.hostRemoveSession(modID, c.from, in[mod2ID]), ErrOutranked)
+		require.ErrorIs(t, p.hostRemoveSession(teamAdminID, c.from, in[teamAdmin2ID]), ErrOutranked)
+		require.ErrorIs(t, p.hostRemoveSession(adminID, c.from, in[admin2ID]), ErrOutranked)
+
+		// Through the API the refusal is a 403 that says why.
+		router := p.newAPIRouter()
+		r := httptest.NewRequest(http.MethodPost, "/calls/"+c.from+"/host/remove", strings.NewReader(`{"session_id":"`+in[adminID]+`"}`))
+		r.Header.Set("Mattermost-User-Id", hostID)
+		w := httptest.NewRecorder()
+		router.ServeHTTP(w, r)
+		require.Equal(t, http.StatusForbidden, w.Code)
+		require.Contains(t, w.Body.String(), ErrOutranked.Error())
+
+		// Nobody was disconnected.
+		state, err := p.getCallState(c.from, true)
+		require.NoError(t, err)
+		require.Len(t, state.sessions, len(sessions)+len(in))
+
+		// Those above may: an admin disconnects a member, a community admin a moderator, the host a member.
+		require.NoError(t, p.hostRemoveSession(adminID, c.from, sessions[1]))
+		require.NoError(t, p.hostRemoveSession(teamAdminID, c.from, in[modID]))
+		require.NoError(t, p.hostRemoveSession(hostID, c.from, sessions[2]))
+	})
+
+	t.Run("anyone may still leave by themselves", func(t *testing.T) {
+		defer ResetTestStore(t, p.store)
+		c := newChannels()
+		sessions := setupCall(t, c.from)
+		adminSession := joinCall(t, c.from, adminID)
+
+		// The rank check leaves people's own sessions alone: the host and the admin may disconnect their own.
+		require.NoError(t, p.hostRemoveSession(hostID, c.from, sessions[0]))
+		require.NoError(t, p.hostRemoveSession(adminID, c.from, adminSession))
+
+		// A member leaves the call.
+		state, err := p.lockCallReturnState(c.from)
+		require.NoError(t, err)
+		err = p.removeUserSession(state, users[1], sessions[1], sessions[1], c.from)
+		p.unlockCall(c.from)
+		require.NoError(t, err)
+		state, err = p.getCallState(c.from, true)
+		require.NoError(t, err)
+		require.NotContains(t, state.sessions, sessions[1])
+		require.Contains(t, state.sessions, sessions[2])
 	})
 }
