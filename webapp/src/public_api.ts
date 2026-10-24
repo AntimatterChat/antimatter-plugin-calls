@@ -14,6 +14,7 @@ import {
     hostRemove,
     hostScreenOff,
     openCallsUserSettings,
+    ParticipantPermissionsData,
     showScreenSourceModal,
     stopRingingForCall,
 } from 'src/actions';
@@ -57,6 +58,7 @@ import type {
     CallsModMute,
     CallsMoveRequest,
     CallsParticipant,
+    CallsParticipantPermissions,
     CallsReaction,
     CallsTranscription,
     CallsUnmuteRequest,
@@ -414,6 +416,16 @@ function lastingMute(d: LastingMuteData): CallsLastingMute {
     };
 }
 
+function participantPermissions(d: ParticipantPermissionsData): CallsParticipantPermissions {
+    return {
+        sessionId: d.session_id,
+        canMute: Boolean(d.can_mute),
+        canDeafen: Boolean(d.can_deafen),
+        canMove: Boolean(d.can_move),
+        canKick: Boolean(d.can_kick),
+    };
+}
+
 // createCallsAPI creates window.antimatterCalls. Joins go through joinCall, so that they get the
 // same checks as Calls' own UI.
 export function createCallsAPI(store: Store, joinCall: JoinCall): CallsAPIHandle {
@@ -753,6 +765,16 @@ export function createCallsAPI(store: Store, joinCall: JoinCall): CallsAPIHandle
                     throw Object.assign(new Error((err as Error)?.message || String(err)), {status});
                 }
                 return (list || []).map(lastingMute);
+            },
+            participantPermissions: async (channelId, sessionId) => {
+                let data: ParticipantPermissionsData;
+                try {
+                    data = await RestClient.fetch<ParticipantPermissionsData>(`${getPluginPath()}/calls/${channelId}/host/permissions?session_id=${encodeURIComponent(sessionId)}`, {method: 'get'});
+                } catch (err) {
+                    const status = (err as {status_code?: number})?.status_code || 0;
+                    throw Object.assign(new Error((err as Error)?.message || String(err)), {status});
+                }
+                return participantPermissions({...data, session_id: data?.session_id || sessionId});
             },
         },
 

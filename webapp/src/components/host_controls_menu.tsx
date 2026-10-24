@@ -1,9 +1,9 @@
 // Copyright (c) 2020-present Mattermost, Inc. All Rights Reserved.
 // See LICENSE.txt for license information.
 
-import React from 'react';
+import React, {useEffect, useState} from 'react';
 import {useIntl} from 'react-intl';
-import {hostLowerHand, hostMake, hostMute, hostScreenOff} from 'src/actions';
+import {getParticipantPermissions, hostLowerHand, hostMake, hostMute, hostScreenOff, ParticipantPermissionsData} from 'src/actions';
 import {DropdownMenuItem, DropdownMenuSeparator} from 'src/components/dot_menu/dot_menu';
 import MinusCircleOutlineIcon from 'src/components/icons/minus_circle_outline';
 import MonitorAccount from 'src/components/icons/monitor_account';
@@ -23,6 +23,36 @@ type Props = {
     onRemove: () => void;
 }
 
+// useParticipantPermissions asks the server what the current user may do to a participant (Antimatter), as the menu
+// opens: undefined while it answers, null when it couldn't tell (as with an older server), where the menu offers
+// every control as it used to.
+const useParticipantPermissions = (callID: string | undefined, sessionID: string) => {
+    const [perms, setPerms] = useState<ParticipantPermissionsData | null | undefined>(undefined);
+    useEffect(() => {
+        if (!callID) {
+            return undefined;
+        }
+        let current = true;
+        setPerms(undefined);
+        getParticipantPermissions(callID, sessionID).then(
+            (res) => current && setPerms(res || null),
+            () => current && setPerms(null),
+        );
+        return () => {
+            current = false;
+        };
+    }, [callID, sessionID]);
+    return perms;
+};
+
+// mayDo tells whether the menu offers a control: not while the server answers, and only when allowed once it did.
+const mayDo = (perms: ParticipantPermissionsData | null | undefined, flag: keyof Omit<ParticipantPermissionsData, 'session_id'>) => {
+    if (perms === undefined) {
+        return false;
+    }
+    return perms === null || perms[flag] !== false;
+};
+
 export const HostControlsMenu = ({
     callID,
     userID,
@@ -34,12 +64,17 @@ export const HostControlsMenu = ({
     onRemove,
 }: Props) => {
     const {formatMessage} = useIntl();
+    const perms = useParticipantPermissions(callID, sessionID);
 
     if (!callID) {
         return null;
     }
 
-    const muteUnmute = isMuted ? null : (
+    // Antimatter: nobody mutes or removes someone at or above their rank; the menu hides what the server would refuse.
+    const canMute = mayDo(perms, 'can_mute');
+    const canRemove = mayDo(perms, 'can_kick');
+
+    const muteUnmute = isMuted || !canMute ? null : (
         <DropdownMenuItem onClick={() => hostMute(callID, sessionID)}>
             <MutedIcon
                 data-testid={'host-mute'}
@@ -50,7 +85,7 @@ export const HostControlsMenu = ({
         </DropdownMenuItem>
     );
 
-    const showingAtLeastOne = !isMuted || isSharingScreen || isHandRaised || !isHost;
+    const showingAtLeastOne = Boolean(muteUnmute) || isSharingScreen || isHandRaised || !isHost;
 
     return (
         <>
@@ -82,16 +117,19 @@ export const HostControlsMenu = ({
                     {formatMessage({defaultMessage: 'Make host'})}
                 </DropdownMenuItem>
             }
-            {showingAtLeastOne &&
+            {showingAtLeastOne && canRemove &&
                 <DropdownMenuSeparator/>
             }
-            <DropdownMenuItem onClick={onRemove}>
-                <MinusCircleOutlineIcon
-                    fill='var(--dnd-indicator)'
-                    style={{width: '16px', height: '16px'}}
-                />
-                <RedText>{formatMessage({defaultMessage: 'Remove from call'})}</RedText>
-            </DropdownMenuItem>
+            {canRemove &&
+                <DropdownMenuItem onClick={onRemove}>
+                    <MinusCircleOutlineIcon
+                        data-testid={'host-remove'}
+                        fill='var(--dnd-indicator)'
+                        style={{width: '16px', height: '16px'}}
+                    />
+                    <RedText>{formatMessage({defaultMessage: 'Remove from call'})}</RedText>
+                </DropdownMenuItem>
+            }
         </>
     );
 };

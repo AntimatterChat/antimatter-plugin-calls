@@ -598,6 +598,23 @@ export const hostMute = async (callID: string, sessionID: string) => {
     );
 };
 
+// What the current user may do to a participant of a call (Antimatter), as the server works it out: the participant
+// menu offers only that.
+export type ParticipantPermissionsData = {
+    session_id: string;
+    can_mute: boolean;
+    can_deafen: boolean;
+    can_move: boolean;
+    can_kick: boolean;
+};
+
+export const getParticipantPermissions = async (callID: string, sessionID: string) => {
+    return RestClient.fetch<ParticipantPermissionsData>(
+        `${getPluginPath()}/calls/${callID}/host/permissions?session_id=${encodeURIComponent(sessionID)}`,
+        {method: 'get'},
+    );
+};
+
 export const hostScreenOff = async (callID: string, sessionID: string) => {
     return RestClient.fetch(
         `${getPluginPath()}/calls/${callID}/host/screen-off`,
