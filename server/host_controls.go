@@ -217,6 +217,17 @@ func (p *Plugin) hostRemoveSession(requesterID, channelID, sessionID string) err
 		return ErrNotInCall
 	}
 
+	// Nobody disconnects someone at or above their rank, as for the moderator mute; their own sessions they may.
+	if ust.UserID != requesterID {
+		channel, appErr := p.API.GetChannel(channelID)
+		if appErr != nil {
+			return fmt.Errorf("failed to get channel: %w", appErr)
+		}
+		if err := p.checkOutranks(requesterID, ust.UserID, channel, state); err != nil {
+			return err
+		}
+	}
+
 	// Here we purposely broadcast to all the connected participants in order
 	// to show the "User was removed from the call" notice.
 	p.publishWebSocketEvent(wsEventHostRemoved, map[string]interface{}{

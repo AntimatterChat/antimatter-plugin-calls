@@ -368,6 +368,12 @@ func (p *Plugin) checkCanModMute(requesterID, targetID, channelID string, state 
 	if appErr != nil {
 		return fmt.Errorf("failed to get channel: %w", appErr)
 	}
+	return p.checkOutranks(requesterID, targetID, channel, state)
+}
+
+// checkOutranks tells whether a requester ranks above someone in the calls of a channel, as the moderation controls
+// need: ErrNoPermissions when they may moderate nobody there, ErrOutranked when the person ranks as high or higher.
+func (p *Plugin) checkOutranks(requesterID, targetID string, channel *model.Channel, state *callState) error {
 	mine := p.requesterRank(requesterID, channel, state)
 	if mine == modRankNone {
 		return ErrNoPermissions

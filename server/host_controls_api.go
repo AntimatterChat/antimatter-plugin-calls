@@ -146,7 +146,7 @@ func (p *Plugin) handleRemoveSession(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := p.hostRemoveSession(userID, callID, payload.SessionID); err != nil {
-		p.handleHostControlsError(err, &res, "handleRemoveSession")
+		p.handleModerationError(err, &res, "handleRemoveSession")
 		return
 	}
 
