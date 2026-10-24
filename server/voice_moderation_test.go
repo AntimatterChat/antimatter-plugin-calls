@@ -26,6 +26,7 @@ import (
 
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
+	"golang.org/x/time/rate"
 )
 
 // quietT lets mock assertions be polled: it records failures instead of failing the test.
@@ -47,6 +48,7 @@ func TestVoiceModeration(t *testing.T) {
 		metrics:           mockMetrics,
 		nodeID:            "nodeA",
 		sessions:          map[string]*session{},
+		apiLimiters:       map[string]*rate.Limiter{},
 	}
 
 	store, tearDown := NewTestStore(t)
@@ -109,6 +111,7 @@ func TestVoiceModeration(t *testing.T) {
 	mockMetrics.On("ObserveClusterMutexGrabTime", "mutex_call", mock.AnythingOfType("float64"))
 	mockMetrics.On("ObserveClusterMutexLockedTime", "mutex_call", mock.AnythingOfType("float64"))
 	mockMetrics.On("ObserveAppHandlersTime", mock.AnythingOfType("string"), mock.AnythingOfType("float64"))
+	mockMetrics.On("Handler").Return(nil)
 
 	teamID := model.NewId()
 	otherTeamID := model.NewId()
@@ -475,4 +478,5 @@ func TestVoiceModeration(t *testing.T) {
 			require.Equal(t, http.StatusForbidden, get(userID).Code)
 		}
 	})
+
 }
