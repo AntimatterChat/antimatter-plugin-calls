@@ -94,6 +94,17 @@ func (p *Plugin) muteSession(requesterID, channelID, sessionID string) error {
 		return ErrNotInCall
 	}
 
+	// Nobody mutes someone at or above their rank, as for the moderator mute; themselves they may.
+	if ust.UserID != requesterID {
+		channel, appErr := p.API.GetChannel(channelID)
+		if appErr != nil {
+			return fmt.Errorf("failed to get channel: %w", appErr)
+		}
+		if err := p.checkOutranks(requesterID, ust.UserID, channel, state); err != nil {
+			return err
+		}
+	}
+
 	if !ust.Unmuted {
 		return nil
 	}

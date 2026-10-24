@@ -55,7 +55,7 @@ func (p *Plugin) handleMuteSession(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := p.muteSession(userID, callID, payload.SessionID); err != nil {
-		p.handleHostControlsError(err, &res, "handleMuteSession")
+		p.handleModerationError(err, &res, "handleMuteSession")
 		return
 	}
 
