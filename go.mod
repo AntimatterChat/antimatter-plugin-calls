@@ -33,6 +33,9 @@ require (
 // The public API module lives in this repository.
 replace github.com/antimatterchat/antimatter-plugin-calls/server/public => ./server/public
 
+// Antimatter's rtcd: upstream's, with the server deafen (see third_party/rtcd/README.md).
+replace github.com/mattermost/rtcd => ./third_party/rtcd
+
 replace github.com/pion/interceptor v0.1.44 => github.com/bgardner8008/interceptor v0.1.44-mm-mods
 
 replace github.com/pion/ice/v4 => github.com/bgardner8008/ice/v4 v4.2.0-role-conflict-fix-v4
