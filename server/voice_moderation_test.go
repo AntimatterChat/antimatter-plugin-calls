@@ -736,4 +736,133 @@ func TestVoiceModeration(t *testing.T) {
 		require.NoError(t, p.muteSession(modID, c.from, modSession))
 		require.True(t, hostMuted(c.from, modSession))
 	})
+
+	t.Run("the participant menu's permissions follow the ranks", func(t *testing.T) {
+		defer ResetTestStore(t, p.store)
+		c := newChannels()
+		sessions := setupCall(t, c.from)
+		in := map[string]string{hostID: sessions[0], users[1]: sessions[1]}
+		for _, userID := range []string{adminID, admin2ID, teamAdminID, modID, mod2ID} {
+			in[userID] = joinCall(t, c.from, userID)
+		}
+
+		type flags struct{ mute, deafen, move, kick bool }
+		all := flags{true, true, true, true}
+		none := flags{}
+		self := flags{mute: true, kick: true}
+		flagsOf := func(t *testing.T, viewer, channelID, sessionID string) flags {
+			t.Helper()
+			perms, err := p.getParticipantPermissions(viewer, channelID, sessionID)
+			require.NoError(t, err)
+			require.Equal(t, sessionID, perms.SessionID)
+			return flags{perms.CanMute, perms.CanDeafen, perms.CanMove, perms.CanKick}
+		}
+
+		member := users[1]
+		tcs := []struct {
+			name   string
+			viewer string
+			want   map[string]flags
+		}{
+			{"a member may do nothing", member, map[string]flags{
+				hostID: none, member: none, modID: none, teamAdminID: none, adminID: none,
+			}},
+			{"the host may act on members and themselves", hostID, map[string]flags{
+				hostID: self, member: all, modID: none, mod2ID: none, teamAdminID: none, adminID: none,
+			}},
+			{"a moderator outranks the host and members only", modID, map[string]flags{
+				hostID: all, member: all, modID: self, mod2ID: none, teamAdminID: none, adminID: none,
+			}},
+			{"a community admin outranks the moderators", teamAdminID, map[string]flags{
+				hostID: all, member: all, modID: all, teamAdminID: self, adminID: none,
+			}},
+			{"a system admin outranks all but the system admins", adminID, map[string]flags{
+				hostID: all, member: all, modID: all, teamAdminID: all, adminID: self, admin2ID: none,
+			}},
+		}
+		for _, tc := range tcs {
+			t.Run(tc.name, func(t *testing.T) {
+				for target, want := range tc.want {
+					require.Equal(t, want, flagsOf(t, tc.viewer, c.from, in[target]), target)
+				}
+			})
+		}
+
+		// Those who may not moderate learn nothing about the session.
+		perms, err := p.getParticipantPermissions(member, c.from, in[adminID])
+		require.NoError(t, err)
+		require.Empty(t, perms.UserID)
+		perms, err = p.getParticipantPermissions(member, c.from, model.NewId())
+		require.NoError(t, err)
+		require.Empty(t, perms.UserID)
+
+		_, err = p.getParticipantPermissions(hostID, c.from, model.NewId())
+		require.ErrorIs(t, err, ErrNotInCall)
+		_, err = p.getParticipantPermissions(hostID, c.to, sessions[1])
+		require.ErrorIs(t, err, ErrNoCallOngoing)
+
+		// Outside voice channels there is no deafen and no move, and the community's moderators moderate nothing.
+		textSessions := setupCall(t, c.text)
+		require.Equal(t, flags{mute: true, kick: true}, flagsOf(t, hostID, c.text, textSessions[1]))
+		require.Equal(t, flags{mute: true, kick: true}, flagsOf(t, adminID, c.text, textSessions[1]))
+		textMod := joinCall(t, c.text, modID)
+		require.Equal(t, none, flagsOf(t, modID, c.text, textSessions[1]))
+		require.Equal(t, flags{mute: true, kick: true}, flagsOf(t, hostID, c.text, textMod))
+	})
+
+	t.Run("the participant menu's permissions are always the requester's own", func(t *testing.T) {
+		defer ResetTestStore(t, p.store)
+		c := newChannels()
+		sessions := setupCall(t, c.from)
+		adminSession := joinCall(t, c.from, adminID)
+
+		router := p.newAPIRouter()
+		get := func(t *testing.T, viewer, query string) (int, map[string]any) {
+			t.Helper()
+			r := httptest.NewRequest(http.MethodGet, "/calls/"+c.from+"/host/permissions?"+query, nil)
+			r.Header.Set("Mattermost-User-Id", viewer)
+			w := httptest.NewRecorder()
+			router.ServeHTTP(w, r)
+			var body map[string]any
+			require.NoError(t, json.Unmarshal(w.Body.Bytes(), &body))
+			return w.Code, body
+		}
+
+		// The host asks about the admin, naming the admin as the viewer: they get their own permissions.
+		code, body := get(t, hostID, "session_id="+adminSession+"&user_id="+adminID+"&viewer_id="+adminID)
+		require.Equal(t, http.StatusOK, code)
+		require.Equal(t, map[string]any{
+			"session_id": adminSession,
+			"user_id":    adminID,
+			"can_mute":   false,
+			"can_deafen": false,
+			"can_move":   false,
+			"can_kick":   false,
+		}, body)
+
+		// The admin's own permissions on a member.
+		code, body = get(t, adminID, "session_id="+sessions[1])
+		require.Equal(t, http.StatusOK, code)
+		for _, key := range []string{"can_mute", "can_deafen", "can_move", "can_kick"} {
+			require.Equal(t, true, body[key], key)
+		}
+
+		// A member naming the admin or the host still gets nothing, and not who the session is.
+		for _, other := range []string{adminID, hostID} {
+			code, body = get(t, users[1], "session_id="+sessions[2]+"&user_id="+other)
+			require.Equal(t, http.StatusOK, code)
+			require.Equal(t, map[string]any{
+				"session_id": sessions[2],
+				"can_mute":   false,
+				"can_deafen": false,
+				"can_move":   false,
+				"can_kick":   false,
+			}, body)
+		}
+
+		code, _ = get(t, hostID, "session_id=nope")
+		require.Equal(t, http.StatusBadRequest, code)
+		code, _ = get(t, hostID, "session_id="+model.NewId())
+		require.Equal(t, http.StatusBadRequest, code)
+	})
 }
