@@ -191,7 +191,11 @@ func (p *Plugin) addUserSession(state *callState, callsEnabled *bool, userID, co
 		JoinAt: time.Now().UnixMilli(),
 	}
 
-	if newHostID := state.getHostID(p.getBotID()); newHostID != state.Call.GetHostID() {
+	// A stage's speaker joining is bound to it again (or listed, if they may moderate it) before the host is chosen
+	// among them.
+	p.onJoinStage(channelID, userID)
+
+	if newHostID := p.electHost(state, channelID); newHostID != state.Call.GetHostID() {
 		state.Call.Props.Hosts = []string{newHostID}
 		defer func() {
 			if retErr == nil {
@@ -283,8 +287,9 @@ func (p *Plugin) removeUserSession(state *callState, userID, originalConnID, con
 	delete(state.sessions, originalConnID)
 	p.LogDebug("session was removed from state", "userID", userID, "connID", connID, "originalConnID", originalConnID)
 
-	// A moderator mute outlasts leaving the call for a while.
+	// A moderator mute outlasts leaving the call for a while, and so does being a stage's speaker.
 	p.onLeaveModMuted(state, channelID, userID)
+	p.onLeaveStage(state, channelID, userID)
 
 	// Check if leaving session was screen sharing.
 	if state.Call.Props.ScreenSharingSessionID == originalConnID {
@@ -427,7 +432,7 @@ func (p *Plugin) removeUserSession(state *callState, userID, originalConnID, con
 
 	// Change host if needed
 	if state.Call.GetHostID() == userID && len(state.sessions) > 0 {
-		if newHostID := state.getHostID(p.getBotID()); newHostID != userID {
+		if newHostID := p.electHost(state, channelID); newHostID != userID {
 			if newHostID == "" {
 				state.Call.Props.Hosts = nil
 			} else {

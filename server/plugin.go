@@ -83,6 +83,9 @@ type Plugin struct {
 	// Cached moderator mutes of channels, see getModMutes.
 	modMuteCache modMuteCache
 
+	// Cached stage modes and speakers of channels, see isStage and getStageSpeakers.
+	stageCache stageCache
+
 	// Cached kinds of communities, see isCommunityTeam.
 	teamKinds teamKindCache
 

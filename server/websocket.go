@@ -165,6 +165,16 @@ func (p *Plugin) publishWebSocketEvent(ev string, data map[string]interface{}, b
 }
 
 func (p *Plugin) handleClientMessageTypeScreen(us *session, msg clientMessage, handlerID string) error {
+	// A stage's audience can't share their screen: their app is told to stop, and rtcd drops a track it wasn't told
+	// about.
+	if msg.Type == clientMessageTypeScreenOn && p.isStageAudience(us.channelID, us.userID) {
+		p.publishWebSocketEvent(wsEventHostScreenOff, map[string]interface{}{
+			"channel_id": us.channelID,
+			"session_id": us.originalConnID,
+		}, &WebSocketBroadcast{UserID: us.userID, ReliableClusterSend: true})
+		return fmt.Errorf("%w: the audience of a stage can't share their screen", ErrNotAllowed)
+	}
+
 	if cfg := p.getConfiguration(); cfg == nil || cfg.AllowScreenSharing == nil || !*cfg.AllowScreenSharing {
 		return fmt.Errorf("screen sharing is not allowed")
 	}
@@ -318,8 +328,8 @@ func (p *Plugin) handleClientMsg(us *session, msg clientMessage, handlerID strin
 			}
 		}
 	case clientMessageTypeMute, clientMessageTypeUnmute:
-		// Someone moderator-muted can't unmute.
-		if msg.Type == clientMessageTypeUnmute && p.isModMuted(us.channelID, us.userID) {
+		// Someone moderator-muted, or in a stage's audience, can't unmute.
+		if msg.Type == clientMessageTypeUnmute && (p.isModMuted(us.channelID, us.userID) || p.isStageAudience(us.channelID, us.userID)) {
 			p.refuseUnmute(us, handlerID)
 			return nil
 		}
@@ -386,6 +396,11 @@ func (p *Plugin) handleClientMsg(us *session, msg clientMessage, handlerID strin
 			return err
 		}
 	case clientMessageTypeVideoOn, clientMessageTypeVideoOff:
+		// A stage's audience has no camera: rtcd drops a video track it wasn't told about.
+		if msg.Type == clientMessageTypeVideoOn && p.isStageAudience(us.channelID, us.userID) {
+			return fmt.Errorf("%w: the audience of a stage can't turn their camera on", ErrNotAllowed)
+		}
+
 		if handlerID != p.nodeID {
 			// need to relay track event.
 			if err := p.sendClusterMessage(clusterMessage{
@@ -973,8 +988,9 @@ func (p *Plugin) handleJoin(userID, connID, authSessionID string, joinData calls
 			})
 		}
 
-		// Someone moderator-muted stays so as they join.
+		// Someone moderator-muted stays so as they join, and so does a stage's audience.
 		p.onJoinModMuted(state, channelID, userID, connID, handlerID)
+		p.onJoinStageAudience(state, channelID, userID, connID, handlerID)
 
 		clientStateData, err := json.Marshal(p.getClientStateFor(state, userID))
 		if err != nil {

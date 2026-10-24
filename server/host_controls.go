@@ -56,6 +56,15 @@ func (p *Plugin) changeHost(requesterID, channelID, newHostID string) error {
 		return ErrNotInCall
 	}
 
+	// In a stage, the host is only ever a speaker.
+	if p.isStage(channelID) {
+		if speakers, err := p.getStageSpeakers(channelID, true); err != nil {
+			return err
+		} else if _, ok := speakers[newHostID]; !ok {
+			return errors.Wrap(ErrNotAllowed, "the host of a stage must be a speaker")
+		}
+	}
+
 	state.Call.Props.Hosts = []string{newHostID}
 	state.Call.Props.HostLockedUserID = newHostID
 

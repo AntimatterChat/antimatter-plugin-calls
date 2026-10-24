@@ -146,6 +146,11 @@ func (p *Plugin) newAPIRouter() *mux.Router {
 	hostCtrlRouter.HandleFunc("/mod-mutes", p.handleListModMutes).Methods("GET")
 	hostCtrlRouter.HandleFunc("/permissions", p.handleGetParticipantPermissions).Methods("GET")
 
+	// Stages (Antimatter): who speaks.
+	stageRouter := router.PathPrefix("/calls/{call_id:[a-z0-9]{26}}/stage").Subrouter()
+	stageRouter.HandleFunc("/speakers", p.handleInviteToSpeak).Methods("POST")
+	stageRouter.HandleFunc("/speakers/{user_id:[a-z0-9]{26}}", p.handleMoveToAudience).Methods("DELETE")
+
 	// Bot
 	botRouter := router.PathPrefix("/bot").Subrouter()
 	botRouter.Use(func(next http.Handler) http.Handler {

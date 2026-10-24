@@ -385,21 +385,24 @@ func (p *Plugin) checkOutranks(requesterID, targetID string, channel *model.Chan
 }
 
 // participantPermissions are what someone may do to a participant of a call from its participant menu, so that it
-// only offers what they may: the mute (and the moderator mute), the deafen, the move and the kick. Each control
-// still checks for itself.
+// only offers what they may: the mute (and the moderator mute), the deafen, the move and the kick, and in stages
+// inviting them to speak and moving them back to the audience. Each control still checks for itself.
 type participantPermissions struct {
-	SessionID string `json:"session_id"`
-	UserID    string `json:"user_id,omitempty"`
-	CanMute   bool   `json:"can_mute"`
-	CanDeafen bool   `json:"can_deafen"`
-	CanMove   bool   `json:"can_move"`
-	CanKick   bool   `json:"can_kick"`
+	SessionID         string `json:"session_id"`
+	UserID            string `json:"user_id,omitempty"`
+	CanMute           bool   `json:"can_mute"`
+	CanDeafen         bool   `json:"can_deafen"`
+	CanMove           bool   `json:"can_move"`
+	CanKick           bool   `json:"can_kick"`
+	CanInviteToSpeak  bool   `json:"can_invite_to_speak"`
+	CanMoveToAudience bool   `json:"can_move_to_audience"`
 }
 
 // getParticipantPermissions tells what a requester may do to a session in the call of a channel, by the rules of the
 // controls: those who may moderate the call mute and disconnect themselves and the people they outrank, and in voice
-// channels deafen and move the people they outrank (where to is checked on moving). Those who may not moderate it
-// get no permissions, and learn nothing about the session.
+// channels deafen and move the people they outrank (where to is checked on moving). In stages, they invite the
+// audience they outrank to speak, and move the invited speakers they outrank back to the audience; invited speakers
+// may move themselves. Those who may not moderate it get no other permissions, and learn nothing about the session.
 func (p *Plugin) getParticipantPermissions(requesterID, channelID, sessionID string) (participantPermissions, error) {
 	perms := participantPermissions{SessionID: sessionID}
 
@@ -410,7 +413,13 @@ func (p *Plugin) getParticipantPermissions(requesterID, channelID, sessionID str
 	if state == nil {
 		return perms, ErrNoCallOngoing
 	}
+	stage := p.isStage(channelID)
 	if !p.canModerateCall(requesterID, channelID, state) {
+		// An invited speaker may still step down.
+		if ust, ok := state.sessions[sessionID]; ok && stage && ust.UserID == requesterID && p.isInvitedSpeaker(channelID, requesterID) {
+			perms.UserID = requesterID
+			perms.CanMoveToAudience = true
+		}
 		return perms, nil
 	}
 
@@ -422,6 +431,7 @@ func (p *Plugin) getParticipantPermissions(requesterID, channelID, sessionID str
 
 	if ust.UserID == requesterID {
 		perms.CanMute, perms.CanKick = true, true
+		perms.CanMoveToAudience = stage && p.isInvitedSpeaker(channelID, requesterID)
 		return perms, nil
 	}
 
@@ -436,6 +446,13 @@ func (p *Plugin) getParticipantPermissions(requesterID, channelID, sessionID str
 	if p.isVoiceRoom(channelID) && !p.isBot(ust.UserID) {
 		perms.CanDeafen = true
 		perms.CanMove = channel.TeamId != ""
+	}
+	if stage && !p.isBot(ust.UserID) {
+		// Those they outrank don't speak by their role, unless as the call's host.
+		invited := p.isInvitedSpeaker(channelID, ust.UserID)
+		byRole := p.moderationRank(ust.UserID, channel) > modRankNone
+		perms.CanInviteToSpeak = !invited && !byRole
+		perms.CanMoveToAudience = invited && !byRole
 	}
 	return perms, nil
 }
@@ -506,8 +523,8 @@ func (p *Plugin) enforceModMute(callID, channelID, userID, sessionID, handlerID 
 	}()
 }
 
-// refuseUnmute keeps a moderator-muted session muted when it asks to unmute: rtcd is told it's muted and the
-// client is asked to mute itself again.
+// refuseUnmute keeps a moderator-muted session (or one of a stage's audience) muted when it asks to unmute: rtcd is
+// told it's muted and the client is asked to mute itself again.
 func (p *Plugin) refuseUnmute(us *session, handlerID string) {
 	p.LogDebug("refusing to unmute a moderator-muted session", "userID", us.userID, "channelID", us.channelID, "sessionID", us.originalConnID)
 	p.enforceModMute(us.callID, us.channelID, us.userID, us.originalConnID, handlerID)
@@ -738,11 +755,12 @@ func (p *Plugin) clientModMutes(channelID string, by func(modMute) string) map[s
 	return res
 }
 
-// getClientStateFor is a call's state for a client, with its moderator mutes and deafens.
+// getClientStateFor is a call's state for a client, with its moderator mutes and deafens, and its stage.
 func (p *Plugin) getClientStateFor(cs *callState, userID string) *CallStateClient {
 	st := cs.getClientState(p.getBotID(), userID)
 	st.ModMuted = p.clientModMuted(cs.Call.ChannelID)
 	st.ModDeafened = p.clientModDeafened(cs.Call.ChannelID)
+	p.clientStage(st, cs.Call.ChannelID)
 	return st
 }
 
@@ -763,13 +781,18 @@ func (p *Plugin) modMuteEnforcer() {
 
 func (p *Plugin) enforceModMutes() {
 	p.mut.RLock()
+	all := make([]*session, 0, len(p.sessions))
 	sessions := make([]*session, 0, len(p.sessions))
 	for _, us := range p.sessions {
+		all = append(all, us)
 		if us.rtc || p.rtcdManager != nil {
 			sessions = append(sessions, us)
 		}
 	}
 	p.mut.RUnlock()
+
+	// Stages keep their audience muted the same way (see stage.go).
+	p.enforceStages(all, sessions)
 
 	seen := make(map[string]bool, len(sessions))
 	for _, us := range sessions {

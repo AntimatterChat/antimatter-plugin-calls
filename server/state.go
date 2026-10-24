@@ -109,6 +109,11 @@ type CallStateClient struct {
 
 	// The moderator-deafened people of the channel: user ID -> who deafened them.
 	ModDeafened map[string]string `json:"mod_deafened,omitempty"`
+
+	// The call is a stage's (see stage.go), and its speakers (user IDs, also of those who left it a moment ago):
+	// everyone else in it is the audience.
+	Stage    bool     `json:"stage,omitempty"`
+	Speakers []string `json:"speakers,omitempty"`
 }
 
 type JobStateClient struct {
@@ -176,19 +181,27 @@ func (cs *callState) getLiveCaptions() (*public.CallJob, error) {
 }
 
 func (cs *callState) getHostID(botID string) string {
-	if cs.Call.Props.HostLockedUserID != "" && cs.isUserIDInCall(cs.Call.Props.HostLockedUserID) {
-		return cs.Call.Props.HostLockedUserID
+	return cs.getHostIDAmong(botID, nil)
+}
+
+// getHostIDAmong is getHostID among those eligible only (everyone when nil): in a stage, its speakers.
+func (cs *callState) getHostIDAmong(botID string, eligible func(userID string) bool) string {
+	if eligible == nil {
+		eligible = func(string) bool { return true }
+	}
+	if locked := cs.Call.Props.HostLockedUserID; locked != "" && cs.isUserIDInCall(locked) && eligible(locked) {
+		return locked
 	}
 
 	var host public.CallSession
 	for _, session := range cs.sessions {
 		// if current host is still in the call, keep them as the host
-		if session.UserID == cs.Call.GetHostID() {
+		if session.UserID == cs.Call.GetHostID() && eligible(session.UserID) {
 			return cs.Call.GetHostID()
 		}
 
 		// bot can't be host
-		if session.UserID == botID {
+		if session.UserID == botID || !eligible(session.UserID) {
 			continue
 		}
 
@@ -384,8 +397,9 @@ func (p *Plugin) cleanCallState(call *public.Call) error {
 		setCallEnded(call)
 	}
 
-	// The moderator mutes of the call last a while after it.
+	// The moderator mutes of the call last a while after it, and so do its stage's speakers.
 	p.releaseModMutes(call.ChannelID, "")
+	p.releaseStageSpeakers(call.ChannelID, "")
 
 	if err := p.store.DeleteCallsSessions(call.ID); err != nil {
 		p.LogError("failed to delete calls sessions", "err", err.Error())
