@@ -384,6 +384,62 @@ func (p *Plugin) checkOutranks(requesterID, targetID string, channel *model.Chan
 	return nil
 }
 
+// participantPermissions are what someone may do to a participant of a call from its participant menu, so that it
+// only offers what they may: the mute (and the moderator mute), the deafen, the move and the kick. Each control
+// still checks for itself.
+type participantPermissions struct {
+	SessionID string `json:"session_id"`
+	UserID    string `json:"user_id,omitempty"`
+	CanMute   bool   `json:"can_mute"`
+	CanDeafen bool   `json:"can_deafen"`
+	CanMove   bool   `json:"can_move"`
+	CanKick   bool   `json:"can_kick"`
+}
+
+// getParticipantPermissions tells what a requester may do to a session in the call of a channel, by the rules of the
+// controls: those who may moderate the call mute and disconnect themselves and the people they outrank, and in voice
+// channels deafen and move the people they outrank (where to is checked on moving). Those who may not moderate it
+// get no permissions, and learn nothing about the session.
+func (p *Plugin) getParticipantPermissions(requesterID, channelID, sessionID string) (participantPermissions, error) {
+	perms := participantPermissions{SessionID: sessionID}
+
+	state, err := p.getCallState(channelID, false)
+	if err != nil {
+		return perms, fmt.Errorf("failed to get call state: %w", err)
+	}
+	if state == nil {
+		return perms, ErrNoCallOngoing
+	}
+	if !p.canModerateCall(requesterID, channelID, state) {
+		return perms, nil
+	}
+
+	ust, ok := state.sessions[sessionID]
+	if !ok {
+		return perms, ErrNotInCall
+	}
+	perms.UserID = ust.UserID
+
+	if ust.UserID == requesterID {
+		perms.CanMute, perms.CanKick = true, true
+		return perms, nil
+	}
+
+	channel, appErr := p.API.GetChannel(channelID)
+	if appErr != nil {
+		return perms, fmt.Errorf("failed to get channel: %w", appErr)
+	}
+	if p.checkOutranks(requesterID, ust.UserID, channel, state) != nil {
+		return perms, nil
+	}
+	perms.CanMute, perms.CanKick = true, true
+	if p.isVoiceRoom(channelID) && !p.isBot(ust.UserID) {
+		perms.CanDeafen = true
+		perms.CanMove = channel.TeamId != ""
+	}
+	return perms, nil
+}
+
 // The user state messages that only nodes send each other, to deafen a session in rtcd (clients can't send them:
 // they aren't valid client message types).
 const (

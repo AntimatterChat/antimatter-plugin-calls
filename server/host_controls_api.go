@@ -307,6 +307,33 @@ func (p *Plugin) handleListModMutes(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+// handleGetParticipantPermissions tells the requester what they may do to a participant of a call (session_id), for
+// the participant menu: always their own permissions, whoever asks about.
+func (p *Plugin) handleGetParticipantPermissions(w http.ResponseWriter, r *http.Request) {
+	var res httpResponse
+	defer p.httpAudit("handleGetParticipantPermissions", &res, w, r)
+
+	userID := r.Header.Get("Mattermost-User-Id")
+	channelID := mux.Vars(r)["call_id"]
+	sessionID := r.URL.Query().Get("session_id")
+	if !model.IsValidId(sessionID) {
+		res.Err = "invalid session_id"
+		res.Code = http.StatusBadRequest
+		return
+	}
+
+	perms, err := p.getParticipantPermissions(userID, channelID, sessionID)
+	if err != nil {
+		p.handleModerationError(err, &res, "handleGetParticipantPermissions")
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	if err := json.NewEncoder(w).Encode(perms); err != nil {
+		p.LogError("failed to encode participant permissions", "err", err.Error())
+	}
+}
+
 // handleModerationError is handleHostControlsError for the moderation controls, which tell refusals (403) and
 // rate limits (429) apart.
 func (p *Plugin) handleModerationError(err error, res *httpResponse, handlerName string) {
