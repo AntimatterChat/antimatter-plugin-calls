@@ -536,6 +536,7 @@ describe('createCallsAPI', () => {
             canInviteToSpeak: false,
             canMoveToAudience: false,
         });
+        expect(fetch).toHaveBeenLastCalledWith(expect.stringMatching(`/calls/${channelID}/host/permissions\\?session_id=s2$`), {method: 'get'});
 
         // In a stage.
         fetch.mockImplementationOnce(() => Promise.resolve({session_id: 's3', user_id: 'u3', can_mute: true, can_deafen: true, can_move: true, can_kick: true, can_invite_to_speak: true, can_move_to_audience: false}));
@@ -544,7 +545,6 @@ describe('createCallsAPI', () => {
             canInviteToSpeak: true,
             canMoveToAudience: false,
         });
-        expect(fetch).toHaveBeenLastCalledWith(expect.stringMatching(`/calls/${channelID}/host/permissions\\?session_id=s2$`), {method: 'get'});
 
         fetch.mockImplementationOnce(() => Promise.reject(Object.assign(new Error('not in call'), {status_code: 400})));
         await expect(api.moderation.participantPermissions!(channelID, 's9')).rejects.toMatchObject({status: 400});
