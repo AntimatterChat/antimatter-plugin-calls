@@ -838,6 +838,9 @@ func TestVoiceModeration(t *testing.T) {
 			"can_deafen": false,
 			"can_move":   false,
 			"can_kick":   false,
+
+			"can_invite_to_speak":  false,
+			"can_move_to_audience": false,
 		}, body)
 
 		// The admin's own permissions on a member.
@@ -857,6 +860,9 @@ func TestVoiceModeration(t *testing.T) {
 				"can_deafen": false,
 				"can_move":   false,
 				"can_kick":   false,
+
+				"can_invite_to_speak":  false,
+				"can_move_to_audience": false,
 			}, body)
 		}
 
