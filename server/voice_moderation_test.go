@@ -117,6 +117,7 @@ func TestVoiceModeration(t *testing.T) {
 	otherTeamID := model.NewId()
 	hostID := model.NewId()
 	modID := model.NewId()
+	mod2ID := model.NewId()
 	adminID := model.NewId()
 	users := []string{hostID, model.NewId(), model.NewId()}
 	unknownID := model.NewId()
@@ -125,6 +126,7 @@ func TestVoiceModeration(t *testing.T) {
 	mockAPI.On("HasPermissionTo", adminID, model.PermissionManageSystem).Return(true)
 	mockAPI.On("HasPermissionTo", mock.Anything, model.PermissionManageSystem).Return(false)
 	mockAPI.On("HasPermissionToTeam", modID, teamID, model.PermissionRemoveUserFromTeam).Return(true)
+	mockAPI.On("HasPermissionToTeam", mod2ID, teamID, model.PermissionDeleteOthersPosts).Return(true)
 	mockAPI.On("HasPermissionToTeam", mock.Anything, mock.Anything, mock.Anything).Return(false)
 	mockAPI.On("HasPermissionToChannel", users[1], mock.Anything, model.PermissionCreatePost).Return(true)
 	mockAPI.On("HasPermissionToChannel", mock.Anything, mock.Anything, mock.Anything).Return(false)
@@ -479,4 +481,106 @@ func TestVoiceModeration(t *testing.T) {
 		}
 	})
 
+	// joinCall adds someone to the call of a channel.
+	joinCall := func(t *testing.T, channelID, userID string) string {
+		t.Helper()
+		state, err := p.getCallState(channelID, true)
+		require.NoError(t, err)
+		sessionID := model.NewId()
+		require.NoError(t, p.store.CreateCallSession(&public.CallSession{
+			ID:      sessionID,
+			CallID:  state.Call.ID,
+			UserID:  userID,
+			JoinAt:  time.Now().UnixMilli(),
+			Unmuted: true,
+		}))
+		return sessionID
+	}
+
+	t.Run("nobody deafens or moves someone at or above their rank", func(t *testing.T) {
+		defer ResetTestStore(t, p.store)
+		c := newChannels()
+		setupCall(t, c.from)
+		adminSession := joinCall(t, c.from, adminID)
+		mod2Session := joinCall(t, c.from, mod2ID)
+		modSession := joinCall(t, c.from, modID)
+
+		// A community moderator, above them the system admin; the host ranks below both.
+		require.ErrorIs(t, p.setModDeafened(modID, c.from, adminID, true), ErrOutranked)
+		require.ErrorIs(t, p.setModDeafened(modID, c.from, mod2ID, true), ErrOutranked)
+		require.ErrorIs(t, p.setModDeafened(hostID, c.from, modID, true), ErrOutranked)
+		require.ErrorIs(t, p.moveSession(modID, c.from, adminSession, c.to), ErrOutranked)
+		require.ErrorIs(t, p.moveSession(modID, c.from, mod2Session, c.to), ErrOutranked)
+		require.ErrorIs(t, p.moveSession(users[1], c.from, modSession, c.to), ErrNoPermissions)
+		require.Empty(t, modMutesOf(t, c.from))
+
+		// Those above them may.
+		require.NoError(t, p.setModDeafened(adminID, c.from, modID, true))
+		require.True(t, p.isModDeafened(c.from, modID))
+	})
+
+	t.Run("lasting mutes and deafens are lifted only by those allowed, also while the person is away", func(t *testing.T) {
+		defer ResetTestStore(t, p.store)
+		c := newChannels()
+		setupCall(t, c.from)
+		require.NoError(t, p.setModMuted(modID, c.from, users[1], true))
+		require.NoError(t, p.setModDeafened(modID, c.from, users[1], true))
+
+		// The call ends.
+		ResetTestStore(t, p.store)
+		p.releaseModMutes(c.from, "")
+
+		// Members, the former host (no host without a call) and strangers can't lift them, nor the person themselves.
+		for _, userID := range []string{users[2], hostID, model.NewId()} {
+			require.ErrorIs(t, p.setModMuted(userID, c.from, users[1], false), ErrNoPermissions)
+			require.ErrorIs(t, p.setModDeafened(userID, c.from, users[1], false), ErrNoPermissions)
+		}
+		require.ErrorIs(t, p.setModMuted(users[1], c.from, users[1], false), ErrNotAllowed)
+		require.ErrorIs(t, p.setModDeafened(users[1], c.from, users[1], false), ErrNotAllowed)
+		m := modMutesOf(t, c.from)[users[1]]
+		require.Equal(t, modID, m.By)
+		require.Equal(t, modID, m.DeafBy)
+
+		// Another moderator of the same rank may.
+		require.NoError(t, p.setModDeafened(mod2ID, c.from, users[1], false))
+		require.NoError(t, p.setModMuted(mod2ID, c.from, users[1], false))
+		require.Empty(t, modMutesOf(t, c.from))
+	})
+
+	t.Run("the API acts as the session's user, whatever the body says", func(t *testing.T) {
+		defer ResetTestStore(t, p.store)
+		c := newChannels()
+		sessions := setupCall(t, c.from)
+		router := p.newAPIRouter()
+		post := func(userID, path, body string) int {
+			r := httptest.NewRequest(http.MethodPost, "/calls/"+c.from+"/host/"+path, strings.NewReader(body))
+			if userID != "" {
+				r.Header.Set("Mattermost-User-Id", userID)
+			}
+			w := httptest.NewRecorder()
+			router.ServeHTTP(w, r)
+			return w.Code
+		}
+		deafen := `{"user_id":"` + users[1] + `","deafened":true}`
+		move := `{"session_id":"` + sessions[1] + `","channel_id":"` + c.to + `"}`
+
+		// A member is refused, even naming a moderator in the body; without a session, nobody is let in.
+		require.Equal(t, http.StatusForbidden, post(users[2], "mod-deafen", `{"user_id":"`+users[1]+`","deafened":true,"requester_id":"`+modID+`"}`))
+		require.Equal(t, http.StatusForbidden, post(users[2], "move", move))
+		require.Equal(t, http.StatusUnauthorized, post("", "mod-deafen", deafen))
+		require.Equal(t, http.StatusUnauthorized, post("", "move", move))
+		require.Empty(t, modMutesOf(t, c.from))
+
+		// Nobody deafens themselves through it.
+		require.Equal(t, http.StatusBadRequest, post(users[1], "mod-deafen", deafen))
+
+		// A moderator may.
+		require.Equal(t, http.StatusOK, post(modID, "mod-deafen", deafen))
+		require.Equal(t, modID, modMutesOf(t, c.from)[users[1]].DeafBy)
+		require.Equal(t, http.StatusOK, post(modID, "move", move))
+
+		// Lifting through it follows the same rule.
+		require.Equal(t, http.StatusForbidden, post(users[2], "mod-deafen", `{"user_id":"`+users[1]+`","deafened":false}`))
+		require.Equal(t, modID, modMutesOf(t, c.from)[users[1]].DeafBy)
+	})
 }
