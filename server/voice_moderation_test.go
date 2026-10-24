@@ -4,6 +4,9 @@
 package main
 
 import (
+	"encoding/json"
+	"net/http"
+	"net/http/httptest"
 	"strings"
 	"sync"
 	"testing"
@@ -408,5 +411,68 @@ func TestVoiceModeration(t *testing.T) {
 
 		require.ErrorIs(t, p.moveSession(modID, c.from, model.NewId(), c.to), ErrNotInCall)
 		require.ErrorIs(t, p.moveSession(modID, model.NewId(), sessions[1], c.to), ErrNoCallOngoing)
+	})
+
+	t.Run("moderators list the lasting mutes and deafens, and only they may", func(t *testing.T) {
+		defer ResetTestStore(t, p.store)
+		c := newChannels()
+		setupCall(t, c.from)
+		require.NoError(t, p.setModMuted(modID, c.from, users[1], true))
+		require.NoError(t, p.setModDeafened(adminID, c.from, users[2], true))
+
+		// The call ends: they're still listed.
+		ResetTestStore(t, p.store)
+		p.releaseModMutes(c.from, "")
+
+		byUser := func(list []modMuteInfo) map[string]modMuteInfo {
+			m := map[string]modMuteInfo{}
+			for _, info := range list {
+				m[info.UserID] = info
+			}
+			return m
+		}
+		modList, err := p.listModMutes(modID, c.from)
+		require.NoError(t, err)
+		require.Len(t, modList, 2)
+		infos := byUser(modList)
+		require.Equal(t, modID, infos[users[1]].MutedBy)
+		require.NotZero(t, infos[users[1]].MutedAt)
+		require.Empty(t, infos[users[1]].DeafenedBy)
+		require.True(t, infos[users[1]].CanLiftMute)
+		require.Equal(t, adminID, infos[users[2]].DeafenedBy)
+		require.NotZero(t, infos[users[2]].DeafenedAt)
+
+		// The community's moderator ranks below the system admin who deafened them: they can't lift it.
+		require.False(t, infos[users[2]].CanLiftDeafen)
+		list, err := p.listModMutes(adminID, c.from)
+		require.NoError(t, err)
+		require.True(t, byUser(list)[users[1]].CanLiftMute)
+		require.True(t, byUser(list)[users[2]].CanLiftDeafen)
+
+		// Nobody else: not members, not the people listed, not a call's host as such.
+		for _, userID := range []string{users[1], users[2], hostID, model.NewId()} {
+			_, err = p.listModMutes(userID, c.from)
+			require.ErrorIs(t, err, ErrNoPermissions)
+		}
+		_, err = p.listModMutes(adminID, unknownID)
+		require.ErrorIs(t, err, ErrNoPermissions)
+
+		// Through the API: the list for moderators, 403 for the others.
+		router := p.newAPIRouter()
+		get := func(userID string) *httptest.ResponseRecorder {
+			r := httptest.NewRequest(http.MethodGet, "/calls/"+c.from+"/host/mod-mutes", nil)
+			r.Header.Set("Mattermost-User-Id", userID)
+			w := httptest.NewRecorder()
+			router.ServeHTTP(w, r)
+			return w
+		}
+		w := get(modID)
+		require.Equal(t, http.StatusOK, w.Code)
+		var fromAPI []modMuteInfo
+		require.NoError(t, json.NewDecoder(w.Body).Decode(&fromAPI))
+		require.ElementsMatch(t, modList, fromAPI)
+		for _, userID := range []string{users[1], hostID} {
+			require.Equal(t, http.StatusForbidden, get(userID).Code)
+		}
 	})
 }

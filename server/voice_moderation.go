@@ -5,6 +5,7 @@ package main
 
 import (
 	"fmt"
+	"sort"
 	"time"
 
 	"github.com/mattermost/mattermost/server/public/model"
@@ -267,4 +268,54 @@ func (p *Plugin) disconnectAfter(channelID, sessionID string, d time.Duration) {
 	if err := p.closeRTCSession(ust.UserID, sessionID, channelID, state.Call.Props.NodeID, state.Call.ID); err != nil {
 		p.LogError("failed to close RTC session", "sessionID", sessionID, "err", err.Error())
 	}
+}
+
+// modMuteInfo is a moderator mute or deafen of a channel as its moderators see it in the voice channel's settings,
+// with whether the requester may lift it.
+type modMuteInfo struct {
+	UserID        string `json:"user_id"`
+	MutedBy       string `json:"muted_by,omitempty"`
+	MutedAt       int64  `json:"muted_at,omitempty"`
+	DeafenedBy    string `json:"deafened_by,omitempty"`
+	DeafenedAt    int64  `json:"deafened_at,omitempty"`
+	CanLiftMute   bool   `json:"can_lift_mute"`
+	CanLiftDeafen bool   `json:"can_lift_deafen"`
+}
+
+// listModMutes lists the moderator mutes and deafens of a channel, the latest first, also of people who aren't in
+// its call (in voice channels they last until lifted): for those who may moderate its calls, not as a call's host.
+func (p *Plugin) listModMutes(requesterID, channelID string) ([]modMuteInfo, error) {
+	channel, appErr := p.API.GetChannel(channelID)
+	if appErr != nil || channel == nil {
+		return nil, ErrNoPermissions
+	}
+	if p.moderationRank(requesterID, channel) == modRankNone {
+		return nil, ErrNoPermissions
+	}
+
+	mutes, _, err := p.readModMutes(channelID)
+	if err != nil {
+		return nil, err
+	}
+	mutes.prune(time.Now().UnixMilli())
+
+	list := make([]modMuteInfo, 0, len(mutes))
+	for userID, m := range mutes {
+		info := modMuteInfo{UserID: userID, MutedBy: m.By, MutedAt: m.At, DeafenedBy: m.DeafBy, DeafenedAt: m.DeafAt}
+		if m.isMuted() {
+			info.CanLiftMute = p.checkCanLift(requesterID, userID, channelID, m.By, nil) == nil
+		}
+		if m.isDeafened() {
+			info.CanLiftDeafen = p.checkCanLift(requesterID, userID, channelID, m.DeafBy, nil) == nil
+		}
+		list = append(list, info)
+	}
+	latest := func(i modMuteInfo) int64 { return max(i.MutedAt, i.DeafenedAt) }
+	sort.Slice(list, func(i, j int) bool {
+		if a, b := latest(list[i]), latest(list[j]); a != b {
+			return a > b
+		}
+		return list[i].UserID < list[j].UserID
+	})
+	return list, nil
 }

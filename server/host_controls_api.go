@@ -288,6 +288,25 @@ func (p *Plugin) handleMoveSession(w http.ResponseWriter, r *http.Request) {
 	res.Msg = "success"
 }
 
+func (p *Plugin) handleListModMutes(w http.ResponseWriter, r *http.Request) {
+	var res httpResponse
+	defer p.httpAudit("handleListModMutes", &res, w, r)
+
+	userID := r.Header.Get("Mattermost-User-Id")
+	channelID := mux.Vars(r)["call_id"]
+
+	list, err := p.listModMutes(userID, channelID)
+	if err != nil {
+		p.handleModerationError(err, &res, "handleListModMutes")
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	if err := json.NewEncoder(w).Encode(list); err != nil {
+		p.LogError("failed to encode moderator mutes", "err", err.Error())
+	}
+}
+
 // handleModerationError is handleHostControlsError for the moderation controls, which tell refusals (403) and
 // rate limits (429) apart.
 func (p *Plugin) handleModerationError(err error, res *httpResponse, handlerName string) {
