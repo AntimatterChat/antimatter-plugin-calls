@@ -7,12 +7,13 @@ import {getCurrentUserId, getUser} from 'mattermost-redux/selectors/entities/use
 import {loadProfilesByIdsIfMissing, removeIncomingCallNotification, setDMCalleeAnsweredAt, userLeft} from 'src/actions';
 import {Store} from 'src/types/antimatter-webapp';
 
-import {CALL_HOST, HOST_CONTROL_NOTICE, MOD_DEAFEN_CHANGED, MOD_MUTE_CHANGED, USER_JOINED} from './action_types';
+import {CALL_HOST, HOST_CONTROL_NOTICE, MOD_DEAFEN_CHANGED, MOD_MUTE_CHANGED, STAGE_SPEAKERS_CHANGED, USER_JOINED} from './action_types';
 import {
     calls,
     dmCalleeAnsweredAtForCurrentCall,
     idForCurrentCall,
     isCurrentUserOwnerOfCurrentCall,
+    isStageAudience,
     ringingEnabled,
     sessionsInCurrentCall,
     shouldPlayJoinUserSound,
@@ -26,7 +27,17 @@ import {
     notificationsStopRinging,
     playSound,
 } from './utils';
-import {handleAskUnmute, handleCallHostChanged, handleHostMove, handleModDeafen, handleModMute, handleUserJoined, handleUserLeft} from './websocket_handlers';
+import {
+    handleAskUnmute,
+    handleCallHostChanged,
+    handleHostMove,
+    handleModDeafen,
+    handleModMute,
+    handleStageInvited,
+    handleStageSpeakersChanged,
+    handleUserJoined,
+    handleUserLeft,
+} from './websocket_handlers';
 
 jest.mock('mattermost-redux/selectors/entities/channels', () => ({
     getChannel: jest.fn(() => ({id: 'channel-id', type: 'D'})),
@@ -53,6 +64,7 @@ jest.mock('./selectors', () => ({
     dmCalleeAnsweredAtForCurrentCall: jest.fn(),
     idForCurrentCall: jest.fn(),
     isCurrentUserOwnerOfCurrentCall: jest.fn(),
+    isStageAudience: jest.fn(() => false),
     profilesInCurrentCallMap: jest.fn(() => ({})),
     ringingEnabled: jest.fn(),
     sessionsInCurrentCall: jest.fn(() => []),
@@ -444,5 +456,56 @@ describe('moderator mutes', () => {
         onMove.mockClear();
         handleHostMove({data: {channel_id: channelID, session_id: 'my-session'}} as WebSocketMessage<any>, onMove);
         expect(onMove).not.toHaveBeenCalled();
+    });
+});
+
+describe('stages', () => {
+    const makeStore = () => ({dispatch: jest.fn(), getState: jest.fn(() => ({}))}) as unknown as Store;
+    const fakeClient = () => ({channelID, stageAudience: false, mute: jest.fn(), stopVideo: jest.fn(), unshareScreen: jest.fn()});
+
+    beforeEach(() => {
+        jest.clearAllMocks();
+        (getCurrentUserId as jest.Mock).mockReturnValue(currentUserID);
+    });
+
+    test('handleStageSpeakersChanged records the speakers, and in the audience the user is muted, without camera or screen', () => {
+        const store = makeStore();
+        const client = fakeClient();
+        (getCallsClient as jest.Mock).mockReturnValue(client);
+
+        (isStageAudience as jest.Mock).mockReturnValue(true);
+        handleStageSpeakersChanged(store, {data: {channel_id: channelID, stage: true, speakers: [otherUserID]}} as WebSocketMessage<any>);
+        expect(store.dispatch).toHaveBeenCalledWith({type: STAGE_SPEAKERS_CHANGED, data: {channelID, stage: true, speakers: [otherUserID]}});
+        expect(isStageAudience).toHaveBeenCalledWith(expect.anything(), channelID, currentUserID);
+        expect(client.stageAudience).toBe(true);
+        expect(client.mute).toHaveBeenCalled();
+        expect(client.stopVideo).toHaveBeenCalled();
+        expect(client.unshareScreen).toHaveBeenCalled();
+
+        // Invited to speak: nothing is turned on for them, they may now.
+        (isStageAudience as jest.Mock).mockReturnValue(false);
+        handleStageSpeakersChanged(store, {data: {channel_id: channelID, stage: true, speakers: [otherUserID, currentUserID]}} as WebSocketMessage<any>);
+        expect(client.stageAudience).toBe(false);
+        expect(client.mute).toHaveBeenCalledTimes(1);
+    });
+
+    test('handleStageSpeakersChanged leaves the client of another call alone', () => {
+        const store = makeStore();
+        const client = fakeClient();
+        (getCallsClient as jest.Mock).mockReturnValue(client);
+        (isStageAudience as jest.Mock).mockReturnValue(true);
+
+        handleStageSpeakersChanged(store, {data: {channel_id: 'other', stage: true, speakers: []}} as WebSocketMessage<any>);
+        expect(store.dispatch).toHaveBeenCalledTimes(1);
+        expect(client.stageAudience).toBe(false);
+        expect(client.mute).not.toHaveBeenCalled();
+    });
+
+    test('handleStageInvited passes on invitations', () => {
+        const onInvite = jest.fn();
+        handleStageInvited({data: {channel_id: channelID, by: otherUserID}} as WebSocketMessage<any>, onInvite);
+        expect(onInvite).toHaveBeenCalledWith({channelId: channelID, byUserId: otherUserID});
+        handleStageInvited({data: {channel_id: '', by: otherUserID}} as WebSocketMessage<any>, onInvite);
+        expect(onInvite).toHaveBeenCalledTimes(1);
     });
 });

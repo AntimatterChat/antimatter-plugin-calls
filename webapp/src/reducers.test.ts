@@ -12,6 +12,7 @@ import {
     MOD_MUTE_CHANGED,
     MOD_MUTED_STATE,
     REMOVE_INCOMING_CALL,
+    STAGE_SPEAKERS_CHANGED,
     UNINIT,
 } from 'src/action_types';
 
@@ -195,5 +196,22 @@ describe('modDeafened', () => {
 
     it('should drop the channel\'s deafens as its call ends', () => {
         expect(apply(deafened('u1', true), callEnd(callID)).modDeafened).toEqual({});
+    });
+});
+
+describe('stages', () => {
+    const stage = (speakers: string[] | null, on = true) => ({type: STAGE_SPEAKERS_CHANGED, data: {channelID, stage: on, speakers}});
+
+    it('should keep the speakers of a stage\'s call', () => {
+        expect(apply(stage(['u1', 'u2'])).stages).toEqual({[channelID]: ['u1', 'u2']});
+        expect(apply(stage(null)).stages).toEqual({[channelID]: []});
+        expect(apply(stage(['u1']), stage(['u1', 'u3'])).stages).toEqual({[channelID]: ['u1', 'u3']});
+    });
+
+    it('should drop the channel as its call stops being a stage\'s, or ends', () => {
+        expect(apply(stage(['u1']), stage(null, false)).stages).toEqual({});
+        expect(apply(stage(['u1']), callEnd(callID)).stages).toEqual({});
+        const state = apply(stage(null, false));
+        expect(state.stages).toEqual({});
     });
 });

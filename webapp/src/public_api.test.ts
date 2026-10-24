@@ -42,6 +42,7 @@ type StateOpts = {
     ringingForCalls?: Record<string, boolean>;
     modMuted?: Record<string, Record<string, string>>;
     modDeafened?: Record<string, Record<string, string>>;
+    stages?: Record<string, string[]>;
     callsConfig?: Record<string, unknown>;
 };
 
@@ -59,6 +60,7 @@ const makeState = (opts: StateOpts = {}) => ({
         ringingForCalls: opts.ringingForCalls || {},
         modMuted: opts.modMuted || {},
         modDeafened: opts.modDeafened || {},
+        stages: opts.stages || {},
         callsConfig: {AllowScreenSharing: true, DefaultEnabled: true, ...opts.callsConfig},
     },
     entities: {
@@ -159,6 +161,16 @@ describe('selectors', () => {
         expect(participants.map((p) => p.modMuted)).toEqual([false, false]);
     });
 
+    test('getStage tells the speakers of a stage\'s call, and null for other calls', () => {
+        const stages = {[channelID]: ['owner', 'u2']};
+        const state = makeState({stages});
+        const stage = selectors.getStage!(state, channelID);
+        expect(stage).toEqual({speakers: ['owner', 'u2']});
+        expect(selectors.getStage!(makeState({stages}), channelID)).toBe(stage);
+        expect(selectors.getStage!(state, 'other')).toBeNull();
+        expect(selectors.getStage!(makeState(), channelID)).toBeNull();
+    });
+
     test('getReactions maps the call\'s reactions and keeps the result while unchanged', () => {
         expect(selectors.getReactions(makeState(), channelID)).toEqual([]);
         const reactions = [{user_id: 'u1', session_id: 's1', emoji: {name: '+1', unified: '1f44d'}, timestamp: 42, displayName: 'U'}];
@@ -193,6 +205,9 @@ class FakeClient extends EventEmitter {
     disconnect = jest.fn();
     unshareScreen = jest.fn();
     shareScreen = jest.fn(() => Promise.resolve(null));
+    startVideo = jest.fn(() => Promise.resolve(null));
+    stopVideo = jest.fn();
+    stageAudience = false;
     remoteVideo: Record<string, MediaStream> = {};
     getRemoteVideoStreams = () => this.remoteVideo;
     getRemoteScreenStream = () => null;
@@ -233,11 +248,13 @@ describe('createCallsAPI', () => {
         ]);
         expect(Object.keys(api.selectors).sort()).toEqual([
             'getCall', 'getIncomingCalls', 'getLiveCaptions', 'getLocalCall', 'getModDeafens', 'getModMutes', 'getMyMuted', 'getParticipants', 'getReactions',
-            'getScreenSharingSessionId', 'getTranscription', 'isCallsEnabled', 'isScreenSharingAllowed', 'isTranscriptionAvailable',
+            'getScreenSharingSessionId', 'getStage', 'getTranscription', 'isCallsEnabled', 'isScreenSharingAllowed', 'isTranscriptionAvailable',
             'isVideoAllowed',
         ]);
         expect(Object.keys(api.host).sort()).toEqual(['lowerHand', 'mute', 'remove', 'stopScreen']);
-        expect(Object.keys(api.moderation).sort()).toEqual(['askToUnmute', 'listModMutes', 'move', 'participantPermissions', 'setModDeafened', 'setModMuted']);
+        expect(Object.keys(api.moderation).sort()).toEqual([
+            'askToUnmute', 'inviteToSpeak', 'listModMutes', 'move', 'moveToAudience', 'participantPermissions', 'setModDeafened', 'setModMuted',
+        ]);
     });
 
     test('join goes through the given join function', async () => {
@@ -516,6 +533,16 @@ describe('createCallsAPI', () => {
             canDeafen: false,
             canMove: false,
             canKick: true,
+            canInviteToSpeak: false,
+            canMoveToAudience: false,
+        });
+
+        // In a stage.
+        fetch.mockImplementationOnce(() => Promise.resolve({session_id: 's3', user_id: 'u3', can_mute: true, can_deafen: true, can_move: true, can_kick: true, can_invite_to_speak: true, can_move_to_audience: false}));
+        await expect(api.moderation.participantPermissions!(channelID, 's3')).resolves.toMatchObject({
+            sessionId: 's3',
+            canInviteToSpeak: true,
+            canMoveToAudience: false,
         });
         expect(fetch).toHaveBeenLastCalledWith(expect.stringMatching(`/calls/${channelID}/host/permissions\\?session_id=s2$`), {method: 'get'});
 
@@ -568,6 +595,53 @@ describe('createCallsAPI', () => {
         api.stopRinging('call-id');
         expect(stopRingingForCall).toHaveBeenCalledWith('call-id');
         expect(store.dispatch).toHaveBeenCalledWith({type: 'stop-ringing'});
+    });
+
+    test('stage requests go to the stage\'s speakers and reject with the status', async () => {
+        const fetch = RestClient.fetch as jest.Mock;
+        const {api} = createCallsAPI(store, join);
+
+        await api.moderation.inviteToSpeak!(channelID, 'u2');
+        expect(fetch).toHaveBeenLastCalledWith(expect.stringMatching(`/calls/${channelID}/stage/speakers$`), {method: 'post', body: JSON.stringify({user_id: 'u2'})});
+
+        await api.moderation.moveToAudience!(channelID, 'u2');
+        expect(fetch).toHaveBeenLastCalledWith(expect.stringMatching(`/calls/${channelID}/stage/speakers/u2$`), {method: 'delete'});
+
+        fetch.mockImplementationOnce(() => Promise.reject(Object.assign(new Error('not allowed to moderate this user'), {status_code: 403})));
+        await expect(api.moderation.inviteToSpeak!(channelID, 'u3')).rejects.toMatchObject({status: 403});
+    });
+
+    test('in a stage\'s audience, unmuting, the camera and screen sharing are refused', () => {
+        state = makeState({localCall: {channelID, sessionID: 's1', state: 'connected'}, stages: {[channelID]: ['owner']}});
+        const {api, clientCreated} = createCallsAPI(store, join);
+        const client = new FakeClient();
+        clientCreated(client as unknown as CallsClient);
+        const onError = jest.fn();
+        api.on('error', onError);
+
+        api.setMuted(false);
+        api.setVideo(true);
+        api.startScreenShare();
+        expect(client.unmute).not.toHaveBeenCalled();
+        expect(client.startVideo).not.toHaveBeenCalled();
+        expect(client.shareScreen).not.toHaveBeenCalled();
+        expect(onError).toHaveBeenCalledTimes(3);
+        expect(onError).toHaveBeenCalledWith({kind: 'stage-audience'});
+
+        // Invited to speak, they may.
+        state = makeState({localCall: {channelID, sessionID: 's1', state: 'connected'}, stages: {[channelID]: ['owner', currentUserID]}});
+        api.setMuted(false);
+        expect(client.unmute).toHaveBeenCalled();
+    });
+
+    test('invitations to speak reach the listeners of the window with the call', () => {
+        const {api, stageInvited} = createCallsAPI(store, join);
+        const onInvite = jest.fn();
+        api.on('stage-invite', onInvite);
+        stageInvited({channelId: 'other', byUserId: 'owner'});
+        expect(onInvite).not.toHaveBeenCalled();
+        stageInvited({channelId: channelID, byUserId: 'owner'});
+        expect(onInvite).toHaveBeenCalledWith({channelId: channelID, byUserId: 'owner'});
     });
 
     test('unmute requests reach the listeners', () => {
