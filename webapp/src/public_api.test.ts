@@ -237,7 +237,7 @@ describe('createCallsAPI', () => {
             'isVideoAllowed',
         ]);
         expect(Object.keys(api.host).sort()).toEqual(['lowerHand', 'mute', 'remove', 'stopScreen']);
-        expect(Object.keys(api.moderation).sort()).toEqual(['askToUnmute', 'listModMutes', 'move', 'setModDeafened', 'setModMuted']);
+        expect(Object.keys(api.moderation).sort()).toEqual(['askToUnmute', 'listModMutes', 'move', 'participantPermissions', 'setModDeafened', 'setModMuted']);
     });
 
     test('join goes through the given join function', async () => {
@@ -503,6 +503,24 @@ describe('createCallsAPI', () => {
 
         fetch.mockImplementationOnce(() => Promise.reject(Object.assign(new Error('no permissions'), {status_code: 403})));
         await expect(api.moderation.listModMutes!(channelID)).rejects.toMatchObject({status: 403});
+    });
+
+    test('the participant menu asks what the user may do to someone', async () => {
+        const fetch = RestClient.fetch as jest.Mock;
+        const {api} = createCallsAPI(store, join);
+
+        fetch.mockImplementationOnce(() => Promise.resolve({session_id: 's2', user_id: 'u2', can_mute: true, can_deafen: false, can_move: false, can_kick: true}));
+        await expect(api.moderation.participantPermissions!(channelID, 's2')).resolves.toEqual({
+            sessionId: 's2',
+            canMute: true,
+            canDeafen: false,
+            canMove: false,
+            canKick: true,
+        });
+        expect(fetch).toHaveBeenLastCalledWith(expect.stringMatching(`/calls/${channelID}/host/permissions\\?session_id=s2$`), {method: 'get'});
+
+        fetch.mockImplementationOnce(() => Promise.reject(Object.assign(new Error('not in call'), {status_code: 400})));
+        await expect(api.moderation.participantPermissions!(channelID, 's9')).rejects.toMatchObject({status: 400});
     });
 
     test('unmuting is refused while deafened by a moderator', () => {
