@@ -68,6 +68,7 @@ import {
     LIVE_CAPTION_TIMEOUT_EVENT,
     MOD_DEAFEN_CHANGED,
     MOD_MUTE_CHANGED,
+    STAGE_SPEAKERS_CHANGED,
     USER_JOINED,
     USER_JOINED_TIMEOUT,
     USER_LOWER_HAND,
@@ -90,6 +91,7 @@ import {
     dmCalleeAnsweredAtForCurrentCall,
     idForCurrentCall,
     isCurrentUserOwnerOfCurrentCall,
+    isStageAudience,
     profilesInCurrentCallMap,
     ringingEnabled,
     sessionsInCurrentCall,
@@ -121,6 +123,7 @@ export function handleCallState(store: Store, ev: WebSocketMessage<CallStateData
     try {
         const call: CallState = JSON.parse(ev.data.call);
         store.dispatch(loadCallState(ev.data.channel_id, call));
+        applyStageToClient(store, ev.data.channel_id);
     } catch (err) {
         logErr(err);
     }
@@ -822,4 +825,54 @@ export function handleAskUnmute(store: Store, ev: WebSocketMessage<AskUnmuteData
         return;
     }
     onRequest({channelId: ev.data.channel_id, sessionId: ev.data.session_id, byUserId: ev.data.by});
+}
+
+type StageSpeakersData = {
+    channel_id: string;
+    stage: boolean;
+    speakers: string[] | null;
+};
+
+// handleStageSpeakersChanged follows whether a channel's call is a stage's, and who its speakers are (Antimatter).
+export function handleStageSpeakersChanged(store: Store, ev: WebSocketMessage<StageSpeakersData>) {
+    const {channel_id: channelID, stage, speakers} = ev.data;
+    store.dispatch({
+        type: STAGE_SPEAKERS_CHANGED,
+        data: {channelID, stage, speakers},
+    });
+    applyStageToClient(store, channelID);
+}
+
+// applyStageToClient keeps this window's call in step with its stage: in the audience, the user can't unmute, share
+// their screen or turn their camera on, so they're muted and both are stopped.
+export function applyStageToClient(store: Store, channelID: string) {
+    const client = getCallsClient();
+    if (!client || client.channelID !== channelID) {
+        return;
+    }
+    const audience = isStageAudience(store.getState(), channelID, getCurrentUserId(store.getState()));
+    client.stageAudience = audience;
+    if (audience) {
+        client.mute();
+        client.stopVideo();
+        client.unshareScreen();
+    }
+}
+
+type StageInvitedData = {
+    channel_id: string;
+    by: string;
+};
+
+export type StageInvite = {
+    channelId: string;
+    byUserId: string;
+};
+
+// handleStageInvited passes on a moderator's invitation to speak on a stage (Antimatter): the user unmutes themselves.
+export function handleStageInvited(ev: WebSocketMessage<StageInvitedData>, onInvite: (invite: StageInvite) => void) {
+    if (!ev.data.channel_id) {
+        return;
+    }
+    onInvite({channelId: ev.data.channel_id, byUserId: ev.data.by});
 }

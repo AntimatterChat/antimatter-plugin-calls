@@ -119,6 +119,7 @@ import {
     DISMISS_CALL,
     MOD_MUTED_STATE,
     RECEIVED_CHANNEL_STATE,
+    STAGE_SPEAKERS_CHANGED,
     UNINIT,
     USER_LOWER_HAND,
     USER_MUTED,
@@ -166,6 +167,7 @@ import {
     isLimitRestricted,
     isModDeafened,
     isModMuted,
+    isStageAudience,
     needsTURNCredentials,
     ringingEnabled,
     sessionsInCurrentCall,
@@ -207,6 +209,8 @@ import {
     handleHostScreenOff,
     handleModDeafen,
     handleModMute,
+    handleStageInvited,
+    handleStageSpeakersChanged,
     handleUserDismissedNotification,
     handleUserJoined,
     handleUserLeft,
@@ -766,6 +770,7 @@ export default class Plugin {
                 });
                 window.callsClient.modMuted = isModMuted(state, channelID, getCurrentUserId(state));
                 window.callsClient.modDeafened = isModDeafened(state, channelID, getCurrentUserId(state));
+                window.callsClient.stageAudience = isStageAudience(state, channelID, getCurrentUserId(state));
                 window.currentCallData = {...CurrentCallDataDefault};
                 store.dispatch(setLocalCall({channelID, sessionID: '', state: 'connecting'}));
                 callsAPI.clientCreated(window.callsClient);
@@ -963,6 +968,14 @@ export default class Plugin {
             handleHostMove(ev, (req) => callsAPI.moveRequested(req));
         });
 
+        // Stages: who speaks, and a moderator inviting the user to speak (the UI tells them).
+        registry.registerWebSocketEventHandler(`custom_${pluginId}_stage_speakers_changed`, (ev) => {
+            handleStageSpeakersChanged(store, ev);
+        });
+        registry.registerWebSocketEventHandler(`custom_${pluginId}_stage_invited`, (ev) => {
+            handleStageInvited(ev, (invite) => callsAPI.stageInvited(invite));
+        });
+
         const windowEventHandler = (ev: MessageEvent) => {
             if (ev.origin !== window.origin) {
                 return;
@@ -1064,6 +1077,14 @@ export default class Plugin {
                             channelID: data[i].channel_id,
                             modMuted: (call as typeof call & {mod_muted?: Record<string, string>}).mod_muted,
                             modDeafened: (call as typeof call & {mod_deafened?: Record<string, string>}).mod_deafened,
+                        },
+                    });
+                    actions.push({
+                        type: STAGE_SPEAKERS_CHANGED,
+                        data: {
+                            channelID: data[i].channel_id,
+                            stage: Boolean((call as typeof call & {stage?: boolean}).stage),
+                            speakers: (call as typeof call & {speakers?: string[]}).speakers,
                         },
                     });
 

@@ -91,6 +91,10 @@ export default class CallsClient extends EventEmitter {
     // Antimatter: a moderator deafened the user in this call (a voice channel's): they hear nothing (the server sends
     // no audio) and unmuting does nothing until it's lifted.
     public modDeafened = false;
+
+    // Antimatter: the user is in the audience of a stage's call: they can't unmute, share their screen or turn their
+    // camera on until a moderator invites them to speak (the server refuses it too).
+    public stageAudience = false;
     private readonly config: CallsClientConfig;
     private peer: RTCPeer | null;
     public ws: WebSocketClient | null;
@@ -985,6 +989,11 @@ export default class CallsClient extends EventEmitter {
             return;
         }
 
+        if (this.stageAudience) {
+            logDebug('not unmuting: in the audience of a stage');
+            return;
+        }
+
         if (!this.audioTrack) {
             try {
                 await this.initAudio();
@@ -1130,7 +1139,7 @@ export default class CallsClient extends EventEmitter {
     }
 
     public async shareScreen(sourceID?: string, withAudio?: boolean, quality?: ScreenQuality, surface?: ScreenSurface) {
-        if (!this.ws || !this.peer) {
+        if (!this.ws || !this.peer || this.stageAudience) {
             return null;
         }
 
@@ -1243,7 +1252,7 @@ export default class CallsClient extends EventEmitter {
     }
 
     public async startVideo() {
-        if (!this.ws || !this.peer || !this.config.enableVideo) {
+        if (!this.ws || !this.peer || !this.config.enableVideo || this.stageAudience) {
             return null;
         }
 

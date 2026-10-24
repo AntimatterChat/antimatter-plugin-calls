@@ -38,10 +38,12 @@ import {
     isJobRunning,
     isModDeafened,
     isModMuted,
+    isStageAudience,
     modDeafenedInChannel,
     modMutedInChannel,
     pluginState,
     ringingForCall,
+    stageSpeakersInChannel,
     transcribeFromClients,
     transcriptionStateInChannel,
     videoEnabledInChannel,
@@ -60,6 +62,8 @@ import type {
     CallsParticipant,
     CallsParticipantPermissions,
     CallsReaction,
+    CallsStage,
+    CallsStageInvite,
     CallsTranscription,
     CallsUnmuteRequest,
     LocalCall,
@@ -317,6 +321,23 @@ function modListSelector(byChannel: (state: GlobalState, channelId: string) => R
 const getModMutes = modListSelector(modMutedInChannel);
 const getModDeafens = modListSelector(modDeafenedInChannel);
 
+const stageCache = new Map<string, {speakers: string[]; result: CallsStage}>();
+
+// getStage tells whether the call of a channel is a stage's, and who its speakers are.
+function getStage(state: GlobalState, channelId: string): CallsStage | null {
+    const speakers = stageSpeakersInChannel(state, channelId);
+    if (!speakers) {
+        return null;
+    }
+    const cached = stageCache.get(channelId);
+    if (cached && cached.speakers === speakers) {
+        return cached.result;
+    }
+    const result = {speakers};
+    stageCache.set(channelId, {speakers, result});
+    return result;
+}
+
 export const selectors = {
     isCallsEnabled,
     getCall,
@@ -333,6 +354,7 @@ export const selectors = {
     getLiveCaptions,
     getModMutes,
     getModDeafens,
+    getStage,
 } as AntimatterCallsAPI['selectors'];
 
 //
@@ -391,6 +413,9 @@ export type CallsAPIHandle = {
 
     // To be called when a moderator moves the user to another voice channel (any window of theirs).
     moveRequested(request: CallsMoveRequest): Promise<void>;
+
+    // To be called when a moderator invites the user to speak on a stage (any window of theirs).
+    stageInvited(invite: CallsStageInvite): void;
 };
 
 // The moderator mutes of a channel as the server lists them.
@@ -423,6 +448,8 @@ function participantPermissions(d: ParticipantPermissionsData): CallsParticipant
         canDeafen: Boolean(d.can_deafen),
         canMove: Boolean(d.can_move),
         canKick: Boolean(d.can_kick),
+        canInviteToSpeak: Boolean(d.can_invite_to_speak),
+        canMoveToAudience: Boolean(d.can_move_to_audience),
     };
 }
 
@@ -434,6 +461,7 @@ export function createCallsAPI(store: Store, joinCall: JoinCall): CallsAPIHandle
         error: new Set(),
         'unmute-request': new Set(),
         move: new Set(),
+        'stage-invite': new Set(),
     };
 
     const emit = (event: CallsEvent, ...args: unknown[]) => {
@@ -572,14 +600,18 @@ export function createCallsAPI(store: Store, joinCall: JoinCall): CallsAPIHandle
     };
 
     // The moderation requests reject with an Error carrying the HTTP status.
-    const moderationRequest = async (channelId: string, action: string, body: object) => {
+    const callRequest = async (path: string, method: 'post' | 'delete', body?: object) => {
         try {
-            await RestClient.fetch(`${getPluginPath()}/calls/${channelId}/host/${action}`, {method: 'post', body: JSON.stringify(body)});
+            await RestClient.fetch(`${getPluginPath()}/calls/${path}`, {method, body: body ? JSON.stringify(body) : undefined});
         } catch (err) {
             const status = (err as {status_code?: number})?.status_code || 0;
             throw Object.assign(new Error((err as Error)?.message || String(err)), {status});
         }
     };
+    const moderationRequest = (channelId: string, action: string, body: object) => callRequest(`${channelId}/host/${action}`, 'post', body);
+
+    // In a stage's audience, the user can't unmute, share their screen or turn their camera on.
+    const inStageAudience = () => Boolean(client && (client.stageAudience || isStageAudience(store.getState(), client.channelID, getCurrentUserId(store.getState()))));
 
     const transcriptionAction = async (action: 'start' | 'stop') => {
         const channelID = channelIDForCurrentCall(store.getState());
@@ -619,6 +651,8 @@ export function createCallsAPI(store: Store, joinCall: JoinCall): CallsAPIHandle
             }
             if (muted) {
                 client.mute();
+            } else if (inStageAudience()) {
+                emit('error', {kind: 'stage-audience'});
             } else if (client.modDeafened || isModDeafened(store.getState(), client.channelID, getCurrentUserId(store.getState()))) {
                 emit('error', {kind: 'mod-deafened'});
             } else if (client.modMuted || isModMuted(store.getState(), client.channelID, getCurrentUserId(store.getState()))) {
@@ -632,7 +666,9 @@ export function createCallsAPI(store: Store, joinCall: JoinCall): CallsAPIHandle
             if (!client) {
                 return;
             }
-            if (on) {
+            if (on && inStageAudience()) {
+                emit('error', {kind: 'stage-audience'});
+            } else if (on) {
                 await client.startVideo();
             } else {
                 client.stopVideo();
@@ -642,6 +678,10 @@ export function createCallsAPI(store: Store, joinCall: JoinCall): CallsAPIHandle
         startScreenShare: (quality, surface, source) => {
             const state = store.getState();
             if (!client || !allowScreenSharing(state) || getScreenSharingSessionId(state, client.channelID)) {
+                return;
+            }
+            if (inStageAudience()) {
+                emit('error', {kind: 'stage-audience'});
                 return;
             }
 
@@ -776,6 +816,8 @@ export function createCallsAPI(store: Store, joinCall: JoinCall): CallsAPIHandle
                 }
                 return participantPermissions({...data, session_id: data?.session_id || sessionId});
             },
+            inviteToSpeak: (channelId, userId) => callRequest(`${channelId}/stage/speakers`, 'post', {user_id: userId}),
+            moveToAudience: (channelId, userId) => callRequest(`${channelId}/stage/speakers/${encodeURIComponent(userId)}`, 'delete'),
         },
 
         startTranscription: () => transcriptionAction('start'),
@@ -811,5 +853,12 @@ export function createCallsAPI(store: Store, joinCall: JoinCall): CallsAPIHandle
         }
     };
 
-    return {api, clientCreated, clientClosed, unmuteRequested, moveRequested};
+    // An invitation to speak is for the window that has the call (or, with the desktop app, the main window).
+    const stageInvited = (invite: CallsStageInvite) => {
+        if (getLocalCall(store.getState())?.channelId === invite.channelId) {
+            emit('stage-invite', invite);
+        }
+    };
+
+    return {api, clientCreated, clientClosed, unmuteRequested, moveRequested, stageInvited};
 }

@@ -57,6 +57,7 @@ import {
     SHOW_EXPANDED_VIEW,
     SHOW_SCREEN_SOURCE_MODAL,
     SHOW_SWITCH_CALL_MODAL,
+    STAGE_SPEAKERS_CHANGED,
     TRANSCRIBE_API,
     TRANSCRIPTIONS_ENABLED,
     UNINIT,
@@ -1225,6 +1226,49 @@ function modUsersReducer(stateKey: 'modMuted' | 'modDeafened', changedType: stri
 const modMuted = modUsersReducer('modMuted', MOD_MUTE_CHANGED, 'muted');
 const modDeafened = modUsersReducer('modDeafened', MOD_DEAFEN_CHANGED, 'deafened');
 
+// The speakers of each stage's call (Antimatter): user IDs, also of those who left it a moment ago. A channel is
+// listed only while its call is a stage's: everyone else in it is the audience. Kept from the call state and the
+// stage_speakers_changed events, and dropped as the call ends.
+export type StagesState = {[channelID: string]: string[]};
+
+type StageAction = {
+    type: string;
+    data: {
+        channelID: string;
+        stage?: boolean;
+        speakers?: string[] | null;
+    };
+};
+
+const stages = (state: StagesState = {}, action: StageAction) => {
+    switch (action.type) {
+    case UNINIT:
+        return {};
+    case STAGE_SPEAKERS_CHANGED: {
+        const {channelID, stage, speakers} = action.data;
+        if (stage) {
+            return {...state, [channelID]: [...(speakers || [])]};
+        }
+        if (!state[channelID]) {
+            return state;
+        }
+        const next = {...state};
+        delete next[channelID];
+        return next;
+    }
+    case CALL_END: {
+        if (!state[action.data.channelID]) {
+            return state;
+        }
+        const next = {...state};
+        delete next[action.data.channelID];
+        return next;
+    }
+    default:
+        return state;
+    }
+};
+
 export default combineReducers({
     channels,
     clientStateReducer,
@@ -1257,4 +1301,5 @@ export default combineReducers({
     hostControlNotices,
     modMuted,
     modDeafened,
+    stages,
 });

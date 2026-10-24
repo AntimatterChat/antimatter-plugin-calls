@@ -750,3 +750,14 @@ export const modDeafenedInChannel = (state: GlobalState, channelID: string): {[u
 // until it's lifted.
 export const isModDeafened = (state: GlobalState, channelID: string, userID: string): boolean =>
     Boolean(channelID && userID && Object.hasOwn(modDeafenedInChannel(state, channelID), userID));
+
+// stageSpeakersInChannel gives the speakers of a channel's call when it's a stage's (Antimatter), or null.
+export const stageSpeakersInChannel = (state: GlobalState, channelID: string): string[] | null =>
+    (channelID && pluginState(state).stages?.[channelID]) || null;
+
+// isStageAudience tells whether someone is in the audience of a channel's call, a stage's: they can't unmute, share
+// their screen or turn their camera on until a moderator invites them to speak.
+export const isStageAudience = (state: GlobalState, channelID: string, userID: string): boolean => {
+    const speakers = stageSpeakersInChannel(state, channelID);
+    return Boolean(speakers && userID && !speakers.includes(userID));
+};

@@ -75,6 +75,7 @@ import {
     SHOW_EXPANDED_VIEW,
     SHOW_SCREEN_SOURCE_MODAL,
     SHOW_SWITCH_CALL_MODAL,
+    STAGE_SPEAKERS_CHANGED,
     TRANSCRIBE_API,
     TRANSCRIPTIONS_ENABLED,
     USER_LEFT,
@@ -568,6 +569,15 @@ export const loadCallState = (channelID: string, call: CallState) => (dispatch: 
         },
     });
 
+    actions.push({
+        type: STAGE_SPEAKERS_CHANGED,
+        data: {
+            channelID,
+            stage: Boolean((call as CallState & {stage?: boolean}).stage),
+            speakers: (call as CallState & {speakers?: string[]}).speakers,
+        },
+    });
+
     dispatch(batchActions(actions));
 };
 
@@ -606,6 +616,10 @@ export type ParticipantPermissionsData = {
     can_deafen: boolean;
     can_move: boolean;
     can_kick: boolean;
+
+    // Stages (Antimatter); older servers lack them.
+    can_invite_to_speak?: boolean;
+    can_move_to_audience?: boolean;
 };
 
 export const getParticipantPermissions = async (callID: string, sessionID: string) => {

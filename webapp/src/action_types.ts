@@ -70,3 +70,6 @@ export const LOCAL_CALL_STATE = pluginId + '_local_call_state';
 export const MOD_MUTED_STATE = pluginId + '_mod_muted_state';
 export const MOD_MUTE_CHANGED = pluginId + '_mod_mute_changed';
 export const MOD_DEAFEN_CHANGED = pluginId + '_mod_deafen_changed';
+
+// Antimatter: whether a channel's call is a stage's, and its speakers.
+export const STAGE_SPEAKERS_CHANGED = pluginId + '_stage_speakers_changed';
