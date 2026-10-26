@@ -56,7 +56,7 @@ export const useDismissJoin = (channelID: string, callID: string) => {
     const dispatch = useDispatch();
     const connectedID = useSelector(channelIDForCurrentCall) || '';
 
-    // In the desktop app's call window (Fusion runs its calls in the main window).
+    // In the desktop app's call window (unless this window runs its calls itself: see desktopRunsCalls).
     const global = Boolean(isDesktopApp() && getCallsClient() && desktopRunsCalls());
 
     const onDismiss = (ev: React.MouseEvent<HTMLElement>) => {

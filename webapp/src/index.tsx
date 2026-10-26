@@ -727,7 +727,7 @@ export default class Plugin {
                 startingCall: !channelHasCall(store.getState(), channelID),
             };
 
-            // The desktop app runs the classic web UI's calls in its call window; Fusion runs them here.
+            // The desktop app may run the call in its call window (see desktopRunsCalls); otherwise it runs here.
             if (desktopRunsCalls()) {
                 store.dispatch(setClientConnecting(true));
                 if (window.desktopAPI?.joinCall) {

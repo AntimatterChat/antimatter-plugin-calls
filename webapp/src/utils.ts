@@ -495,14 +495,26 @@ export function shouldRenderDesktopWidget() {
     return desktopGTE(5, 3);
 }
 
+// isAntimatterDesktop returns whether this is the Antimatter desktop app: it adds "Antimatter/<version>" to its user
+// agent, next to the "Mattermost/<version>" token it keeps for compatibility. The official desktop app has only the
+// latter.
+export function isAntimatterDesktop(): boolean {
+    const ua = userAgent();
+    return (/\bElectron\//).test(ua) && (/\bAntimatter\/\d/).test(ua);
+}
+
 // desktopRunsCalls returns whether the desktop app runs this window's calls in its own call window (its calls
-// widget). The Fusion web UI draws its calls itself: they run in the page, as in a browser, with the desktop app's
-// screen sources. The classic web UI keeps the widget.
+// widget). The classic web UI keeps the widget whenever the desktop app has one. The Fusion web UI draws its calls
+// itself and, in the Antimatter desktop app, runs them in the page, as in a browser, with the desktop app's screen
+// sources. Other desktop apps (the official one) keep their widget under Fusion too when they offer its API: its
+// floating window and controls outside the server's tab, the guard against calls on two servers, and its screen
+// permission hints.
 export function desktopRunsCalls(): boolean {
+    const widgetAPI = Boolean(window.desktopAPI?.joinCall);
     if (isFusionUI()) {
-        return false;
+        return widgetAPI && !isAntimatterDesktop();
     }
-    return Boolean(window.desktopAPI?.joinCall) || shouldRenderDesktopWidget();
+    return widgetAPI || shouldRenderDesktopWidget();
 }
 
 export function desktopGTE(major: number, minor: number) {

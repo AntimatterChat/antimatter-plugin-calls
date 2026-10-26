@@ -18,6 +18,7 @@ import {
     getPlatformInfo,
     getWebappUtils,
     getWSConnectionURL,
+    isAntimatterDesktop,
     maxAttemptsReachedErr,
     parseChannelProps,
     runWithRetry,
@@ -117,13 +118,34 @@ describe('utils', () => {
     });
 
     describe('desktopRunsCalls', () => {
+        const chromium = 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0';
+        const officialDesktopUA = `${chromium} Electron/37.2.0 Safari/537.36 Mattermost/6.4.0`;
+        const antimatterDesktopUA = `${chromium} Electron/37.2.0 Safari/537.36 Antimatter/0.9.0 Mattermost/6.4.0`;
+        const browserUA = `${chromium} Safari/537.36`;
+        let ua: jest.SpyInstance;
+
+        beforeEach(() => {
+            ua = jest.spyOn(window.navigator, 'userAgent', 'get');
+            ua.mockReturnValue(browserUA);
+        });
+
         afterEach(() => {
+            ua.mockRestore();
             delete window.desktop;
             delete window.desktopAPI;
             delete window.antimatterWebUI;
+            delete document.documentElement.dataset.amWebUi;
         });
 
+        const desktopWithWidget = (agent: string) => {
+            ua.mockReturnValue(agent);
+            window.desktop = {version: '6.4.0'};
+            window.desktopAPI = {joinCall: jest.fn()} as unknown as typeof window.desktopAPI;
+        };
+
         it('is false in a browser', () => {
+            expect(desktopRunsCalls()).toBe(false);
+            window.antimatterWebUI = 'fusion';
             expect(desktopRunsCalls()).toBe(false);
         });
 
@@ -136,11 +158,66 @@ describe('utils', () => {
             expect(desktopRunsCalls()).toBe(true);
         });
 
-        it('is false in the desktop app under Fusion, which runs the calls in the window', () => {
+        it('is true in both desktop apps under the classic web UI', () => {
+            desktopWithWidget(officialDesktopUA);
+            expect(desktopRunsCalls()).toBe(true);
+            desktopWithWidget(antimatterDesktopUA);
+            expect(desktopRunsCalls()).toBe(true);
+        });
+
+        it('is true under Fusion in the official desktop app, which offers its calls widget', () => {
             window.antimatterWebUI = 'fusion';
-            window.desktop = {version: '6.0.0'};
-            window.desktopAPI = {joinCall: jest.fn()} as unknown as typeof window.desktopAPI;
+            desktopWithWidget(officialDesktopUA);
+            expect(desktopRunsCalls()).toBe(true);
+        });
+
+        it('reads Fusion from the page too', () => {
+            document.documentElement.dataset.amWebUi = 'fusion';
+            desktopWithWidget(antimatterDesktopUA);
             expect(desktopRunsCalls()).toBe(false);
+        });
+
+        it('is false under Fusion in the Antimatter desktop app, which runs the calls in the window', () => {
+            window.antimatterWebUI = 'fusion';
+            desktopWithWidget(antimatterDesktopUA);
+            expect(desktopRunsCalls()).toBe(false);
+        });
+
+        it('is false under Fusion in a desktop app without the calls widget API', () => {
+            window.antimatterWebUI = 'fusion';
+            ua.mockReturnValue(officialDesktopUA);
+
+            // The legacy widget (desktop 5.3 to 5.5, driven by window messages) isn't used under Fusion.
+            window.desktop = {version: '5.3.0'};
+            expect(desktopRunsCalls()).toBe(false);
+
+            window.desktop = {version: '6.4.0'};
+            window.desktopAPI = {getDesktopSources: jest.fn()} as unknown as typeof window.desktopAPI;
+            expect(desktopRunsCalls()).toBe(false);
+        });
+    });
+
+    describe('isAntimatterDesktop', () => {
+        let ua: jest.SpyInstance;
+
+        beforeEach(() => {
+            ua = jest.spyOn(window.navigator, 'userAgent', 'get');
+        });
+
+        afterEach(() => {
+            ua.mockRestore();
+        });
+
+        it.each([
+            ['Mozilla/5.0 Chrome/138.0.0.0 Electron/37.2.0 Safari/537.36 Antimatter/0.9.0 Mattermost/6.4.0', true],
+            ['Mozilla/5.0 Chrome/138.0.0.0 Electron/37.2.0 Safari/537.36 Mattermost/6.4.0', false],
+            ['Mozilla/5.0 Chrome/138.0.0.0 Safari/537.36', false],
+
+            // The token alone, outside Electron, isn't the desktop app.
+            ['Mozilla/5.0 Chrome/138.0.0.0 Safari/537.36 Antimatter/0.9.0', false],
+        ])('%s', (agent, expected) => {
+            ua.mockReturnValue(agent);
+            expect(isAntimatterDesktop()).toBe(expected);
         });
     });
 
