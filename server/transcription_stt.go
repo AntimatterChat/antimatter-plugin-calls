@@ -298,6 +298,15 @@ func (p *Plugin) handleTranscriptionAudio(w http.ResponseWriter, r *http.Request
 		res.Code = http.StatusForbidden
 		return
 	}
+	// The client sends nothing while muted only because a muted track is silent: the server keeps someone a
+	// moderator muted, or in a stage's audience, from speaking through the captions and the transcript as it keeps
+	// them from unmuting. A self-mute isn't checked: the utterance in progress is sent when the track falls silent,
+	// so it lands just after the mute, and someone muted by themselves may unmute anyway.
+	if p.isModMuted(callID, userID) || p.isStageAudience(callID, userID) {
+		res.Err = "muted in the call"
+		res.Code = http.StatusForbidden
+		return
+	}
 
 	file, header, err := r.FormFile("audio")
 	if err != nil {
